@@ -12,9 +12,8 @@ void Renderer::Clear(Math::Vec<3, uint8_t> color)
         pixel = RGB(color[0], color[1], color[2]);
 }
 
-void Renderer::RenderScene(const Scene& scene)
+void Renderer::Submit(const Math::Sphere& entity)
 {
-    const auto& entities = scene.GetEntities();
     auto& framebuffer = Application::Get()->GetWindow().GetFramebuffer();
 
     auto [width, height] = Application::Get()->GetWindow().GetSize().Data;
@@ -43,19 +42,15 @@ void Renderer::RenderScene(const Scene& scene)
             ray.Origin = BL + (BR - BL) * (static_cast<float>(x) / static_cast<float>(framebufferWidth)) + (TL - BL) * (static_cast<float>(y) / static_cast<float>(framebufferHeight));
             ray.Direction = Math::Vec3f { 0.0f, 0.0f, 1.0f };
 
-            for (const auto& entity : entities)
-            {
-                if (Math::Intersects(ray, entity))
-                    framebuffer[y * framebufferWidth + x] = RGB(255, 0, 255);
-            }
+            if (Math::Intersects(ray, entity))
+                framebuffer[y * framebufferWidth + x] = RGB(255, 0, 255);
         }
     }
 }
 
 void Renderer::SwapFramebuffer()
 {
-    PAINTSTRUCT ps;
-    const HDC hdc = BeginPaint(Application::Get()->GetWindow().GetHandle(), &ps);
+    const HDC hdc = GetDC(Application::Get()->GetWindow().GetHandle());
 
     auto [width, height] = Application::Get()->GetWindow().GetSize().Data;
     const uint32_t framebufferWidth = width / 2;
@@ -75,6 +70,4 @@ void Renderer::SwapFramebuffer()
         0, 0, static_cast<int>(framebufferWidth), static_cast<int>(framebufferHeight),
         Application::Get()->GetWindow().GetFramebuffer().data(), &bmi, DIB_RGB_COLORS, SRCCOPY
     );
-
-    EndPaint(Application::Get()->GetWindow().GetHandle(), &ps);
 }

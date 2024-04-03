@@ -3,6 +3,7 @@
 
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Events/EventBus.h"
+#include "DLEngine/Renderer/Renderer.h"
 
 void Scene::Init()
 {
@@ -24,11 +25,17 @@ void Scene::OnUpdate(float dt)
         {
             Math::Vec3f moveDirection { m_MoveDirection.Data[0], m_MoveDirection.Data[1], 0.0f };
             entity.Center += moveDirection * dt;
-            m_MoveDirection = { 0.0f, 0.0f };
         }
 
-        InvalidateRect(Application::Get()->GetWindow().GetHandle(), nullptr, TRUE);
+        m_MoveDirection = { 0.0f, 0.0f };
     }
+
+    Renderer::Clear({ 0, 0, 0 });
+    
+    for (const auto& entity : m_Entities)
+        Renderer::Submit(entity);
+
+    Renderer::SwapFramebuffer();
 }
 
 void Scene::OnKeyPressedEvent(const KeyPressedEvent& event)

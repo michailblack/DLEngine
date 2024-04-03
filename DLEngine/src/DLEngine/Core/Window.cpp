@@ -27,11 +27,6 @@ static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             InvalidateRect(hWnd, nullptr, TRUE);
             break;
         }
-        case WM_PAINT:
-        {
-            EventBus::Get().TriggerEvent(ApplicationRenderEvent {});
-            break;
-        }
         case WM_KEYDOWN:
         {
             eventBus.QueueEvent(KeyPressedEvent { static_cast<int32_t>(wParam), 0 });

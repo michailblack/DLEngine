@@ -37,7 +37,6 @@ private:
 
 private:
     void OnWindowClose(const WindowCloseEvent& event);
-    void OnApplicationRender(const ApplicationRenderEvent& event);
 
 private:
     Window m_Window;
