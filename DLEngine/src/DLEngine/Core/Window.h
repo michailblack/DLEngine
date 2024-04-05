@@ -5,11 +5,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "Keyboard.h"
+#include "Mouse.h"
 #include "DLEngine/Math/Vec.h"
-#include "Events/ApplicationEvent.h"
 
 class Window
 {
+    friend LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 private:
     class WindowClass
     {
@@ -41,17 +43,33 @@ public:
     Window& operator=(const Window&) = delete;
 
     Math::Vec2<uint32_t> GetSize() const { return { m_Width, m_Height }; }
+    Math::Vec2<uint32_t> GetFramebufferSize() const { return m_FramebufferSize; }
+
     std::vector<COLORREF>& GetFramebuffer() { return m_BitmapFramebuffer; }
+
     HWND GetHandle() const { return m_hWnd; }
 
+    bool ShouldClose() const { return m_WindowShouldClose; }
+
+public:
+    Keyboard Keyboard;
+    Mouse Mouse;
+
 private:
-    void OnWindowResizeEvent(const WindowResizeEvent& event);
+    void OnResize(uint32_t width, uint32_t height);
+
+    static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK HandleMsgPassToWndMember(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    LRESULT CALLBACK HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
     uint32_t m_Width, m_Height;
     const wchar_t* m_Title;
 
+    bool m_WindowShouldClose { false };
+
     std::vector<COLORREF> m_BitmapFramebuffer;
+    Math::Vec2<uint32_t> m_FramebufferSize;
 
     HWND m_hWnd;
 };

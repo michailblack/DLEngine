@@ -78,7 +78,7 @@ namespace Math
     template <uint8_t N, typename T>
     T Dot(const Vec<N, T>& a, const Vec<N, T>& b)
     {
-        return std::inner_product(a.Data.begin(), a.Data.end(), b.Data.begin(), T {0});
+        return std::inner_product(a.Data.begin(), a.Data.end(), b.Data.begin(), T { 0 });
     }
 
     template <uint8_t N, typename T>

@@ -1,7 +1,7 @@
 ﻿#pragma once
+#include <memory>
 
-#define DL_BIND_EVENT_CALLBACK(EventCallback) [this]<typename EventTypeEnum>(EventTypeEnum&& e)\
-{ return this->EventCallback(std::forward<EventTypeEnum>(e)); }
+#define BIT(x) (1 << x)
 
 template <typename T>
 using Ref = std::shared_ptr<T>;

@@ -1,8 +1,4 @@
 #pragma once
-#include <vector>
-
-#include "DLEngine/Core/Events/KeyEvent.h"
-#include "DLEngine/Core/Events/MouseEvent.h"
 #include "DLEngine/Entity/Entity.h"
 
 class Scene
@@ -12,18 +8,19 @@ public:
 
     void OnUpdate(float dt);
 
-    const std::vector<Math::Sphere>& GetEntities() const { return m_Entities; }
+private:
+    void ProcessInputs();
 
 private:
-    void OnKeyPressedEvent(const KeyPressedEvent& event);
-    void OnMouseMovedEvent(const MouseMovedEvent& event);
-    void OnMouseButtonPressedEvent(const MouseButtonPressedEvent& event);
-    void OnMouseButtonReleasedEvent(const MouseButtonReleasedEvent& event);
+    Math::Sphere m_Sphere { { 0.0f, 0.0f, 5.0f }, 1.0f };
 
-private:
-    std::vector<Math::Sphere> m_Entities;
+    float m_EntitySpeed { 0.01f };
     Math::Vec2f m_MoveDirection { 0.0f, 0.0f };
-    Math::Vec2<int32_t> m_MousePosition { 0, 0 };
-    bool m_CanMove { false };
+
+    Math::Vec2<int32_t> m_PrevMousePosition { 0, 0 };
+    bool m_MouseWantsToMove { false };
+    bool m_MouseStartedDragging { false };
+
+    bool m_ShouldDraw { true };
 };
 
