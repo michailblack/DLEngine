@@ -5,15 +5,16 @@ namespace
 {
     struct RenderData
     {
+        const float widthMultiplier { 5.0f };
         struct
         {
-            float Left   { -10.0f  };
-            float Right  {  10.0f  };
-            float Bottom { -10.0f  };
-            float Top    {  10.0f  };
+            float Left   { -5.0f  };
+            float Right  {  5.0f  };
+            float Bottom { -5.0f  };
+            float Top    {  5.0f  };
             float Near   {  0.1f   };
             float Far    {  100.0f };
-        } const OrthoFrustum;
+        } OrthoFrustum;
 
         Ref<Window> Window;
     } s_Data;
@@ -35,9 +36,9 @@ void Renderer::Draw(const Math::Sphere& entity)
 
     const auto [framebufferWidth, framebufferHeight] = s_Data.Window->GetFramebufferSize().Data;
 
-    static const Math::Vec3f BL { s_Data.OrthoFrustum.Left , s_Data.OrthoFrustum.Bottom, s_Data.OrthoFrustum.Near };
-    static const Math::Vec3f BR { s_Data.OrthoFrustum.Right, s_Data.OrthoFrustum.Bottom, s_Data.OrthoFrustum.Near };
-    static const Math::Vec3f TL { s_Data.OrthoFrustum.Left , s_Data.OrthoFrustum.Top   , s_Data.OrthoFrustum.Near };
+    const Math::Vec3f BL { s_Data.OrthoFrustum.Left , s_Data.OrthoFrustum.Bottom, s_Data.OrthoFrustum.Near };
+    const Math::Vec3f BR { s_Data.OrthoFrustum.Right, s_Data.OrthoFrustum.Bottom, s_Data.OrthoFrustum.Near };
+    const Math::Vec3f TL { s_Data.OrthoFrustum.Left , s_Data.OrthoFrustum.Top   , s_Data.OrthoFrustum.Near };
 
     for (uint32_t y = 0; y < framebufferHeight; ++y)
     {
@@ -47,13 +48,14 @@ void Renderer::Draw(const Math::Sphere& entity)
             ray.Origin = BL + (BR - BL) * (static_cast<float>(x) / static_cast<float>(framebufferWidth)) + (TL - BL) * (static_cast<float>(y) / static_cast<float>(framebufferHeight));
             ray.Direction = Math::Vec3f { 0.0f, 0.0f, 1.0f };
 
-            if (Math::Intersects(ray, entity) != std::nullopt)
+            Math::IntersectInfo intersectInfo {};
+
+            if (Math::Intersects(ray, entity, intersectInfo))
                 framebuffer[y * framebufferWidth + x] = RGB(255, 0, 255);
             else
                 framebuffer[y * framebufferWidth + x] = RGB(0, 0, 0);
         }
     }
-
 
     auto [width, height] = s_Data.Window->GetSize().Data;
     const HDC hdc = GetDC(s_Data.Window->GetHandle());
@@ -82,4 +84,12 @@ Math::Vec2f Renderer::ScreenSpaceToWorldSpace(const Math::Vec2<int32_t>& screenP
     const float y = static_cast<float>(screenPos.Data[1]) / static_cast<float>(wndHeight) * (s_Data.OrthoFrustum.Top - s_Data.OrthoFrustum.Bottom) + s_Data.OrthoFrustum.Bottom;
 
     return { x, y };
+}
+
+void Renderer::OnResize(uint32_t width, uint32_t height)
+{
+    const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+
+    s_Data.OrthoFrustum.Left  = -s_Data.widthMultiplier * aspectRatio;
+    s_Data.OrthoFrustum.Right =  s_Data.widthMultiplier * aspectRatio;
 }

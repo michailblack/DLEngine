@@ -101,6 +101,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             const auto width = LOWORD(lParam);
             const auto height = HIWORD(lParam);
             OnResize(width, height);
+            Renderer::OnResize(width, height);
             m_ShouldRedraw = true;
         } break;
     case WM_KILLFOCUS:
@@ -112,7 +113,8 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
         {
-            Keyboard.OnKeyPressed(static_cast<uint8_t>(wParam));
+            if ((HIWORD(lParam) & KF_REPEAT) != KF_REPEAT)
+                Keyboard.OnKeyPressed(static_cast<uint8_t>(wParam));
         } break;
     case WM_KEYUP:
     case WM_SYSKEYUP:

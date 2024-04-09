@@ -8,6 +8,8 @@ public:
 
     void OnUpdate(float dt);
 
+    void RequestRedraw() { m_ShouldDraw = true; }
+
 private:
     void ProcessInputs();
 
