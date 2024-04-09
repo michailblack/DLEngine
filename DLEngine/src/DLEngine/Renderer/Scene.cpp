@@ -30,28 +30,26 @@ void Scene::ProcessInputs()
     if (Input::IsMouseButtonPressed(Mouse::Button::Right))
     {
         const Math::Vec2<int32_t> mousePosition = Input::GetMousePosition();
-    
-        if (m_MouseStartedDragging)
-        {
-            const Math::Vec2f mouseWorldPos = Renderer::ScreenSpaceToWorldSpace(mousePosition);
-            const Math::Vec2f prevMouseWorldPos = Renderer::ScreenSpaceToWorldSpace(m_PrevMousePosition);
-            m_PrevMousePosition = mousePosition;
-            Math::Vec2f delta = mouseWorldPos - prevMouseWorldPos;
+        const Math::Vec2f mouseWorldPos = Renderer::ScreenSpaceToWorldSpace(mousePosition);
 
-            if (Math::Length(delta) > 0.0f)
-            {
-                delta.Data[1] *= -1.0f;
-                m_Sphere.Center = { mouseWorldPos.Data[0], -mouseWorldPos.Data[1], m_Sphere.Center.Data[2] };
-                m_ShouldDraw = true;
-            }
-        }
-        else if (Renderer::MouseHoveringOverEntity(mousePosition) && Renderer::MouseHoveringOverEntity(m_PrevMousePosition))
+        if (!m_MouseStartedDragging)
         {
             m_MouseStartedDragging = true;
             m_ShouldDraw = true;
             m_PrevMousePosition = Input::GetMousePosition();
-            const Math::Vec2f mouseWorldPos = Renderer::ScreenSpaceToWorldSpace(mousePosition);
             m_Sphere.Center = { mouseWorldPos.Data[0], -mouseWorldPos.Data[1], m_Sphere.Center.Data[2] };
+            return;
+        }
+
+        const Math::Vec2f prevMouseWorldPos = Renderer::ScreenSpaceToWorldSpace(m_PrevMousePosition);
+        m_PrevMousePosition = mousePosition;
+        Math::Vec2f delta = mouseWorldPos - prevMouseWorldPos;
+
+        if (Math::Length(delta) > 0.0f)
+        {
+            delta.Data[1] *= -1.0f;
+            m_Sphere.Center = { mouseWorldPos.Data[0], -mouseWorldPos.Data[1], m_Sphere.Center.Data[2] };
+            m_ShouldDraw = true;
         }
     }
     else

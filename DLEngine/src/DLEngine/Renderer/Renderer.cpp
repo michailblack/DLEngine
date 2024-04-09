@@ -83,15 +83,3 @@ Math::Vec2f Renderer::ScreenSpaceToWorldSpace(const Math::Vec2<int32_t>& screenP
 
     return { x, y };
 }
-
-bool Renderer::MouseHoveringOverEntity(const Math::Vec2<int32_t>& mousePos)
-{
-    const auto& [wndWidth, wndHeight] = s_Data.Window->GetSize().Data;
-    const auto& framebuffer = s_Data.Window->GetFramebuffer();
-    const auto& [framebufferWidth, framebufferHeight] = s_Data.Window->GetFramebufferSize().Data;
-    
-    const uint32_t mouseX = static_cast<uint32_t>(static_cast<float>(mousePos.Data[0]) / static_cast<float>(wndWidth) * static_cast<float>(framebufferWidth));
-    const uint32_t mouseY = static_cast<uint32_t>(static_cast<float>(mousePos.Data[1]) / static_cast<float>(wndHeight) * static_cast<float>(framebufferHeight));
-    
-    return framebuffer[(framebufferHeight - mouseY - 1) * framebufferWidth + mouseX] != RGB(0, 0, 0);
-}

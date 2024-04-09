@@ -11,5 +11,4 @@ public:
     static void Draw(const Math::Sphere& entity);
 
     static Math::Vec2f ScreenSpaceToWorldSpace(const Math::Vec2<int32_t>& screenPos);
-    static bool MouseHoveringOverEntity(const Math::Vec2<int32_t>& mousePos);
 };
