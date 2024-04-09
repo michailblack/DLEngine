@@ -29,7 +29,7 @@ Ref<Window>& Renderer::GetWindow()
     return s_Data.Window;
 }
 
-void Renderer::Submit(const Math::Sphere& entity)
+void Renderer::Draw(const Math::Sphere& entity)
 {
     auto& framebuffer = s_Data.Window->GetFramebuffer();
 
@@ -47,20 +47,16 @@ void Renderer::Submit(const Math::Sphere& entity)
             ray.Origin = BL + (BR - BL) * (static_cast<float>(x) / static_cast<float>(framebufferWidth)) + (TL - BL) * (static_cast<float>(y) / static_cast<float>(framebufferHeight));
             ray.Direction = Math::Vec3f { 0.0f, 0.0f, 1.0f };
 
-            if (Math::Intersects(ray, entity))
+            if (Math::Intersects(ray, entity) != std::nullopt)
                 framebuffer[y * framebufferWidth + x] = RGB(255, 0, 255);
             else
                 framebuffer[y * framebufferWidth + x] = RGB(0, 0, 0);
         }
     }
-}
 
-void Renderer::SwapFramebuffer()
-{
-    const HDC hdc = GetDC(s_Data.Window->GetHandle());
 
     auto [width, height] = s_Data.Window->GetSize().Data;
-    const auto [framebufferWidth, framebufferHeight] = s_Data.Window->GetFramebufferSize().Data;
+    const HDC hdc = GetDC(s_Data.Window->GetHandle());
 
     BITMAPINFO bmi {};
     memset(&bmi, 0, sizeof(bmi));

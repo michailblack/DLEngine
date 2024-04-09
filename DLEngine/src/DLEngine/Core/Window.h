@@ -42,14 +42,17 @@ public:
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
 
+    void SetShouldRedraw(bool shouldRedraw) { m_ShouldRedraw = shouldRedraw; }
+
     Math::Vec2<uint32_t> GetSize() const { return { m_Width, m_Height }; }
-    Math::Vec2<uint32_t> GetFramebufferSize() const { return m_FramebufferSize; }
+    Math::Vec2<uint32_t> GetFramebufferSize() const { return { m_Width / m_FramebufferSizeCoefficient, m_Height / m_FramebufferSizeCoefficient }; }
 
     std::vector<COLORREF>& GetFramebuffer() { return m_BitmapFramebuffer; }
 
     HWND GetHandle() const { return m_hWnd; }
 
-    bool ShouldClose() const { return m_WindowShouldClose; }
+    bool ShouldClose() const { return m_ShouldClose; }
+    bool ShouldRedraw() const { return m_ShouldRedraw; }
 
 public:
     Keyboard Keyboard;
@@ -66,10 +69,11 @@ private:
     uint32_t m_Width, m_Height;
     const wchar_t* m_Title;
 
-    bool m_WindowShouldClose { false };
+    bool m_ShouldClose { false };
+    bool m_ShouldRedraw { true };
 
     std::vector<COLORREF> m_BitmapFramebuffer;
-    Math::Vec2<uint32_t> m_FramebufferSize;
+    uint32_t m_FramebufferSizeCoefficient { 4 };
 
     HWND m_hWnd;
 };

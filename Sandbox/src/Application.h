@@ -37,7 +37,7 @@ protected:
 private:
     static void InitConsole();
 
-    void ProcessInputs(MSG& msg) const;
+    void ProcessInputs() const;
 
 private:
     inline static Application* s_Instance { nullptr };

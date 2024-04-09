@@ -12,24 +12,16 @@ void Scene::OnUpdate(float dt)
 {
     ProcessInputs();
 
-    if (m_ShouldDraw)
+    if (m_ShouldDraw || Renderer::GetWindow()->ShouldRedraw())
     {
         m_ShouldDraw = false;
+        Renderer::GetWindow()->SetShouldRedraw(false);
 
         const Math::Vec3f moveDirection{ m_MoveDirection.Data[0], m_MoveDirection.Data[1], 0.0f };
-        if (m_MouseWantsToMove)
-        {
-            m_MouseWantsToMove = false;
-            m_Sphere.Center += moveDirection;
-        }
-        else
-        {
-            m_Sphere.Center += moveDirection * dt;
-        }
         m_MoveDirection = { 0.0f, 0.0f };
+        m_Sphere.Center += moveDirection * dt;
 
-        Renderer::Submit(m_Sphere);
-        Renderer::SwapFramebuffer();
+        Renderer::Draw(m_Sphere);
     }
 }
 
@@ -45,23 +37,21 @@ void Scene::ProcessInputs()
             const Math::Vec2f prevMouseWorldPos = Renderer::ScreenSpaceToWorldSpace(m_PrevMousePosition);
             m_PrevMousePosition = mousePosition;
             Math::Vec2f delta = mouseWorldPos - prevMouseWorldPos;
-    
-            m_MoveDirection = { 0.0f, 0.0f };
-    
+
             if (Math::Length(delta) > 0.0f)
             {
                 delta.Data[1] *= -1.0f;
-                m_MoveDirection = delta;
+                m_Sphere.Center = { mouseWorldPos.Data[0], -mouseWorldPos.Data[1], m_Sphere.Center.Data[2] };
                 m_ShouldDraw = true;
             }
-    
-            m_MouseWantsToMove = true;
         }
         else if (Renderer::MouseHoveringOverEntity(mousePosition) && Renderer::MouseHoveringOverEntity(m_PrevMousePosition))
         {
             m_MouseStartedDragging = true;
+            m_ShouldDraw = true;
             m_PrevMousePosition = Input::GetMousePosition();
-            m_MouseWantsToMove = true;
+            const Math::Vec2f mouseWorldPos = Renderer::ScreenSpaceToWorldSpace(mousePosition);
+            m_Sphere.Center = { mouseWorldPos.Data[0], -mouseWorldPos.Data[1], m_Sphere.Center.Data[2] };
         }
     }
     else

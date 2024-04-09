@@ -3,6 +3,8 @@
 
 #include <cassert>
 
+#include "DLEngine/Renderer/Renderer.h"
+
 Window::WindowClass::WindowClass()
 {
     assert(GetModuleHandleExW(0, nullptr, &m_hInstance));
@@ -28,9 +30,8 @@ Window::WindowClass::~WindowClass()
 
 Window::Window(uint32_t width, uint32_t height, const wchar_t* title)
     : m_Width(width), m_Height(height), m_Title(title)
-    , m_FramebufferSize({ width / 4, height / 4 })
 {
-    m_BitmapFramebuffer.resize(m_FramebufferSize.Data[0] * m_FramebufferSize.Data[1]);
+    m_BitmapFramebuffer.resize(GetFramebufferSize().Data[0] * GetFramebufferSize().Data[1]);
 
     RECT windowRect { 0, 0, static_cast<LONG>(m_Width), static_cast<LONG>(m_Height) };
     AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
@@ -61,9 +62,8 @@ void Window::OnResize(uint32_t width, uint32_t height)
 {
     m_Width = width;
     m_Height = height;
-    
-    m_FramebufferSize = { m_Width / 4, m_Height / 4 };
-    m_BitmapFramebuffer.resize(m_FramebufferSize.Data[0] * m_FramebufferSize.Data[1]);
+
+    m_BitmapFramebuffer.resize(GetFramebufferSize().Data[0] * GetFramebufferSize().Data[1]);
 }
 
 LRESULT Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -94,13 +94,14 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_CLOSE:
         {
             PostQuitMessage(0);
-            m_WindowShouldClose = true;
+            m_ShouldClose = true;
         } return 0;
     case WM_SIZE:
         {
             const auto width = LOWORD(lParam);
             const auto height = HIWORD(lParam);
             OnResize(width, height);
+            m_ShouldRedraw = true;
         } break;
     case WM_KILLFOCUS:
         {

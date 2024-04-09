@@ -26,14 +26,11 @@ void Application::Init()
 
 void Application::Run()
 {
-    MSG msg;
-
     while (!m_Window->ShouldClose())
     {
         const float dt = static_cast<float>(m_Timer.GetDeltaTimeMS());
 
-        ZeroMemory(&msg, sizeof(MSG));
-        ProcessInputs(msg);
+        ProcessInputs();
 
         if (m_Timer.FrameElapsed(dt))
         {
@@ -53,8 +50,10 @@ void Application::InitConsole()
     freopen_s(&dummy, "conout$", "w", stderr);
 }
 
-void Application::ProcessInputs(MSG& msg) const
+void Application::ProcessInputs() const
 {
+    MSG msg;
+
     while (PeekMessageW(&msg, m_Window->GetHandle(), 0, 0, PM_REMOVE))
     {
         TranslateMessage(&msg);
