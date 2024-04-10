@@ -1,6 +1,8 @@
 ﻿#include "dlpch.h"
 #include "Renderer.h"
 
+#include "DLEngine/Core/Application.h"
+
 namespace
 {
     struct RenderData
@@ -15,26 +17,14 @@ namespace
             float Near   {  0.1f   };
             float Far    {  100.0f };
         } OrthoFrustum;
-
-        Ref<Window> Window;
     } s_Data;
-}
-
-void Renderer::SetWindow(const Ref<Window>& window)
-{
-    s_Data.Window = window;
-}
-
-Ref<Window>& Renderer::GetWindow()
-{
-    return s_Data.Window;
 }
 
 void Renderer::Draw(const Math::Sphere& entity)
 {
-    auto& framebuffer = s_Data.Window->GetFramebuffer();
+    auto& framebuffer = Application::Get().GetWindow()->GetFramebuffer();
 
-    const auto [framebufferWidth, framebufferHeight] = s_Data.Window->GetFramebufferSize().Data;
+    const auto [framebufferWidth, framebufferHeight] = Application::Get().GetWindow()->GetFramebufferSize().Data;
 
     const Math::Vec3f BL { s_Data.OrthoFrustum.Left , s_Data.OrthoFrustum.Bottom, s_Data.OrthoFrustum.Near };
     const Math::Vec3f BR { s_Data.OrthoFrustum.Right, s_Data.OrthoFrustum.Bottom, s_Data.OrthoFrustum.Near };
@@ -57,8 +47,8 @@ void Renderer::Draw(const Math::Sphere& entity)
         }
     }
 
-    auto [width, height] = s_Data.Window->GetSize().Data;
-    const HDC hdc = GetDC(s_Data.Window->GetHandle());
+    auto [width, height] = Application::Get().GetWindow()->GetSize().Data;
+    const HDC hdc = GetDC(Application::Get().GetWindow()->GetHandle());
 
     BITMAPINFO bmi {};
     memset(&bmi, 0, sizeof(bmi));
@@ -72,13 +62,13 @@ void Renderer::Draw(const Math::Sphere& entity)
     StretchDIBits(hdc,
         0, 0, static_cast<int>(width), static_cast<int>(height),
         0, 0, static_cast<int>(framebufferWidth), static_cast<int>(framebufferHeight),
-        s_Data.Window->GetFramebuffer().data(), &bmi, DIB_RGB_COLORS, SRCCOPY
+        Application::Get().GetWindow()->GetFramebuffer().data(), &bmi, DIB_RGB_COLORS, SRCCOPY
     );
 }
 
 Math::Vec2f Renderer::ScreenSpaceToWorldSpace(const Math::Vec2<int32_t>& screenPos)
 {
-    const auto [wndWidth, wndHeight] = s_Data.Window->GetSize().Data;
+    const auto [wndWidth, wndHeight] = Application::Get().GetWindow()->GetSize().Data;
 
     const float x = static_cast<float>(screenPos.Data[0]) / static_cast<float>(wndWidth) * (s_Data.OrthoFrustum.Right - s_Data.OrthoFrustum.Left) + s_Data.OrthoFrustum.Left;
     const float y = static_cast<float>(screenPos.Data[1]) / static_cast<float>(wndHeight) * (s_Data.OrthoFrustum.Top - s_Data.OrthoFrustum.Bottom) + s_Data.OrthoFrustum.Bottom;

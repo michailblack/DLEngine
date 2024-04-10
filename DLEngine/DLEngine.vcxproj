@@ -159,24 +159,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\Core\Application.h" />
     <ClInclude Include="src\DLEngine\Core\Base.h" />
+    <ClInclude Include="src\DLEngine\Core\EntryPoint.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\ApplicationEvent.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\Event.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\KeyEvent.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\MouseEvent.h" />
     <ClInclude Include="src\DLEngine\Core\Input.h" />
-    <ClInclude Include="src\DLEngine\Core\Keyboard.h" />
-    <ClInclude Include="src\DLEngine\Core\Mouse.h" />
+    <ClInclude Include="src\DLEngine\Core\Layer.h" />
+    <ClInclude Include="src\DLEngine\Core\LayerStack.h" />
     <ClInclude Include="src\DLEngine\Entity\Entity.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Scene.h" />
     <ClInclude Include="src\DLEngine\Math\Vec.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\Core\Application.cpp" />
     <ClCompile Include="src\DLEngine\Core\Input.cpp" />
-    <ClCompile Include="src\DLEngine\Core\Keyboard.cpp" />
-    <ClCompile Include="src\DLEngine\Core\Mouse.cpp" />
+    <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Scene.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
     <ClCompile Include="src\dlpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

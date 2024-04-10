@@ -1,14 +1,17 @@
 #pragma once
+#include "DLEngine/Core/Layer.h"
+
 #include "DLEngine/Entity/Entity.h"
 
-class Scene
+class WorldLayer
+    : public Layer
 {
 public:
-    void Init();
+    ~WorldLayer() override;
 
-    void OnUpdate(float dt);
-
-    void RequestRedraw() { m_ShouldDraw = true; }
+    void OnAttach() override;
+    void OnDetach() override;
+    void OnUpdate(float dt) override;
 
 private:
     void ProcessInputs();

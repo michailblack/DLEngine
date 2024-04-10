@@ -1,29 +1,44 @@
 ﻿#include "dlpch.h"
 #include "Input.h"
 
-#include "DLEngine/Renderer/Renderer.h"
 
-bool Input::IsKeyPressed(uint8_t keyCode)
+bool Input::IsKeyPressed(uint8_t keyCode) const
 {
-    return Renderer::GetWindow()->Keyboard.IsKeyPressed(keyCode);
+    return m_KeysStates[keyCode];
 }
 
-bool Input::IsMouseButtonPressed(Mouse::Button button)
+Math::Vec2<int32_t> Input::GetCursorPosition() const
 {
-    return Renderer::GetWindow()->Mouse.IsButtonPressed(button);
+    return { m_MouseX, m_MouseY };
 }
 
-Math::Vec2<int32_t> Input::GetMousePosition()
+int32_t Input::GetMouseX() const
 {
-    return Renderer::GetWindow()->Mouse.GetPosition();
+    return m_MouseX;
 }
 
-int32_t Input::GetMouseX()
+int32_t Input::GetMouseY() const
 {
-    return GetMousePosition().Data[0];
+    return m_MouseY;
 }
 
-int32_t Input::GetMouseY()
+void Input::OnKeyPressed(uint8_t keyCode)
 {
-    return GetMousePosition().Data[1];
+    m_KeysStates[keyCode] = true;
+}
+
+void Input::OnKeyReleased(uint8_t keyCode)
+{
+    m_KeysStates[keyCode] = false;
+}
+
+void Input::OnMouseMove(int32_t x, int32_t y)
+{
+    m_MouseX = x;
+    m_MouseY = y;
+}
+
+void Input::ResetKeys()
+{
+    m_KeysStates.reset();
 }

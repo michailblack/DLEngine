@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include <memory>
 
-#define BIT(x) (1 << x)
+#define BIT(x) (1 << (x))
+
+#define DL_BIND_EVENT_FN(EventFn) [this]<typename EventType>(EventType&& e) { return this->EventFn(std::forward<EventType>(e)); }
 
 template <typename T>
 using Ref = std::shared_ptr<T>;

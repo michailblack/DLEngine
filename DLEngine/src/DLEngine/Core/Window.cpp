@@ -3,6 +3,12 @@
 
 #include <cassert>
 
+#include "DLEngine/Core/Input.h"
+
+#include "DLEngine/Core/Events/ApplicationEvent.h"
+#include "DLEngine/Core/Events/KeyEvent.h"
+#include "DLEngine/Core/Events/MouseEvent.h"
+
 #include "DLEngine/Renderer/Renderer.h"
 
 Window::WindowClass::WindowClass()
@@ -28,18 +34,22 @@ Window::WindowClass::~WindowClass()
     UnregisterClassW(m_WindowClassName, m_hInstance);
 }
 
-Window::Window(uint32_t width, uint32_t height, const wchar_t* title)
-    : m_Width(width), m_Height(height), m_Title(title)
+Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const EventCallbackFn& callback)
 {
+    m_Data.m_Width = width;
+    m_Data.m_Height = height;
+    m_Data.m_Title = title;
+    m_Data.m_EventCallback = callback;
+
     m_BitmapFramebuffer.resize(GetFramebufferSize().Data[0] * GetFramebufferSize().Data[1]);
 
-    RECT windowRect { 0, 0, static_cast<LONG>(m_Width), static_cast<LONG>(m_Height) };
+    RECT windowRect { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
     AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
 
     m_hWnd = CreateWindowExW(
         0,
         WindowClass::GetName(),
-        m_Title,
+        title,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
         windowRect.right - windowRect.left, windowRect.bottom - windowRect.top,
@@ -60,8 +70,8 @@ Window::~Window()
 
 void Window::OnResize(uint32_t width, uint32_t height)
 {
-    m_Width = width;
-    m_Height = height;
+    m_Data.m_Width = width;
+    m_Data.m_Height = height;
 
     m_BitmapFramebuffer.resize(GetFramebufferSize().Data[0] * GetFramebufferSize().Data[1]);
 }
@@ -94,19 +104,21 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_CLOSE:
         {
             PostQuitMessage(0);
-            m_ShouldClose = true;
+            auto windowCloseEvent { WindowCloseEvent {} };
+            m_Data.m_EventCallback(windowCloseEvent);
         } return 0;
     case WM_SIZE:
         {
             const auto width = LOWORD(lParam);
             const auto height = HIWORD(lParam);
+            auto windowResizeEvent { WindowResizeEvent { width, height } };
+            m_Data.m_EventCallback(windowResizeEvent);
             OnResize(width, height);
             Renderer::OnResize(width, height);
-            m_ShouldRedraw = true;
         } break;
     case WM_KILLFOCUS:
         {
-            Keyboard.ResetKeys();
+            Input::Get().ResetKeys();
         } break;
 
     // Keyboard input
@@ -114,12 +126,22 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_SYSKEYDOWN:
         {
             if ((HIWORD(lParam) & KF_REPEAT) != KF_REPEAT)
-                Keyboard.OnKeyPressed(static_cast<uint8_t>(wParam));
+            {
+                const auto key = static_cast<uint8_t>(wParam);
+                Input::Get().OnKeyPressed(key);
+
+                auto keyPressedEvent { KeyPressedEvent { key } };
+                m_Data.m_EventCallback(keyPressedEvent);
+            }
         } break;
     case WM_KEYUP:
     case WM_SYSKEYUP:
         {
-            Keyboard.OnKeyReleased(static_cast<uint8_t>(wParam));
+            const auto key = static_cast<uint8_t>(wParam);
+            Input::Get().OnKeyReleased(key);
+
+            auto keyReleasedEvent { KeyReleasedEvent { key } };
+            m_Data.m_EventCallback(keyReleasedEvent);
         } break;
     // End of keyboard input
 
@@ -127,37 +149,52 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_MOUSEMOVE:
         {
             const POINTS pt = MAKEPOINTS(lParam);
-            Mouse.OnMouseMove(pt.x, pt.y);
+            Input::Get().OnMouseMove(pt.x, pt.y);
+
+            auto mouseMovedEvent { MouseMovedEvent { pt.x, pt.y } };
+            m_Data.m_EventCallback(mouseMovedEvent);
         } break;
     case WM_LBUTTONDOWN:
         {
-            const POINTS pt = MAKEPOINTS(lParam);
-            Mouse.OnMouseButtonPressed(Mouse::Button::Left, pt.x, pt.y);
+            Input::Get().OnKeyPressed(VK_LBUTTON);
+
+            auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_LBUTTON } };
+            m_Data.m_EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_LBUTTONUP:
         {
-            const POINTS pt = MAKEPOINTS(lParam);
-            Mouse.OnMouseButtonReleased(Mouse::Button::Left, pt.x, pt.y);
+            Input::Get().OnKeyReleased(VK_LBUTTON);
+
+            auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_LBUTTON } };
+            m_Data.m_EventCallback(mouseButtonReleasedEvent);
         } break;
     case WM_RBUTTONDOWN:
         {
-            const POINTS pt = MAKEPOINTS(lParam);
-            Mouse.OnMouseButtonPressed(Mouse::Button::Right, pt.x, pt.y);
+            Input::Get().OnKeyPressed(VK_RBUTTON);
+
+            auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_RBUTTON } };
+            m_Data.m_EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_RBUTTONUP:
         {
-            const POINTS pt = MAKEPOINTS(lParam);
-            Mouse.OnMouseButtonReleased(Mouse::Button::Right, pt.x, pt.y);
+            Input::Get().OnKeyReleased(VK_RBUTTON);
+
+            auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_RBUTTON } };
+            m_Data.m_EventCallback(mouseButtonReleasedEvent);
         } break;
     case WM_MBUTTONDOWN:
         {
-            const POINTS pt = MAKEPOINTS(lParam);
-            Mouse.OnMouseButtonPressed(Mouse::Button::Middle, pt.x, pt.y);
+            Input::Get().OnKeyPressed(VK_MBUTTON);
+
+            auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_MBUTTON } };
+            m_Data.m_EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_MBUTTONUP:
         {
-            const POINTS pt = MAKEPOINTS(lParam);
-            Mouse.OnMouseButtonReleased(Mouse::Button::Middle, pt.x, pt.y);
+            Input::Get().OnKeyReleased(VK_MBUTTON);
+
+            auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_MBUTTON } };
+            m_Data.m_EventCallback(mouseButtonReleasedEvent);
         } break;
     // End of mouse input
     }

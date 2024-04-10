@@ -1,9 +1,23 @@
-#include "Application.h"
+#include "DLEngine/Core/EntryPoint.h"
 
-int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
+#include "Sandbox/WorldLayer.h"
+
+class SandboxApp
+    : public Application
 {
-    auto* app = new Application({ 800, 600, L"Simple Ray Casting" });
-    app->Init();
-    app->Run();
-    delete app;
+public:
+    SandboxApp(const ApplicationSpecification& spec)
+        : Application(spec)
+    {
+        PushLayer(new WorldLayer());
+    }
+};
+
+Application* CreateApplication()
+{
+    ApplicationSpecification spec;
+    spec.WndTitle  = L"Sandbox";
+    spec.WndWidth  = 800;
+    spec.WndHeight = 600;
+    return new SandboxApp(spec);
 }
