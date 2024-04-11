@@ -41,8 +41,6 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
     m_Data.m_Title = title;
     m_Data.m_EventCallback = callback;
 
-    m_BitmapFramebuffer.resize(GetFramebufferSize().Data[0] * GetFramebufferSize().Data[1]);
-
     RECT windowRect { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
     AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
 
@@ -66,14 +64,6 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
 Window::~Window()
 {
     DestroyWindow(m_hWnd);
-}
-
-void Window::OnResize(uint32_t width, uint32_t height)
-{
-    m_Data.m_Width = width;
-    m_Data.m_Height = height;
-
-    m_BitmapFramebuffer.resize(GetFramebufferSize().Data[0] * GetFramebufferSize().Data[1]);
 }
 
 LRESULT Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -111,10 +101,14 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             const auto width = LOWORD(lParam);
             const auto height = HIWORD(lParam);
+
+            m_Data.m_Width = width;
+            m_Data.m_Height = height;
+
+            Renderer::OnResize(width, height);
+
             auto windowResizeEvent { WindowResizeEvent { width, height } };
             m_Data.m_EventCallback(windowResizeEvent);
-            OnResize(width, height);
-            Renderer::OnResize(width, height);
         } break;
     case WM_KILLFOCUS:
         {

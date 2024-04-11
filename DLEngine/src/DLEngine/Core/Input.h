@@ -1,7 +1,8 @@
 ﻿#pragma once
 #include <bitset>
+#include <DirectXMath.h>
 
-#include "DLEngine/Math/Vec.h"
+#include "DLEngine/Math/Vec2.h"
 
 class Input
 {
@@ -21,7 +22,7 @@ public:
     }
 
     bool IsKeyPressed(uint8_t keyCode) const;
-    Math::Vec2<int32_t> GetCursorPosition() const;
+    Math::Vec2 GetCursorPosition() const;
     int32_t GetMouseX() const;
     int32_t GetMouseY() const;
 

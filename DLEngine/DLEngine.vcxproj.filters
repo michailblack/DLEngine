@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\DLEngine\Math\Vec.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\Core\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -63,6 +60,18 @@
     <ClInclude Include="src\DLEngine\Core\Events\MouseEvent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\DLEngine\Math\Vec3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Math\Vec2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Math\Vec4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Math\Mat4x4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Window.cpp">
@@ -83,5 +92,19 @@
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\DLEngine\Math\Vec3.inl">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="src\DLEngine\Math\Vec2.inl">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="src\DLEngine\Math\Vec4.inl">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="src\DLEngine\Math\Mat4x4.inl">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

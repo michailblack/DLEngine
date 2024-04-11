@@ -7,9 +7,9 @@ bool Input::IsKeyPressed(uint8_t keyCode) const
     return m_KeysStates[keyCode];
 }
 
-Math::Vec2<int32_t> Input::GetCursorPosition() const
+Math::Vec2 Input::GetCursorPosition() const
 {
-    return { m_MouseX, m_MouseY };
+    return { static_cast<float>(m_MouseX), static_cast<float>(m_MouseY) };
 }
 
 int32_t Input::GetMouseX() const
