@@ -1,13 +1,15 @@
 ﻿#pragma once
+#include "Camera.h"
 #include "DLEngine/Entity/Entity.h"
 #include "DLEngine/Math/Vec2.h"
 
 class Renderer
 {
 public:
-    static void Draw(const Math::Sphere& entity);
+    static void BeginScene(const Camera& camera);
+    static void EndScene();
 
-    static Math::Vec2 ScreenSpaceToWorldSpace(const Math::Vec2& screenPos);
+    static void Submit(const Math::Sphere& sphere);
 
     static void OnResize(uint32_t width, uint32_t height);
 };

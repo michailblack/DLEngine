@@ -1,44 +1,58 @@
 ﻿#include "dlpch.h"
 #include "Input.h"
 
+#include <bitset>
 
-bool Input::IsKeyPressed(uint8_t keyCode) const
+namespace 
 {
-    return m_KeysStates[keyCode];
+    struct InputData
+    {
+        static constexpr uint8_t s_KeyCount { 255u };
+
+        std::bitset<s_KeyCount> m_KeysStates;
+
+        int32_t m_MouseX { 0 };
+        int32_t m_MouseY { 0 };
+    } s_Data;
 }
 
-Math::Vec2 Input::GetCursorPosition() const
+bool Input::IsKeyPressed(uint8_t keyCode)
 {
-    return { static_cast<float>(m_MouseX), static_cast<float>(m_MouseY) };
+    return s_Data.m_KeysStates[keyCode];
 }
 
-int32_t Input::GetMouseX() const
+Math::Vec2 Input::GetCursorPosition()
 {
-    return m_MouseX;
+    return Math::Vec2 { static_cast<float>(s_Data.m_MouseX), static_cast<float>(s_Data.m_MouseY) };
 }
 
-int32_t Input::GetMouseY() const
+int32_t Input::GetMouseX()
 {
-    return m_MouseY;
+    return s_Data.m_MouseX;
+}
+
+int32_t Input::GetMouseY()
+{
+    return s_Data.m_MouseY;
 }
 
 void Input::OnKeyPressed(uint8_t keyCode)
 {
-    m_KeysStates[keyCode] = true;
+    s_Data.m_KeysStates[keyCode] = true;
 }
 
 void Input::OnKeyReleased(uint8_t keyCode)
 {
-    m_KeysStates[keyCode] = false;
+    s_Data.m_KeysStates[keyCode] = false;
 }
 
 void Input::OnMouseMove(int32_t x, int32_t y)
 {
-    m_MouseX = x;
-    m_MouseY = y;
+    s_Data.m_MouseX = x;
+    s_Data.m_MouseY = y;
 }
 
 void Input::ResetKeys()
 {
-    m_KeysStates.reset();
+    s_Data.m_KeysStates.reset();
 }

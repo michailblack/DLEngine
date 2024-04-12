@@ -46,7 +46,7 @@ public:
     Window& operator=(const Window&) = delete;
     Window& operator=(Window&&) = delete;
 
-    Math::Vec2 GetSize() const { return { static_cast<float>(m_Data.m_Width), static_cast<float>(m_Data.m_Height) }; }
+    Math::Vec2 GetSize() const { return Math::Vec2 { static_cast<float>(m_Data.m_Width), static_cast<float>(m_Data.m_Height) }; }
 
     HWND GetHandle() const { return m_hWnd; }
 

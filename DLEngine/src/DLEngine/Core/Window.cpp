@@ -112,7 +112,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         } break;
     case WM_KILLFOCUS:
         {
-            Input::Get().ResetKeys();
+            Input::ResetKeys();
         } break;
 
     // Keyboard input
@@ -122,7 +122,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if ((HIWORD(lParam) & KF_REPEAT) != KF_REPEAT)
             {
                 const auto key = static_cast<uint8_t>(wParam);
-                Input::Get().OnKeyPressed(key);
+                Input::OnKeyPressed(key);
 
                 auto keyPressedEvent { KeyPressedEvent { key } };
                 m_Data.m_EventCallback(keyPressedEvent);
@@ -132,7 +132,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_SYSKEYUP:
         {
             const auto key = static_cast<uint8_t>(wParam);
-            Input::Get().OnKeyReleased(key);
+            Input::OnKeyReleased(key);
 
             auto keyReleasedEvent { KeyReleasedEvent { key } };
             m_Data.m_EventCallback(keyReleasedEvent);
@@ -140,52 +140,59 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     // End of keyboard input
 
     // Mouse input
+    case WM_MOUSEWHEEL:
+        {
+            const auto delta = GET_WHEEL_DELTA_WPARAM(wParam);
+
+            auto mouseWheelEvent { MouseScrolledEvent { delta } };
+            m_Data.m_EventCallback(mouseWheelEvent);
+        } break;
     case WM_MOUSEMOVE:
         {
             const POINTS pt = MAKEPOINTS(lParam);
-            Input::Get().OnMouseMove(pt.x, pt.y);
+            Input::OnMouseMove(pt.x, pt.y);
 
             auto mouseMovedEvent { MouseMovedEvent { pt.x, pt.y } };
             m_Data.m_EventCallback(mouseMovedEvent);
         } break;
     case WM_LBUTTONDOWN:
         {
-            Input::Get().OnKeyPressed(VK_LBUTTON);
+            Input::OnKeyPressed(VK_LBUTTON);
 
             auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_LBUTTON } };
             m_Data.m_EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_LBUTTONUP:
         {
-            Input::Get().OnKeyReleased(VK_LBUTTON);
+            Input::OnKeyReleased(VK_LBUTTON);
 
             auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_LBUTTON } };
             m_Data.m_EventCallback(mouseButtonReleasedEvent);
         } break;
     case WM_RBUTTONDOWN:
         {
-            Input::Get().OnKeyPressed(VK_RBUTTON);
+            Input::OnKeyPressed(VK_RBUTTON);
 
             auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_RBUTTON } };
             m_Data.m_EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_RBUTTONUP:
         {
-            Input::Get().OnKeyReleased(VK_RBUTTON);
+            Input::OnKeyReleased(VK_RBUTTON);
 
             auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_RBUTTON } };
             m_Data.m_EventCallback(mouseButtonReleasedEvent);
         } break;
     case WM_MBUTTONDOWN:
         {
-            Input::Get().OnKeyPressed(VK_MBUTTON);
+            Input::OnKeyPressed(VK_MBUTTON);
 
             auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_MBUTTON } };
             m_Data.m_EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_MBUTTONUP:
         {
-            Input::Get().OnKeyReleased(VK_MBUTTON);
+            Input::OnKeyReleased(VK_MBUTTON);
 
             auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_MBUTTON } };
             m_Data.m_EventCallback(mouseButtonReleasedEvent);

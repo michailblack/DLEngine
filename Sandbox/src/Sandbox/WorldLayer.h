@@ -4,33 +4,23 @@
 
 #include "DLEngine/Entity/Entity.h"
 
-#include "DLEngine/Math/Vec2.h"
+#include "DLEngine/Renderer/CameraController.h"
 
 class WorldLayer
     : public Layer
 {
 public:
+    WorldLayer();
     ~WorldLayer() override;
 
     void OnAttach() override;
     void OnDetach() override;
     void OnUpdate(float dt) override;
-    void OnEvent(Event& event) override;
+    void OnEvent(Event& e) override;
 
 private:
-    void ProcessInputs();
+    CameraController m_CameraController;
 
-    bool OnWindowResize(WindowResizeEvent& event);
-
-private:
-    Math::Sphere m_Sphere { { 0.0f, 0.0f, 5.0f }, 1.0f };
-
-    float m_EntitySpeed { 0.01f };
-    Math::Vec2 m_MoveDirection { 0.0f, 0.0f };
-
-    Math::Vec2 m_PrevMousePosition { 0, 0 };
-    bool m_MouseStartedDragging { false };
-
-    bool m_ShouldDraw { true };
+    Math::Sphere m_Sphere { Math::Vec3{ 0.0f, 0.0f, 5.0f }, 1.0f };
 };
 

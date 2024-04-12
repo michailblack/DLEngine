@@ -9,7 +9,7 @@ public:
     SandboxApp(const ApplicationSpecification& spec)
         : Application(spec)
     {
-        PushLayer(new WorldLayer());
+        PushLayer(new WorldLayer {});
     }
 };
 

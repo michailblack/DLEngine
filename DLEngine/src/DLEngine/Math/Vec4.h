@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <DirectXMath.h>
 
+#include "DLEngine/Math/Vec3.h"
+
 namespace Math
 {
     class Vec4
@@ -10,16 +12,19 @@ namespace Math
         Vec4()
             : XMFLOAT4 { 0.0f, 0.0f, 0.0f, 0.0f }
         {}
-        Vec4(float x, float y, float z, float w = 0.0f)
+        explicit Vec4(float x, float y, float z, float w = 0.0f)
             : XMFLOAT4 { x, y, z, w }
         {}
-        Vec4(float v)
-            : XMFLOAT4 { v, v, v, 0.0f }
+        explicit Vec4(float v)
+            : XMFLOAT4 { v, v, v, v }
         {}
-        Vec4(const XMFLOAT4& v)
+        explicit Vec4(const Vec3& v, float w = 0.0f)
+            : XMFLOAT4 { v.x, v.y, v.z, w }
+        {}
+        explicit Vec4(const XMFLOAT4& v)
             : XMFLOAT4 { v }
         {}
-        Vec4(const DirectX::XMVECTOR& v)
+        explicit Vec4(const DirectX::XMVECTOR& v)
         {
             DirectX::XMStoreFloat4(this, v);
         }
@@ -32,6 +37,9 @@ namespace Math
         Vec4& operator=(Vec4&&) = default;
 
         explicit operator DirectX::XMVECTOR() const { return DirectX::XMLoadFloat4(this); }
+
+        inline void operator*=(float s);
+        inline void operator/=(float s);
     };
 
     inline float Length(const Vec4& v);
@@ -43,6 +51,8 @@ namespace Math
     inline Vec4 operator*(const Vec4& v, float s);
     inline Vec4 operator*(float s, const Vec4& v);
     inline Vec4 operator/(const Vec4& v, float s);
+
+    inline Vec3 RotateQuaternion(const Vec3& v, const Vec3& normalizedAxis, float angle);
 }
 
 #include "Vec4.inl"

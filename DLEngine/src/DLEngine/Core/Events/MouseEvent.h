@@ -50,3 +50,18 @@ public:
 private:
     int32_t m_MouseX, m_MouseY;
 };
+
+class MouseScrolledEvent : public Event
+{
+public:
+    MouseScrolledEvent(int32_t offset)
+        : m_Offset(offset)
+    {}
+
+    int32_t GetOffset() const { return m_Offset; }
+
+    EVENT_CLASS_TYPE(MouseScrolled)
+
+private:
+    int32_t m_Offset;
+};

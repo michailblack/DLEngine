@@ -10,16 +10,16 @@ namespace Math
         Vec3()
             : XMFLOAT3 { 0.0f, 0.0f, 0.0f }
         {}
-        Vec3(float x, float y, float z)
+        explicit Vec3(float x, float y, float z)
             : XMFLOAT3 { x, y, z }
         {}
-        Vec3(float v)
+        explicit Vec3(float v)
             : XMFLOAT3 { v, v, v }
         {}
-        Vec3(const XMFLOAT3& v)
+        explicit Vec3(const XMFLOAT3& v)
             : XMFLOAT3 { v }
         {}
-        Vec3(const DirectX::XMVECTOR& v)
+        explicit Vec3(const DirectX::XMVECTOR& v)
         {
             DirectX::XMStoreFloat3(this, v);
         }
@@ -32,6 +32,11 @@ namespace Math
         Vec3& operator=(Vec3&&) = default;
 
         explicit operator DirectX::XMVECTOR() const { return DirectX::XMLoadFloat3(this); }
+
+        void operator+=(const Vec3& v);
+        void operator-=(const Vec3& v);
+        void operator*=(float s);
+        void operator/=(float s);
     };
 
     inline float Length(const Vec3& v);
@@ -41,6 +46,7 @@ namespace Math
 
     inline Vec3 operator+(const Vec3& v1, const Vec3& v2);
     inline Vec3 operator-(const Vec3& v1, const Vec3& v2);
+    inline Vec3 operator-(const Vec3& v);
     inline Vec3 operator*(const Vec3& v, float s);
     inline Vec3 operator*(float s, const Vec3& v);
     inline Vec3 operator/(const Vec3& v, float s);

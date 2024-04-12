@@ -170,10 +170,13 @@
     <ClInclude Include="src\DLEngine\Core\Layer.h" />
     <ClInclude Include="src\DLEngine\Core\LayerStack.h" />
     <ClInclude Include="src\DLEngine\Entity\Entity.h" />
+    <ClInclude Include="src\DLEngine\Math\Math.h" />
     <ClInclude Include="src\DLEngine\Math\Mat4x4.h" />
     <ClInclude Include="src\DLEngine\Math\Vec2.h" />
     <ClInclude Include="src\DLEngine\Math\Vec3.h" />
     <ClInclude Include="src\DLEngine\Math\Vec4.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
+    <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
@@ -183,6 +186,8 @@
     <ClCompile Include="src\DLEngine\Core\Application.cpp" />
     <ClCompile Include="src\DLEngine\Core\Input.cpp" />
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
     <ClCompile Include="src\dlpch.cpp">

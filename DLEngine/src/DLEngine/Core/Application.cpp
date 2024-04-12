@@ -19,8 +19,6 @@ void Application::Run()
         {
             m_Timer.Reset();
 
-            std::cout << "dt: " << dt << "ms\n";
-
             for (const auto& layer : m_LayerStack)
                 layer->OnUpdate(dt);
         }

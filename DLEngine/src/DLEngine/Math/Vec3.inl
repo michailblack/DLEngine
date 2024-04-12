@@ -3,6 +3,26 @@
 
 namespace Math
 {
+    inline void Vec3::operator+=(const Vec3& v)
+    {
+        *this = *this + v;
+    }
+
+    inline void Vec3::operator-=(const Vec3& v)
+    {
+        *this = *this - v;
+    }
+
+    inline void Vec3::operator*=(float s)
+    {
+        *this = *this * s;
+    }
+
+    inline void Vec3::operator/=(float s)
+    {
+        *this = *this / s;
+    }
+
     inline float Length(const Vec3& v)
     {
         return DirectX::XMVectorGetX(DirectX::XMVector3Length(static_cast<DirectX::XMVECTOR>(v)));
@@ -15,36 +35,41 @@ namespace Math
 
     inline Vec3 Cross(const Vec3& v1, const Vec3& v2)
     {
-        return { DirectX::XMVector3Cross(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)) };
+        return static_cast<Vec3>(DirectX::XMVector3Cross(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
     }
 
     inline Vec3 Normalize(const Vec3& v)
     {
-        return { DirectX::XMVector3Normalize(static_cast<DirectX::XMVECTOR>(v)) };
+        return static_cast<Vec3>(DirectX::XMVector3Normalize(static_cast<DirectX::XMVECTOR>(v)));
     }
 
     inline Vec3 operator+(const Vec3& v1, const Vec3& v2)
     {
-        return { DirectX::XMVectorAdd(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)) };
+        return static_cast<Vec3>(DirectX::XMVectorAdd(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
     }
 
     inline Vec3 operator-(const Vec3& v1, const Vec3& v2)
     {
-        return { DirectX::XMVectorSubtract(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)) };
+        return static_cast<Vec3>(DirectX::XMVectorSubtract(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
+    }
+
+    inline Vec3 operator-(const Vec3& v)
+    {
+        return static_cast<Vec3>(DirectX::XMVectorNegate(static_cast<DirectX::XMVECTOR>(v)));
     }
 
     inline Vec3 operator*(const Vec3& v, float s)
     {
-        return { DirectX::XMVectorScale(static_cast<DirectX::XMVECTOR>(v), s) };
+        return static_cast<Vec3>(DirectX::XMVectorScale(static_cast<DirectX::XMVECTOR>(v), s));
     }
 
     inline Vec3 operator*(float s, const Vec3& v)
     {
-        return { DirectX::XMVectorScale(static_cast<DirectX::XMVECTOR>(v), s) };
+        return static_cast<Vec3>(DirectX::XMVectorScale(static_cast<DirectX::XMVECTOR>(v), s));
     }
 
     inline Vec3 operator/(const Vec3& v, float s)
     {
-        return { DirectX::XMVectorScale(static_cast<DirectX::XMVECTOR>(v), 1.0f / s) };
+        return static_cast<Vec3>(DirectX::XMVectorScale(static_cast<DirectX::XMVECTOR>(v), 1.0f / s));
     }
 }
