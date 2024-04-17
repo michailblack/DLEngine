@@ -156,8 +156,6 @@ bool CameraController::OnMouseScrolled(MouseScrolledEvent& e)
                 m_Velocity = m_MinVelocity;
             }
         }
-
-        std::cout << "Camera translation speed: " << m_Velocity << std::endl;
     }
 
     return false;

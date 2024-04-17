@@ -1,6 +1,8 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
+#include "DLEngine/Renderer/Renderer.h"
+
 Application::~Application()
 {
     for (const auto& layer : m_LayerStack)
@@ -56,6 +58,7 @@ Application::Application(const ApplicationSpecification& spec)
     InitConsole();
 
     m_Window = CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle, DL_BIND_EVENT_FN(Application::OnEvent));
+    Renderer::Init();
 }
 
 void Application::InitConsole()

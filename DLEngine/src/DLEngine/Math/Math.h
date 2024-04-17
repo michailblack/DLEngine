@@ -12,4 +12,9 @@ namespace Math
     {
         return DirectX::XMConvertToDegrees(radians);
     }
+
+    inline float Infinity()
+    {
+        return std::numeric_limits<float>::infinity();
+    }
 }

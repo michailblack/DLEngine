@@ -35,59 +35,17 @@ namespace Math
 
         explicit operator DirectX::XMMATRIX() const { return DirectX::XMLoadFloat4x4(this); }
 
-        static Mat4x4 Identity()
-        {
-            Mat4x4 mat {};
-            mat._11 = 1.0f;
-            mat._22 = 1.0f;
-            mat._33 = 1.0f;
-            mat._44 = 1.0f;
+        static Mat4x4 Identity();
 
-            return mat;
-        }
+        static Mat4x4 Perspective(float fov, float aspectRatio, float zNear, float zFar);
+        static Mat4x4 View(const Vec3& right, const Vec3& up, const Vec3& forward, const Vec3& position);
 
-        static Mat4x4 Perspective(float fov, float aspectRatio, float zNear, float zFar)
-        {
-            Mat4x4 mat {};
-            mat._11 = (1.0f / std::tan(fov / 2.0f)) / aspectRatio;
-            mat._22 = 1.0f / std::tan(fov / 2.0f);
-            mat._33 = zFar / (zFar - zNear);
-            mat._34 = 1.0f;
-            mat._43 = -zFar * zNear / (zFar - zNear);
+        static Mat4x4 Inverse(const Mat4x4& mat);
 
-            return mat;
-        }
-
-        static Mat4x4 View(const Vec3& right, const Vec3& up, const Vec3& forward, const Vec3& position)
-        {
-            Mat4x4 mat {};
-            mat._11 = right.x;
-            mat._12 = up.x;
-            mat._13 = forward.x;
-            mat._14 = 0.0f;
-
-            mat._21 = right.y;
-            mat._22 = up.y;
-            mat._23 = forward.y;
-            mat._24 = 0.0f;
-
-            mat._31 = right.z;
-            mat._32 = up.z;
-            mat._33 = forward.z;
-            mat._34 = 0.0f;
-
-            mat._41 = -Dot(right, position);
-            mat._42 = -Dot(up, position);
-            mat._43 = -Dot(forward, position);
-            mat._44 = 1.0f;
-
-            return mat;
-        }
-
-        static Mat4x4 Inverse(const Mat4x4& mat)
-        {
-            return static_cast<Mat4x4>(DirectX::XMMatrixInverse(nullptr, static_cast<DirectX::XMMATRIX>(mat)));
-        }
+        static Mat4x4 Translate(const Vec3& translation);
+        static Mat4x4 Scale(const Vec3& scale);
+        static Mat4x4 Rotate(float pitch, float yaw, float roll);
+        static Mat4x4 Rotate(const Vec3& normalizedAxis, float angle);
     };
 
     inline Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs);

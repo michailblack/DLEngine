@@ -169,7 +169,8 @@
     <ClInclude Include="src\DLEngine\Core\Input.h" />
     <ClInclude Include="src\DLEngine\Core\Layer.h" />
     <ClInclude Include="src\DLEngine\Core\LayerStack.h" />
-    <ClInclude Include="src\DLEngine\Entity\Entity.h" />
+    <ClInclude Include="src\DLEngine\Math\Primitives.h" />
+    <ClInclude Include="src\DLEngine\Math\Intersections.h" />
     <ClInclude Include="src\DLEngine\Math\Math.h" />
     <ClInclude Include="src\DLEngine\Math\Mat4x4.h" />
     <ClInclude Include="src\DLEngine\Math\Vec2.h" />
@@ -177,8 +178,11 @@
     <ClInclude Include="src\DLEngine\Math\Vec4.h" />
     <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
     <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Mesh.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
+    <ClInclude Include="src\DLEngine\Renderer\ThreadPool.h" />
+    <ClInclude Include="src\DLEngine\Renderer\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
   </ItemGroup>
@@ -188,8 +192,11 @@
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Mesh.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\ThreadPool.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\TriangleOctree.cpp" />
     <ClCompile Include="src\dlpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
