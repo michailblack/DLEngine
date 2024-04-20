@@ -1,5 +1,7 @@
-#include "dlpch.h"
-#include "Intersections.h"
+#pragma once
+#include "DLEngine/Math/Intersections.h"
+
+#include <stack>
 
 #include "DLEngine/Math/Vec4.h"
 

@@ -17,7 +17,7 @@ namespace
         ThreadPool RenderThreadPool;
 
         std::vector<COLORREF> Framebuffer;
-        const uint32_t FramebufferSizeCoefficient { 3 };
+        const uint32_t FramebufferSizeCoefficient { 2 };
         uint32_t FramebufferWidth { 0 };
         uint32_t FramebufferHeight { 0 };
 
@@ -30,7 +30,7 @@ namespace
 
         Ref<Environment> EnvironmentInfo;
 
-        float PointLightRadius { 0.1f };
+        float LightSphereRadius { 0.1f };
     } s_Data;
 }
 
@@ -113,6 +113,30 @@ void Renderer::Submit(const Ref<MeshInstance>& cube)
     s_Data.Cubes.emplace_back(cube);
 }
 
+Math::Ray Renderer::GetRay(uint32_t mouseX, uint32_t mouseY)
+{
+    Math::Vec4 BL = Math::Vec4 { -1.0f, -1.0f, 0.0f, 1.0f } * s_Data.InvViewProjectionMatrix;
+    BL /= BL.w;
+
+    Math::Vec4 BR = Math::Vec4 {  1.0f, -1.0f, 0.0f, 1.0f } * s_Data.InvViewProjectionMatrix;
+    BR /= BR.w;
+
+    Math::Vec4 TL = Math::Vec4 { -1.0f,  1.0f, 0.0f, 1.0f } * s_Data.InvViewProjectionMatrix;
+    TL /= TL.w;
+
+    const Math::Vec4 Up = TL - BL;
+    const Math::Vec4 Right = BR - BL;
+
+    const Math::Vec4 P = BL + Right * (static_cast<float>(mouseX) / Application::Get().GetWindow()->GetSize().x)
+        + Up * (1.0f - static_cast<float>(mouseY) / Application::Get().GetWindow()->GetSize().y);
+
+    Math::Ray ray {};
+    ray.Origin = P.xyz();
+    ray.Direction = Math::Normalize(ray.Origin - s_Data.CameraPosition);
+
+    return ray;
+}
+
 void Renderer::OnResize(uint32_t width, uint32_t height)
 {
     s_Data.FramebufferWidth = width / s_Data.FramebufferSizeCoefficient;
@@ -164,25 +188,38 @@ void Renderer::RenderPerThread(uint32_t startHeight, uint32_t height, const Math
             }
 
             const PointLight* visiblePointLight { nullptr };
-            Math::Sphere pointLightSphere;
-            pointLightSphere.Radius = s_Data.PointLightRadius;
+            Math::Sphere lightSphere;
+            lightSphere.Radius = s_Data.LightSphereRadius;
             for (const auto& pointLight : s_Data.EnvironmentInfo->PointLights)
             {
-                pointLightSphere.Center = pointLight.Position;
-
-                if (Math::Intersects(ray, pointLightSphere, intersectInfo))
+                lightSphere.Center = pointLight.Position;
+                if (Math::Intersects(ray, lightSphere, intersectInfo))
                 {
                     visiblePointLight = &pointLight;
                 }
             }
 
-            if (fragmentMaterial && !visiblePointLight)
+            const SpotLight* visibleSpotLight { nullptr };
+            for (const auto& spotLight : s_Data.EnvironmentInfo->SpotLights)
             {
-                fragmentColor = fragmentMaterial->CalculateLight(ray, intersectInfo, CalculateEnvironmentContribution(intersectInfo, *s_Data.EnvironmentInfo));
+                lightSphere.Center = spotLight.Position;
+                if (Math::Intersects(ray, lightSphere, intersectInfo))
+                {
+                    visibleSpotLight = &spotLight;
+                }
+            }
+
+            if (visibleSpotLight)
+            {
+                fragmentColor = Material::HDRToCOLORREF(visibleSpotLight->Color, s_Data.EnvironmentInfo->Exposure);
             }
             else if (visiblePointLight)
             {
                 fragmentColor = Material::HDRToCOLORREF(visiblePointLight->Color, s_Data.EnvironmentInfo->Exposure);
+            }
+            else if (fragmentMaterial)
+            {
+                fragmentColor = fragmentMaterial->CalculateLight(ray, intersectInfo, CalculateEnvironmentContribution(intersectInfo, *s_Data.EnvironmentInfo));
             }
             else
             {
@@ -208,6 +245,12 @@ Environment Renderer::CalculateEnvironmentContribution(const Math::IntersectInfo
         {
             shadowRay.Direction = Math::Normalize(pointLight.Position - intersectionInfo.IntersectionPoint);
             return PointIsOccluded(shadowRay, Math::Length(pointLight.Position - intersectionInfo.IntersectionPoint));
+        });
+
+    std::erase_if(resultEnvironment.SpotLights, [&](const SpotLight& spotLight)
+        {
+            shadowRay.Direction = Math::Normalize(spotLight.Position - intersectionInfo.IntersectionPoint);
+            return PointIsOccluded(shadowRay, Math::Length(spotLight.Position - intersectionInfo.IntersectionPoint));
         });
 
     return resultEnvironment;

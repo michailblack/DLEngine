@@ -21,7 +21,7 @@ COLORREF Material::CalculateLight(const Math::Ray& ray, const Math::IntersectInf
         fragmentColor += diffuse + specular;
     }
 
-    // Calculate point light contribution
+    // Calculate pointlight contribution
     for (const auto& pointLight : environment.PointLights)
     {
         Math::Vec3 lightDirection = Math::Normalize(pointLight.Position - intersectionInfo.IntersectionPoint);
@@ -35,6 +35,29 @@ COLORREF Material::CalculateLight(const Math::Ray& ray, const Math::IntersectInf
         const float attenuation = 1.0f / (1.0f + pointLight.Linear * dist + pointLight.Quadratic * dist * dist);
 
         fragmentColor += (diffuse + specular) * attenuation;
+    }
+
+    // Calculate spotlight contribution
+    for (const auto& spotLight : environment.SpotLights)
+    {
+        Math::Vec3 lightDirection = Math::Normalize(spotLight.Position - intersectionInfo.IntersectionPoint);
+
+        const float angle = Math::Dot(lightDirection, -spotLight.Direction);
+        if (angle > spotLight.OuterCutoffCos)
+        {
+            diffuse = Math::Max(Math::Dot(lightDirection, intersectionInfo.Normal), threshold) * spotLight.Color * m_Albedo;
+
+            halfwayDir = Math::Normalize(lightDirection - ray.Direction);
+            specular = Math::Vec3 { Math::Pow(Math::Max(Math::Dot(halfwayDir, intersectionInfo.Normal), threshold), m_Glossiness) };
+
+            const float dist = Math::Length(spotLight.Position - intersectionInfo.IntersectionPoint);
+            const float attenuation = 1.0f / (1.0f + spotLight.Linear * dist + spotLight.Quadratic * dist * dist);
+
+            const float spotlightFactor = spotLight.InnerCutoffCos - spotLight.OuterCutoffCos;
+            const float intensity = Math::Clamp((angle - spotLight.OuterCutoffCos) / spotlightFactor, 0.0f, 1.0f);
+
+            fragmentColor += (diffuse + specular) * attenuation * intensity;
+        }
     }
 
     return HDRToCOLORREF(fragmentColor, environment.Exposure);

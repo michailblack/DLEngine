@@ -179,6 +179,7 @@
     <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
     <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
     <ClInclude Include="src\DLEngine\Renderer\Entity.h" />
+    <ClInclude Include="src\DLEngine\Renderer\IDragger.h" />
     <ClInclude Include="src\DLEngine\Renderer\Light.h" />
     <ClInclude Include="src\DLEngine\Renderer\Material.h" />
     <ClInclude Include="src\DLEngine\Renderer\Mesh.h" />
@@ -195,6 +196,7 @@
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\IDragger.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Material.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Mesh.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
@@ -211,6 +213,7 @@
   <ItemGroup>
     <None Include="src\DLEngine\Math\Intersections.inl" />
     <None Include="src\DLEngine\Math\Mat4x4.inl" />
+    <None Include="src\DLEngine\Math\Math.inl" />
     <None Include="src\DLEngine\Math\Vec2.inl" />
     <None Include="src\DLEngine\Math\Vec3.inl" />
     <None Include="src\DLEngine\Math\Vec4.inl" />

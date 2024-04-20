@@ -20,6 +20,9 @@ public:
     void OnEvent(Event& e) override;
 
 private:
+    Scope<IDragger> FindDragger(const Math::Ray& ray) const;
+
+private:
     CameraController m_CameraController;
 
     std::vector<Ref<SphereInstance>> m_Spheres;

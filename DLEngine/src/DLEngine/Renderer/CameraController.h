@@ -6,9 +6,11 @@
 #include "DLEngine/Core/Events/KeyEvent.h"
 #include "DLEngine/Core/Events/MouseEvent.h"
 
-#include "DLEngine/Renderer/Camera.h"
-
+#include "DLEngine/Math/Primitives.h"
 #include "DLEngine/Math/Vec2.h"
+
+#include "DLEngine/Renderer/Camera.h"
+#include "DLEngine/Renderer/IDragger.h"
 
 class CameraController
 {
@@ -26,7 +28,11 @@ public:
 
     bool IsCameraTransformed() const { return m_Transformed; }
 
+    bool AskedForDragger() const { return m_AskForDragger; }
+    void SetDragger(Scope<IDragger> dragger) { m_Dragger = std::move(dragger); m_AskForDragger = false; }
+
     const Camera& GetCamera() const { return m_Camera; }
+    const Math::Ray& GetDraggingRay() const { return m_StartDraggingRay; }
 
 private:
     bool OnWindowResize(WindowResizeEvent& e);
@@ -51,7 +57,12 @@ private:
 
     bool m_IsRotating { false };
 
-    Math::Vec2 m_MouseStartPosition { 0.0f, 0.0f };
+    Math::Vec2 m_MouseStartPosition { 0.0f };
+
+    Math::Ray m_StartDraggingRay {};
+    Math::Ray m_EndDraggingRay {};
+    Scope<IDragger> m_Dragger {};
+    bool m_AskForDragger { false };
 
     bool m_Transformed { true };
 };

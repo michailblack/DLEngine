@@ -1,6 +1,6 @@
 #include "WorldLayer.h"
 
-#include "DLEngine/Core/Application.h"
+#include "DLEngine/Math/Intersections.h"
 
 #include "DLEngine/Renderer/Renderer.h"
 
@@ -70,6 +70,16 @@ void WorldLayer::OnAttach()
     pointLight.Quadratic = 0.44f;
     m_Environment->PointLights.push_back(pointLight);
 
+    SpotLight spotLight;
+    spotLight.Position = Math::Vec3 { 0.0f, 3.0f, 0.0f };
+    spotLight.Color = Math::Vec3 { 0.0f, 0.0f, 1.0f } * lightIntensity;
+    spotLight.Direction = Math::Normalize(Math::Vec3 { 0.0f, -1.0f, 0.0f });
+    spotLight.InnerCutoffCos = Math::Cos(Math::ToRadians(12.5f));
+    spotLight.OuterCutoffCos = Math::Cos(Math::ToRadians(17.5f));
+    spotLight.Linear = 0.07f;
+    spotLight.Quadratic = 0.017f;
+    m_Environment->SpotLights.push_back(spotLight);
+
     m_Environment->Exposure = 1.0f;
 }
 
@@ -80,6 +90,9 @@ void WorldLayer::OnDetach()
 
 void WorldLayer::OnUpdate(float dt)
 {
+    if (m_CameraController.AskedForDragger())
+        m_CameraController.SetDragger(FindDragger(m_CameraController.GetDraggingRay()));
+
     if (m_CameraController.IsCameraTransformed())
     {
         Renderer::BeginScene(m_CameraController.GetCamera(), m_Environment);
@@ -102,4 +115,41 @@ void WorldLayer::OnUpdate(float dt)
 void WorldLayer::OnEvent(Event& e)
 {
     m_CameraController.OnEvent(e);
+}
+
+Scope<IDragger> WorldLayer::FindDragger(const Math::Ray& ray) const
+{
+    Math::IntersectInfo intersectInfo {};
+    const Math::Plane nearPlane { ray.Origin, m_CameraController.GetCamera().GetForward() };
+
+    Scope<IDragger> dragger {};
+
+    for (const auto& sphere : m_Spheres)
+    {
+        if (Math::Intersects(ray, sphere->Sphere, intersectInfo))
+        {
+            const float distanceToDraggingPlane { Math::Distance(intersectInfo.IntersectionPoint, nearPlane) };
+            dragger.reset(new ISphereDragger { sphere, intersectInfo.IntersectionPoint, distanceToDraggingPlane });
+        }
+    }
+
+    for (const auto& plane : m_Planes)
+    {
+        if (Math::Intersects(ray, plane->Plane, intersectInfo))
+        {
+            const float distanceToDraggingPlane { Math::Distance(intersectInfo.IntersectionPoint, nearPlane) };
+            dragger.reset(new IPlaneDragger { plane, intersectInfo.IntersectionPoint, distanceToDraggingPlane });
+        }
+    }
+
+    for (const auto& cube : m_Cubes)
+    {
+        if (Math::Intersects(ray, *cube, Mesh::GetUnitCube(), intersectInfo))
+        {
+            const float distanceToDraggingPlane { Math::Distance(intersectInfo.IntersectionPoint, nearPlane) };
+            dragger.reset(new IMeshDragger { cube, intersectInfo.IntersectionPoint, distanceToDraggingPlane });
+        }
+    }
+
+    return dragger;
 }

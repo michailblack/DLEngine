@@ -3,6 +3,9 @@
 
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Input.h"
+#include "DLEngine/Math/Intersections.h"
+
+#include "DLEngine/Renderer/Renderer.h"
 
 CameraController::CameraController(const Camera& camera)
     : m_Camera(camera)
@@ -74,6 +77,18 @@ void CameraController::OnUpdate(float dt)
         m_Camera.RotateRight(-deltaDir.y * speed * dt);
         m_Camera.RotateUp(-deltaDir.x * speed * dt);
     }
+
+    if (m_Dragger)
+    {
+        m_Transformed = true;
+
+        m_EndDraggingRay = Renderer::GetRay(Input::GetMouseX(), Input::GetMouseY());
+
+        const Math::Plane nearPlane { m_StartDraggingRay.Origin, m_Camera.GetForward() };
+        m_Dragger->Drag(nearPlane, m_EndDraggingRay);
+
+        m_StartDraggingRay = m_EndDraggingRay;
+    }
 }
 
 void CameraController::OnEvent(Event& e)
@@ -117,10 +132,21 @@ bool CameraController::OnKeyReleased(KeyReleasedEvent& e)
 
 bool CameraController::OnMouseButtonPressed(MouseButtonPressedEvent& e)
 {
-    if (e.GetButton() == VK_LBUTTON)
+    switch (e.GetButton())
     {
-        m_MouseStartPosition = Input::GetCursorPosition();
-        m_IsRotating = true;
+        case VK_LBUTTON:
+        {
+            m_MouseStartPosition = Input::GetCursorPosition();
+            m_IsRotating = true;
+            break;
+        }
+        case VK_RBUTTON:
+        {
+            m_StartDraggingRay = Renderer::GetRay(Input::GetMouseX(), Input::GetMouseY());
+            m_EndDraggingRay = m_StartDraggingRay;
+            m_AskForDragger = true;
+            break;
+        }
     }
 
     return false;
@@ -128,9 +154,21 @@ bool CameraController::OnMouseButtonPressed(MouseButtonPressedEvent& e)
 
 bool CameraController::OnMouseButtonReleased(MouseButtonReleasedEvent& e)
 {
-    if (e.GetButton() == VK_LBUTTON)
+    switch (e.GetButton())
     {
-        m_IsRotating = false;
+        case VK_LBUTTON:
+        {
+            m_IsRotating = false;
+            break;
+        }
+        case VK_RBUTTON:
+        {
+            m_StartDraggingRay = Math::Ray {};
+            m_EndDraggingRay = Math::Ray {};
+            m_Dragger.reset();
+            m_AskForDragger = false;
+            break;
+        }
     }
 
     return false;

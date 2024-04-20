@@ -14,6 +14,8 @@ public:
     static void Submit(const Ref<PlaneInstance>& plane);
     static void Submit(const Ref<MeshInstance>& cube);
 
+    static Math::Ray GetRay(uint32_t mouseX, uint32_t mouseY);
+
     static void OnResize(uint32_t width, uint32_t height);
 
 private:
