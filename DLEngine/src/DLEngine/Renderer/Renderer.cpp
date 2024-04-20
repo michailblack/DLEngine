@@ -1,11 +1,14 @@
 ﻿#include "dlpch.h"
 #include "Renderer.h"
 
-#include "ThreadPool.h"
 #include "DLEngine/Core/Application.h"
 
 #include "DLEngine/Math/Intersections.h"
 #include "DLEngine/Math/Math.h"
+
+#include "DLEngine/Renderer/Mesh.h"
+
+#include "DLEngine/Utils/ThreadPool.h"
 
 namespace
 {
@@ -24,6 +27,10 @@ namespace
         std::vector<Ref<SphereInstance>> Spheres;
         std::vector<Ref<PlaneInstance>> Planes;
         std::vector<Ref<MeshInstance>> Cubes;
+
+        Ref<Environment> EnvironmentInfo;
+
+        float PointLightRadius { 0.1f };
     } s_Data;
 }
 
@@ -32,10 +39,11 @@ void Renderer::Init()
     s_Data.RenderThreadPool.Create(std::thread::hardware_concurrency() - 1);
 }
 
-void Renderer::BeginScene(const Camera& camera)
+void Renderer::BeginScene(const Camera& camera, const Ref<Environment>& environment)
 {
     s_Data.InvViewProjectionMatrix = Math::Mat4x4::Inverse(camera.GetViewMatrix() * camera.GetProjectionMatrix());
     s_Data.CameraPosition = camera.GetPosition();
+    s_Data.EnvironmentInfo = environment;
 }
 
 void Renderer::EndScene()
@@ -68,6 +76,7 @@ void Renderer::EndScene()
     s_Data.RenderThreadPool.Wait();
 
     s_Data.Spheres.clear();
+    s_Data.Planes.clear();
     s_Data.Cubes.clear();
 
     auto [width, height] = Application::Get().GetWindow()->GetSize();
@@ -123,16 +132,18 @@ void Renderer::RenderPerThread(uint32_t startHeight, uint32_t height, const Math
             const Math::Vec4 P = BL + Right * (static_cast<float>(x) / static_cast<float>(s_Data.FramebufferWidth))
                 + Up * (1.0f - static_cast<float>(y) / static_cast<float>(s_Data.FramebufferHeight));
 
-            ray.Origin = Math::Vec3 { P.x, P.y, P.z };
+            ray.Origin = P.xyz();
             ray.Direction = Math::Normalize(ray.Origin - s_Data.CameraPosition);
 
             Math::IntersectInfo intersectInfo {};
+            auto& fragmentColor = s_Data.Framebuffer[y * s_Data.FramebufferWidth + x];
+            const Material* fragmentMaterial { nullptr };
 
             for (const auto& plane : s_Data.Planes)
             {
                 if (Math::Intersects(ray, plane->Plane, intersectInfo))
                 {
-                    s_Data.Framebuffer[y * s_Data.FramebufferWidth + x] = RGB(100, 100, 100);
+                    fragmentMaterial = &plane->Mat;
                 }
             }
 
@@ -140,51 +151,98 @@ void Renderer::RenderPerThread(uint32_t startHeight, uint32_t height, const Math
             {
                 if (Math::Intersects(ray, sphere->Sphere, intersectInfo))
                 {
-                    s_Data.Framebuffer[y * s_Data.FramebufferWidth + x] = RGB(255, 0, 0);
+                    fragmentMaterial = &sphere->Mat;
                 }
             }
 
             for (const auto& cube : s_Data.Cubes)
             {
-                const Math::Vec4 rayOriginModelSpace = Math::Vec4 { ray.Origin, 1.0f } * cube->InvTransform;
-                const Math::Vec4 rayDirModelSpace = Math::Vec4 { ray.Direction, 0.0f } * cube->InvTransform;
-
-                Math::Ray rayModelSpace;
-                rayModelSpace.Origin = Math::Vec3 { rayOriginModelSpace.x, rayOriginModelSpace.y, rayOriginModelSpace.z };
-                rayModelSpace.Direction = Math::Normalize(Math::Vec3 { rayDirModelSpace.x, rayDirModelSpace.y, rayDirModelSpace.z });
-
-                Math::IntersectInfo intersectInfoModelSpace {};
-                if (intersectInfo.Step != Math::Infinity())
+                if (Math::Intersects(ray, *cube, Mesh::GetUnitCube(), intersectInfo))
                 {
-                    const Math::Vec4 intersectionPointModelSpace = Math::Vec4 { intersectInfo.IntersectionPoint, 1.0f } * cube->InvTransform;
-                    intersectInfoModelSpace.IntersectionPoint = Math::Vec3 { intersectionPointModelSpace.x, intersectionPointModelSpace.y, intersectionPointModelSpace.z };
-                    intersectInfoModelSpace.Step = Math::Length(intersectInfoModelSpace.IntersectionPoint - rayModelSpace.Origin);
-                }
-                const float stepBefore = intersectInfoModelSpace.Step;
-
-                for (const auto& triangle : Mesh::GetUnitCube().GetTriangles())
-                {
-                    if (Math::Intersects(rayModelSpace, triangle, intersectInfoModelSpace))
-                    {
-                        
-                    }
-                }
-
-                if (intersectInfoModelSpace.Step != stepBefore)
-                {
-                    s_Data.Framebuffer[y * s_Data.FramebufferWidth + x] = RGB(0, 0, 255);
-
-                    const Math::Vec4 intersectionPointWorldSpace = Math::Vec4 { intersectInfoModelSpace.IntersectionPoint, 1.0f } * cube->Transform;
-                    const Math::Vec4 normal = Math::Normalize(Math::Vec4 { intersectInfoModelSpace.Normal.x, intersectInfoModelSpace.Normal.y, intersectInfoModelSpace.Normal.z, 0.0f } * cube->Transform);
-
-                    intersectInfo.IntersectionPoint = Math::Vec3 { intersectionPointWorldSpace.x, intersectionPointWorldSpace.y, intersectionPointWorldSpace.z };
-                    intersectInfo.Step = Math::Length(intersectInfo.IntersectionPoint - ray.Origin);
-                    intersectInfo.Normal = Math::Vec3 { normal.x, normal.y, normal.z };
+                    fragmentMaterial = &cube->Mat;
                 }
             }
 
-            if (intersectInfo.Step == Math::Infinity())
-                s_Data.Framebuffer[y * s_Data.FramebufferWidth + x] = RGB(0, 0, 0);
+            const PointLight* visiblePointLight { nullptr };
+            Math::Sphere pointLightSphere;
+            pointLightSphere.Radius = s_Data.PointLightRadius;
+            for (const auto& pointLight : s_Data.EnvironmentInfo->PointLights)
+            {
+                pointLightSphere.Center = pointLight.Position;
+
+                if (Math::Intersects(ray, pointLightSphere, intersectInfo))
+                {
+                    visiblePointLight = &pointLight;
+                }
+            }
+
+            if (fragmentMaterial && !visiblePointLight)
+            {
+                fragmentColor = fragmentMaterial->CalculateLight(ray, intersectInfo, CalculateEnvironmentContribution(intersectInfo, *s_Data.EnvironmentInfo));
+            }
+            else if (visiblePointLight)
+            {
+                fragmentColor = Material::HDRToCOLORREF(visiblePointLight->Color, s_Data.EnvironmentInfo->Exposure);
+            }
+            else
+            {
+                fragmentColor = Material::HDRToCOLORREF(s_Data.EnvironmentInfo->IndirectLightingColor, s_Data.EnvironmentInfo->Exposure);
+            }
         }
     }
+}
+
+Environment Renderer::CalculateEnvironmentContribution(const Math::IntersectInfo& intersectionInfo, const Environment& environment)
+{
+    constexpr float bias { 1e-3f };
+    Environment resultEnvironment { environment };
+
+    Math::Ray shadowRay;
+    shadowRay.Origin = intersectionInfo.IntersectionPoint + intersectionInfo.Normal * bias;
+
+    shadowRay.Direction = -environment.Sun.Direction;
+    if (PointIsOccluded(shadowRay, Math::Infinity()))
+        resultEnvironment.Sun.Color = Math::Vec3 { 0.0f };
+
+    std::erase_if(resultEnvironment.PointLights, [&](const PointLight& pointLight)
+        {
+            shadowRay.Direction = Math::Normalize(pointLight.Position - intersectionInfo.IntersectionPoint);
+            return PointIsOccluded(shadowRay, Math::Length(pointLight.Position - intersectionInfo.IntersectionPoint));
+        });
+
+    return resultEnvironment;
+}
+
+bool Renderer::PointIsOccluded(const Math::Ray& ray, const float lightSourceT)
+{
+    Math::IntersectInfo intersectInfo {};
+
+    for (const auto& plane : s_Data.Planes)
+    {
+        if (Math::Intersects(ray, plane->Plane, intersectInfo))
+        {
+            if (intersectInfo.T < lightSourceT)
+                return true;
+        }
+    }
+
+    for (const auto& sphere : s_Data.Spheres)
+    {
+        if (Math::Intersects(ray, sphere->Sphere, intersectInfo))
+        {
+            if (intersectInfo.T < lightSourceT)
+                return true;
+        }
+    }
+
+    for (const auto& cube : s_Data.Cubes)
+    {
+        if (Math::Intersects(ray, *cube, Mesh::GetUnitCube(), intersectInfo))
+        {
+            if (intersectInfo.T < lightSourceT)
+                return true;
+        }
+    }
+
+    return false;
 }

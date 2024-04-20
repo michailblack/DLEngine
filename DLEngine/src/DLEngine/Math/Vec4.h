@@ -9,19 +9,19 @@ namespace Math
         : public DirectX::XMFLOAT4
     {
     public:
-        Vec4()
+        constexpr Vec4()
             : XMFLOAT4 { 0.0f, 0.0f, 0.0f, 0.0f }
         {}
-        explicit Vec4(float x, float y, float z, float w = 0.0f)
+        constexpr explicit Vec4(float x, float y, float z, float w = 0.0f)
             : XMFLOAT4 { x, y, z, w }
         {}
-        explicit Vec4(float v)
+        constexpr explicit Vec4(float v)
             : XMFLOAT4 { v, v, v, v }
         {}
-        explicit Vec4(const Vec3& v, float w = 0.0f)
+        constexpr explicit Vec4(const Vec3& v, float w = 0.0f)
             : XMFLOAT4 { v.x, v.y, v.z, w }
         {}
-        explicit Vec4(const XMFLOAT4& v)
+        constexpr explicit Vec4(const XMFLOAT4& v)
             : XMFLOAT4 { v }
         {}
         explicit Vec4(const DirectX::XMVECTOR& v)
@@ -29,17 +29,19 @@ namespace Math
             DirectX::XMStoreFloat4(this, v);
         }
 
-        ~Vec4() = default;
+        constexpr ~Vec4() = default;
 
-        Vec4(const Vec4&) = default;
-        Vec4(Vec4&&) = default;
-        Vec4& operator=(const Vec4&) = default;
-        Vec4& operator=(Vec4&&) = default;
+        constexpr Vec4(const Vec4&) = default;
+        constexpr Vec4(Vec4&&) = default;
+        constexpr Vec4& operator=(const Vec4&) = default;
+        constexpr Vec4& operator=(Vec4&&) = default;
 
         explicit operator DirectX::XMVECTOR() const { return DirectX::XMLoadFloat4(this); }
 
         inline void operator*=(float s);
         inline void operator/=(float s);
+
+        constexpr Vec3 xyz() const { return Vec3 { x, y, z }; }
     };
 
     inline float Length(const Vec4& v);

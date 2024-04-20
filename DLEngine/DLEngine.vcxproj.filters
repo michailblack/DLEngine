@@ -90,7 +90,16 @@
     <ClInclude Include="src\DLEngine\Renderer\TriangleOctree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\ThreadPool.h">
+    <ClInclude Include="src\DLEngine\Utils\ThreadPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\Material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\Entity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -125,7 +134,10 @@
     <ClCompile Include="src\DLEngine\Renderer\TriangleOctree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Renderer\ThreadPool.cpp">
+    <ClCompile Include="src\DLEngine\Utils\ThreadPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -140,6 +152,9 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="src\DLEngine\Math\Mat4x4.inl">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="src\DLEngine\Math\Intersections.inl">
       <Filter>Header Files</Filter>
     </None>
   </ItemGroup>

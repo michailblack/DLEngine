@@ -3,6 +3,7 @@
 
 Mesh::Mesh(const std::vector<Math::Triangle>& triangles)
     : m_Triangles(triangles)
+    , m_Octree(triangles)
 {
 }
 

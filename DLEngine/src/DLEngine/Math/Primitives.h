@@ -1,8 +1,16 @@
 #pragma once
+#include "DLEngine/Math/Math.h"
 #include "DLEngine/Math/Vec3.h"
 
 namespace Math
 {
+    struct IntersectInfo
+    {
+        Vec3 IntersectionPoint;
+        Vec3 Normal;
+        float T { Infinity() };
+    };
+
     struct Ray
     {
         Vec3 Origin;
@@ -26,5 +34,11 @@ namespace Math
     {
         Vec3 Origin;
         Vec3 Normal;
+    };
+
+    struct AABB
+    {
+        Vec3 Min;
+        Vec3 Max;
     };
 }

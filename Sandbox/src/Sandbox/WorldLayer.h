@@ -1,12 +1,11 @@
 #pragma once
 #include "DLEngine/Core/Base.h"
 #include "DLEngine/Core/Layer.h"
+
 #include "DLEngine/Core/Events/ApplicationEvent.h"
 
-#include "DLEngine/Math/Primitives.h"
-
 #include "DLEngine/Renderer/CameraController.h"
-#include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Renderer/Entity.h"
 
 class WorldLayer
     : public Layer
@@ -26,5 +25,7 @@ private:
     std::vector<Ref<SphereInstance>> m_Spheres;
     std::vector<Ref<PlaneInstance>> m_Planes;
     std::vector<Ref<MeshInstance>> m_Cubes;
+
+    Ref<Environment> m_Environment;
 };
 

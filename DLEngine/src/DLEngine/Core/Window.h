@@ -1,11 +1,11 @@
 #pragma once
 #include <cstdint>
-#include <vector>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#include <DirectXMath.h>
+#undef max
+#undef min
 
 #include "DLEngine/Core/Events/Event.h"
 #include "DLEngine/Math/Vec2.h"

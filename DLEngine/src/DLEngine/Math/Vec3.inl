@@ -43,6 +43,31 @@ namespace Math
         return static_cast<Vec3>(DirectX::XMVector3Normalize(static_cast<DirectX::XMVECTOR>(v)));
     }
 
+    inline Vec3 Exp(const Vec3& v)
+    {
+        return static_cast<Vec3>(DirectX::XMVectorExpE(static_cast<DirectX::XMVECTOR>(v)));
+    }
+
+    inline Vec3 Pow(const Vec3& v1, const Vec3& v2)
+    {
+        return static_cast<Vec3>(DirectX::XMVectorPow(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
+    }
+
+    inline Vec3 Min(const Vec3& v1, const Vec3& v2)
+    {
+        return static_cast<Vec3>(DirectX::XMVectorMin(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
+    }
+
+    inline Vec3 Max(const Vec3& v1, const Vec3& v2)
+    {
+        return static_cast<Vec3>(DirectX::XMVectorMax(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
+    }
+
+    inline bool operator==(const Vec3& v1, const Vec3& v2)
+    {
+        return DirectX::XMVector3Equal(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2));
+    }
+
     inline Vec3 operator+(const Vec3& v1, const Vec3& v2)
     {
         return static_cast<Vec3>(DirectX::XMVectorAdd(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
@@ -56,6 +81,11 @@ namespace Math
     inline Vec3 operator-(const Vec3& v)
     {
         return static_cast<Vec3>(DirectX::XMVectorNegate(static_cast<DirectX::XMVECTOR>(v)));
+    }
+
+    inline Vec3 operator*(const Vec3& v1, const Vec3& v2)
+    {
+        return Vec3 { v1.x * v2.x, v1.y * v2.y, v1.z * v2.z };
     }
 
     inline Vec3 operator*(const Vec3& v, float s)

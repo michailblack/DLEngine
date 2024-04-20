@@ -4,7 +4,6 @@
 #include <vector>
 #include <thread>
 
-#include "Mesh.h"
 #include "DLEngine/Core/Base.h"
 
 class ThreadPool

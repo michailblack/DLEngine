@@ -1,31 +1,13 @@
 ﻿#pragma once
-#include "DLEngine/Math/Primitives.h"
-
 #include "DLEngine/Renderer/Camera.h"
-#include "DLEngine/Renderer/Mesh.h"
-
-struct SphereInstance
-{
-    Math::Sphere Sphere;
-};
-
-struct PlaneInstance
-{
-    Math::Plane Plane;
-};
-
-struct MeshInstance
-{
-    Math::Mat4x4 Transform;
-    Math::Mat4x4 InvTransform;
-};
+#include "DLEngine/Renderer/Entity.h"
 
 class Renderer
 {
 public:
     static void Init();
 
-    static void BeginScene(const Camera& camera);
+    static void BeginScene(const Camera& camera, const Ref<Environment>& environment);
     static void EndScene();
 
     static void Submit(const Ref<SphereInstance>& sphere);
@@ -36,4 +18,7 @@ public:
 
 private:
     static void RenderPerThread(uint32_t startHeight, uint32_t height, const Math::Vec4& BL, const Math::Vec4& Right, const Math::Vec4& Up);
+
+    static Environment CalculateEnvironmentContribution(const Math::IntersectInfo& intersectionInfo, const Environment& environment);
+    static bool PointIsOccluded(const Math::Ray& ray, const float lightSourceT);
 };

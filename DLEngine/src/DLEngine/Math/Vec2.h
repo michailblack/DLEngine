@@ -7,16 +7,16 @@ namespace Math
         : public DirectX::XMFLOAT2
     {
     public:
-        Vec2()
+        constexpr Vec2()
             : XMFLOAT2 { 0.0f, 0.0f }
         {}
-        explicit Vec2(float x, float y)
+        constexpr explicit Vec2(float x, float y)
             : XMFLOAT2 { x, y }
         {}
-        explicit Vec2(float v)
+        constexpr explicit Vec2(float v)
             : XMFLOAT2 { v, v }
         {}
-        explicit Vec2(const XMFLOAT2& v)
+        constexpr explicit Vec2(const XMFLOAT2& v)
             : XMFLOAT2 { v }
         {}
         explicit Vec2(const DirectX::XMVECTOR& v)
@@ -24,12 +24,12 @@ namespace Math
             XMStoreFloat2(this, v);
         }
 
-        ~Vec2() = default;
+        constexpr ~Vec2() = default;
 
-        Vec2(const Vec2&) = default;
-        Vec2(Vec2&&) = default;
-        Vec2& operator=(const Vec2&) = default;
-        Vec2& operator=(Vec2&&) = default;
+        constexpr Vec2(const Vec2&) = default;
+        constexpr Vec2(Vec2&&) = default;
+        constexpr Vec2& operator=(const Vec2&) = default;
+        constexpr Vec2& operator=(Vec2&&) = default;
 
         explicit operator DirectX::XMVECTOR() const { return DirectX::XMLoadFloat2(this); }
 

@@ -7,16 +7,16 @@ namespace Math
         : public DirectX::XMFLOAT3
     {
     public:
-        Vec3()
+        constexpr Vec3()
             : XMFLOAT3 { 0.0f, 0.0f, 0.0f }
         {}
-        explicit Vec3(float x, float y, float z)
+        constexpr explicit Vec3(float x, float y, float z)
             : XMFLOAT3 { x, y, z }
         {}
-        explicit Vec3(float v)
+        constexpr explicit Vec3(float v)
             : XMFLOAT3 { v, v, v }
         {}
-        explicit Vec3(const XMFLOAT3& v)
+        constexpr explicit Vec3(const XMFLOAT3& v)
             : XMFLOAT3 { v }
         {}
         explicit Vec3(const DirectX::XMVECTOR& v)
@@ -24,12 +24,12 @@ namespace Math
             DirectX::XMStoreFloat3(this, v);
         }
 
-        ~Vec3() = default;
+        constexpr ~Vec3() = default;
 
-        Vec3(const Vec3&) = default;
-        Vec3(Vec3&&) = default;
-        Vec3& operator=(const Vec3&) = default;
-        Vec3& operator=(Vec3&&) = default;
+        constexpr Vec3(const Vec3&) = default;
+        constexpr Vec3(Vec3&&) = default;
+        constexpr Vec3& operator=(const Vec3&) = default;
+        constexpr Vec3& operator=(Vec3&&) = default;
 
         explicit operator DirectX::XMVECTOR() const { return DirectX::XMLoadFloat3(this); }
 
@@ -43,10 +43,17 @@ namespace Math
     inline float Dot(const Vec3& v1, const Vec3& v2);
     inline Vec3 Cross(const Vec3& v1, const Vec3& v2);
     inline Vec3 Normalize(const Vec3& v);
+    inline Vec3 Exp(const Vec3& v);
+    inline Vec3 Pow(const Vec3& v1, const Vec3& v2);
+    inline Vec3 Min(const Vec3& v1, const Vec3& v2);
+    inline Vec3 Max(const Vec3& v1, const Vec3& v2);
+
+    inline bool operator==(const Vec3& v1, const Vec3& v2);
 
     inline Vec3 operator+(const Vec3& v1, const Vec3& v2);
     inline Vec3 operator-(const Vec3& v1, const Vec3& v2);
     inline Vec3 operator-(const Vec3& v);
+    inline Vec3 operator*(const Vec3& v1, const Vec3& v2);
     inline Vec3 operator*(const Vec3& v, float s);
     inline Vec3 operator*(float s, const Vec3& v);
     inline Vec3 operator/(const Vec3& v, float s);
