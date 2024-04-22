@@ -33,6 +33,7 @@ void Application::OnEvent(Event& e)
 {
     EventDispatcher dispatcher(e);
     dispatcher.Dispatch<WindowCloseEvent>(DL_BIND_EVENT_FN(Application::OnWindowClose));
+    dispatcher.Dispatch<KeyPressedEvent>(DL_BIND_EVENT_FN(Application::OnKeyPressed));
 
     for (const auto& layer : m_LayerStack | std::views::reverse)
     {
@@ -83,4 +84,30 @@ bool Application::OnWindowClose(WindowCloseEvent& e)
 {
     m_IsRunning = false;
     return true;
+}
+
+bool Application::OnKeyPressed(KeyPressedEvent& e)
+{
+    switch (e.GetKeyCode())
+    {
+    case VK_ESCAPE:
+        m_IsRunning = false;
+        break;
+    case '1':
+        Renderer::SetFramebufferSizeCoefficient(1);
+        break;
+    case '2':
+        Renderer::SetFramebufferSizeCoefficient(3);
+        break;
+    case '3':
+        Renderer::SetFramebufferSizeCoefficient(6);
+        break;
+    case '4':
+        Renderer::SetFramebufferSizeCoefficient(9);
+        break;
+    default:
+        break;
+    }
+
+    return false;
 }

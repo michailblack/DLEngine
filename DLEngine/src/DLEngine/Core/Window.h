@@ -47,6 +47,8 @@ public:
     Window& operator=(Window&&) = delete;
 
     Math::Vec2 GetSize() const { return Math::Vec2 { static_cast<float>(m_Data.m_Width), static_cast<float>(m_Data.m_Height) }; }
+    uint32_t GetWidth() const { return m_Data.m_Width; }
+    uint32_t GeHeigth() const { return m_Data.m_Height; }
 
     HWND GetHandle() const { return m_hWnd; }
 
@@ -60,7 +62,7 @@ private:
 
     struct WindowData
     {
-        int32_t m_Width, m_Height;
+        uint32_t m_Width, m_Height;
         const wchar_t* m_Title;
 
         EventCallbackFn m_EventCallback;

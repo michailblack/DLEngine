@@ -4,6 +4,7 @@
 #include "DLEngine/Core/Window.h"
 
 #include "DLEngine/Core/Events/ApplicationEvent.h"
+#include "DLEngine/Core/Events/KeyEvent.h"
 
 #include "DLEngine/Utils/Timer.h"
 
@@ -41,6 +42,7 @@ private:
     void ProcessInputs() const;
 
     bool OnWindowClose(WindowCloseEvent& e);
+    bool OnKeyPressed(KeyPressedEvent& e);
 
 private:
     inline static Application* s_Instance { nullptr };

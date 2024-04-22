@@ -17,7 +17,7 @@ namespace
         ThreadPool RenderThreadPool;
 
         std::vector<COLORREF> Framebuffer;
-        const uint32_t FramebufferSizeCoefficient { 2 };
+        uint32_t FramebufferSizeCoefficient { 2 };
         uint32_t FramebufferWidth { 0 };
         uint32_t FramebufferHeight { 0 };
 
@@ -142,6 +142,13 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
     s_Data.FramebufferWidth = width / s_Data.FramebufferSizeCoefficient;
     s_Data.FramebufferHeight = height / s_Data.FramebufferSizeCoefficient;
     s_Data.Framebuffer.resize(s_Data.FramebufferWidth * s_Data.FramebufferHeight);
+}
+
+void Renderer::SetFramebufferSizeCoefficient(uint32_t framebufferSizeCoefficient)
+{
+    std::cout << "FramebufferSizeCoefficient: " << framebufferSizeCoefficient << '\n';
+    s_Data.FramebufferSizeCoefficient = framebufferSizeCoefficient;
+    OnResize(Application::Get().GetWindow()->GetWidth(), Application::Get().GetWindow()->GeHeigth());
 }
 
 void Renderer::RenderPerThread(uint32_t startHeight, uint32_t height, const Math::Vec4& BL, const Math::Vec4& Right,
