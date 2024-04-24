@@ -1,9 +1,11 @@
 ﻿#pragma once
-#include "DLEngine/Core/Mouse.h"
 #include "DLEngine/Core/Base.h"
-#include "DLEngine/Core/Keyboard.h"
+#include "DLEngine/Core/LayerStack.h"
 #include "DLEngine/Core/Window.h"
-#include "DLEngine/Renderer/Scene.h"
+
+#include "DLEngine/Core/Events/ApplicationEvent.h"
+#include "DLEngine/Core/Events/KeyEvent.h"
+
 #include "DLEngine/Utils/Timer.h"
 
 struct ApplicationSpecification
@@ -15,7 +17,6 @@ struct ApplicationSpecification
 
 class Application
 {
-    friend int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow);
 public:
     ~Application();
 
@@ -24,20 +25,24 @@ public:
     Application& operator=(const Application&) = delete;
     Application& operator=(Application&&) = delete;
 
+    void Run();
+    void OnEvent(Event& e);
+
+    void PushLayer(Layer* layer);
+
+    Scope<Window>& GetWindow() { return m_Window; }
     static Application& Get() { return *s_Instance; }
 
-    Ref<Window>& GetWindow() { return m_Window; }
-
-    void Init();
-    void Run();
-
 protected:
-    explicit Application(const ApplicationSpecification& specification);
+    explicit Application(const ApplicationSpecification& spec);
 
 private:
     static void InitConsole();
 
     void ProcessInputs() const;
+
+    bool OnWindowClose(WindowCloseEvent& e);
+    bool OnKeyPressed(KeyPressedEvent& e);
 
 private:
     inline static Application* s_Instance { nullptr };
@@ -45,9 +50,12 @@ private:
 
     ApplicationSpecification m_Specification;
 
-    Ref<Window> m_Window;
+    bool m_IsRunning { true };
 
-    Scene m_Scene;
+    Scope<Window> m_Window;
+    LayerStack m_LayerStack;
 
     Timer m_Timer;
 };
+
+extern Application* CreateApplication();

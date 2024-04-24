@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <array>
+#include <stack>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>

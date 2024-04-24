@@ -1,13 +1,20 @@
 ﻿#pragma once
-#include "Mouse.h"
+#include "DLEngine/Math/Vec2.h"
 
 class Input
 {
+    friend class Window;
 public:
     static bool IsKeyPressed(uint8_t keyCode);
-    static bool IsMouseButtonPressed(Mouse::Button button);
-
-    static Math::Vec2<int32_t> GetMousePosition();
+    static Math::Vec2 GetCursorPosition();
     static int32_t GetMouseX();
     static int32_t GetMouseY();
+
+private:
+    static void OnKeyPressed(uint8_t keyCode);
+    static void OnKeyReleased(uint8_t keyCode);
+
+    static void OnMouseMove(int32_t x, int32_t y);
+
+    static void ResetKeys();
 };

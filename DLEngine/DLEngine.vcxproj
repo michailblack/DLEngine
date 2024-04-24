@@ -90,7 +90,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DL_ENABLE_ASSERTS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -126,7 +126,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DL_ENABLE_ASSERTS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -159,31 +159,64 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\Core\Application.h" />
     <ClInclude Include="src\DLEngine\Core\Base.h" />
+    <ClInclude Include="src\DLEngine\Core\EntryPoint.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\ApplicationEvent.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\Event.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\KeyEvent.h" />
+    <ClInclude Include="src\DLEngine\Core\Events\MouseEvent.h" />
     <ClInclude Include="src\DLEngine\Core\Input.h" />
-    <ClInclude Include="src\DLEngine\Core\Keyboard.h" />
-    <ClInclude Include="src\DLEngine\Core\Mouse.h" />
-    <ClInclude Include="src\DLEngine\Entity\Entity.h" />
+    <ClInclude Include="src\DLEngine\Core\Layer.h" />
+    <ClInclude Include="src\DLEngine\Core\LayerStack.h" />
+    <ClInclude Include="src\DLEngine\Math\Primitives.h" />
+    <ClInclude Include="src\DLEngine\Math\Intersections.h" />
+    <ClInclude Include="src\DLEngine\Math\Math.h" />
+    <ClInclude Include="src\DLEngine\Math\Mat4x4.h" />
+    <ClInclude Include="src\DLEngine\Math\Vec2.h" />
+    <ClInclude Include="src\DLEngine\Math\Vec3.h" />
+    <ClInclude Include="src\DLEngine\Math\Vec4.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
+    <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Entity.h" />
+    <ClInclude Include="src\DLEngine\Renderer\IDragger.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Light.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Material.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Mesh.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Scene.h" />
-    <ClInclude Include="src\DLEngine\Math\Vec.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
+    <ClInclude Include="src\DLEngine\Utils\ThreadPool.h" />
+    <ClInclude Include="src\DLEngine\Renderer\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\Core\Application.cpp" />
     <ClCompile Include="src\DLEngine\Core\Input.cpp" />
-    <ClCompile Include="src\DLEngine\Core\Keyboard.cpp" />
-    <ClCompile Include="src\DLEngine\Core\Mouse.cpp" />
+    <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\IDragger.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Material.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Mesh.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Scene.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
+    <ClCompile Include="src\DLEngine\Utils\ThreadPool.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\TriangleOctree.cpp" />
     <ClCompile Include="src\dlpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\DLEngine\Math\Intersections.inl" />
+    <None Include="src\DLEngine\Math\Mat4x4.inl" />
+    <None Include="src\DLEngine\Math\Math.inl" />
+    <None Include="src\DLEngine\Math\Vec2.inl" />
+    <None Include="src\DLEngine\Math\Vec3.inl" />
+    <None Include="src\DLEngine\Math\Vec4.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

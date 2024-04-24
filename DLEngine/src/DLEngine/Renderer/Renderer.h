@@ -1,16 +1,27 @@
 ﻿#pragma once
-#include "DLEngine/Core/Window.h"
-#include "DLEngine/Entity/Entity.h"
+#include "DLEngine/Renderer/Camera.h"
+#include "DLEngine/Renderer/Entity.h"
 
 class Renderer
 {
 public:
-    static void SetWindow(const Ref<Window>& window);
-    static Ref<Window>& GetWindow();
+    static void Init();
 
-    static void Draw(const Math::Sphere& entity);
+    static void BeginScene(const Camera& camera, const Ref<Environment>& environment);
+    static void EndScene();
 
-    static Math::Vec2f ScreenSpaceToWorldSpace(const Math::Vec2<int32_t>& screenPos);
+    static void Submit(const Ref<SphereInstance>& sphere);
+    static void Submit(const Ref<PlaneInstance>& plane);
+    static void Submit(const Ref<MeshInstance>& cube);
+
+    static Math::Ray GetRay(uint32_t mouseX, uint32_t mouseY);
 
     static void OnResize(uint32_t width, uint32_t height);
+    static void SetFramebufferSizeCoefficient(uint32_t framebufferSizeCoefficient);
+
+private:
+    static void RenderPerThread(uint32_t startHeight, uint32_t height, const Math::Vec4& BL, const Math::Vec4& Right, const Math::Vec4& Up);
+
+    static Environment CalculateEnvironmentContribution(const Math::IntersectInfo& intersectionInfo, const Environment& environment);
+    static bool PointIsOccluded(const Math::Ray& ray, const float lightSourceT);
 };
