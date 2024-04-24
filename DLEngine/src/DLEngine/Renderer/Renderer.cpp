@@ -147,7 +147,7 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
 void Renderer::SetFramebufferSizeCoefficient(uint32_t framebufferSizeCoefficient)
 {
     s_Data.FramebufferSizeCoefficient = framebufferSizeCoefficient;
-    OnResize(Application::Get().GetWindow()->GetWidth(), Application::Get().GetWindow()->GeHeigth());
+    OnResize(Application::Get().GetWindow()->GetWidth(), Application::Get().GetWindow()->GeHeight());
 }
 
 void Renderer::RenderPerThread(uint32_t startHeight, uint32_t height, const Math::Vec4& BL, const Math::Vec4& Right,

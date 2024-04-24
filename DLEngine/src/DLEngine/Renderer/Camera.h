@@ -5,24 +5,24 @@
 class Camera
 {
 public:
-    Camera(float fov, float aspectRatio, float zNear, float zFar);
+    Camera(float fov, float aspectRatio, float zNear, float zFar) noexcept;
 
-    void SetAspectRatio(float aspectRatio) { m_AspectRatio = aspectRatio; }
+    void SetAspectRatio(float aspectRatio) noexcept { m_AspectRatio = aspectRatio; }
 
-    void Translate(const Math::Vec3& translation) { m_Position += translation; }
+    void Translate(const Math::Vec3& translation) noexcept { m_Position += translation; }
 
-    void RotateForward(float angle);
-    void RotateRight(float angle);
-    void RotateUp(float angle);
+    void RotateForward(float angle) noexcept;
+    void RotateRight(float angle) noexcept;
+    void RotateUp(float angle) noexcept;
 
-    Math::Vec3 GetPosition() const { return m_Position; }
+    Math::Vec3 GetPosition() const noexcept { return m_Position; }
 
-    Math::Vec3 GetRight() const { return m_Right; }
-    Math::Vec3 GetUp() const { return m_Up; }
-    Math::Vec3 GetForward() const { return m_Forward; }
+    Math::Vec3 GetRight() const noexcept { return m_Right; }
+    Math::Vec3 GetUp() const noexcept { return m_Up; }
+    Math::Vec3 GetForward() const noexcept { return m_Forward; }
 
-    Math::Mat4x4 GetProjectionMatrix() const;
-    Math::Mat4x4 GetViewMatrix() const;
+    Math::Mat4x4 GetProjectionMatrix() const noexcept;
+    Math::Mat4x4 GetViewMatrix() const noexcept;
 
 private:
     Math::Vec3 m_Position { 0.0f, 0.0f, 0.0f };

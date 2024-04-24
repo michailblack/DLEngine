@@ -1,8 +1,7 @@
 #include "dlpch.h"
 #include "Window.h"
 
-#include <cassert>
-
+#include "DLEngine/Core/DLException.h"
 #include "DLEngine/Core/Input.h"
 
 #include "DLEngine/Core/Events/ApplicationEvent.h"
@@ -13,11 +12,12 @@
 
 Window::WindowClass::WindowClass()
 {
-    assert(GetModuleHandleExW(0, nullptr, &m_hInstance));
+    if (GetModuleHandleExW(0, nullptr, &m_hInstance) == 0)
+    {
+        throw DL_LAST_ERROR();
+    }
 
     WNDCLASSEXW wc {};
-    memset(&wc, 0, sizeof(wc));
-
     wc.cbSize = sizeof(wc);
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = HandleMsgSetup;
@@ -42,7 +42,10 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
     m_Data.m_EventCallback = callback;
 
     RECT windowRect { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
-    AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+    if (AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0) == FALSE)
+    {
+        throw DL_LAST_ERROR();
+    }
 
     m_hWnd = CreateWindowExW(
         0,
@@ -56,7 +59,10 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
         this
     );
 
-    assert(m_hWnd);
+    if (!m_hWnd)
+    {
+        throw DL_LAST_ERROR();
+    }
 
     ShowWindow(m_hWnd, SW_SHOW);
 }

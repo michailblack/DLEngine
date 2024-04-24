@@ -15,7 +15,7 @@
 class CameraController
 {
 public:
-    CameraController(const Camera& camera);
+    CameraController(const Camera& camera) noexcept;
     ~CameraController() = default;
 
     CameraController(const CameraController&) = delete;
@@ -26,13 +26,13 @@ public:
     void OnUpdate(float dt);
     void OnEvent(Event& e);
 
-    bool IsCameraTransformed() const { return m_Transformed; }
+    bool IsCameraTransformed() const noexcept { return m_Transformed; }
 
-    bool AskedForDragger() const { return m_AskForDragger; }
-    void SetDragger(Scope<IDragger> dragger) { m_Dragger = std::move(dragger); m_AskForDragger = false; }
+    bool AskedForDragger() const noexcept { return m_AskForDragger; }
+    void SetDragger(Scope<IDragger> dragger) noexcept { m_Dragger = std::move(dragger); m_AskForDragger = false; }
 
-    const Camera& GetCamera() const { return m_Camera; }
-    const Math::Ray& GetDraggingRay() const { return m_StartDraggingRay; }
+    const Camera& GetCamera() const noexcept { return m_Camera; }
+    const Math::Ray& GetDraggingRay() const noexcept { return m_StartDraggingRay; }
 
 private:
     bool OnWindowResize(WindowResizeEvent& e);

@@ -13,9 +13,9 @@ private:
     };
 
 public:
-    TriangleOctree(const std::vector<Math::Triangle>& triangles);
+    TriangleOctree(const std::vector<Math::Triangle>& triangles) noexcept;
 
-    const std::vector<OctreeNode>& GetNodes() const { return m_Nodes; }
+    const std::vector<OctreeNode>& GetNodes() const noexcept { return m_Nodes; }
 
     bool NodeHasChildren(uint32_t nodeIndex) const;
 
@@ -25,12 +25,11 @@ private:
     void Subdivide(uint32_t nodeIndex, const std::vector<Math::Triangle>& triangles);
     void ShrinkNodes();
 
-    uint32_t GetCurrentDepth(uint32_t nodeIndex) const;
-    static uint32_t CountMaxElementsWithDepth(uint32_t depth);
+    uint32_t GetCurrentDepth(uint32_t nodeIndex) const noexcept;
+    static uint32_t CountMaxElementsWithDepth(uint32_t depth) noexcept;
 
 private:
     std::vector<OctreeNode> m_Nodes;
-    //const std::vector<Math::Triangle>* m_Triangles;
     std::vector<uint32_t> m_TriangleIndices;
 
     const uint32_t m_EmptyLeafIndicator;

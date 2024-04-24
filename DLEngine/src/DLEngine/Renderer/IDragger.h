@@ -6,7 +6,7 @@
 class IDragger
 {
 public:
-    IDragger(Math::Vec3 startDraggingPoint, float distanceToDraggingPlane)
+    IDragger(Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
         : m_StartDraggingPoint(startDraggingPoint)
         , m_DistanceToDraggingPlane(distanceToDraggingPlane)
     {}
@@ -22,7 +22,7 @@ class ISphereDragger
     : public IDragger
 {
 public:
-    ISphereDragger(const Ref<SphereInstance>& targetSphere, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane)
+    ISphereDragger(const Ref<SphereInstance>& targetSphere, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
         : IDragger(startDraggingPoint, distanceToDraggingPlane)
         , m_TargetSphere(targetSphere)
     {}
@@ -37,7 +37,7 @@ class IPlaneDragger
     : public IDragger
 {
 public:
-    IPlaneDragger(const Ref<PlaneInstance>& targetPlane, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane)
+    IPlaneDragger(const Ref<PlaneInstance>& targetPlane, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
         : IDragger(startDraggingPoint, distanceToDraggingPlane)
         , m_TargetPlane(targetPlane)
     {}
@@ -52,7 +52,7 @@ class IMeshDragger
     : public IDragger
 {
 public:
-    IMeshDragger(const Ref<MeshInstance>& targetMesh, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane)
+    IMeshDragger(const Ref<MeshInstance>& targetMesh, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
         : IDragger(startDraggingPoint, distanceToDraggingPlane)
         , m_TargetMesh(targetMesh)
     {}

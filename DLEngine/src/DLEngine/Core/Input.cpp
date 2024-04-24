@@ -16,43 +16,43 @@ namespace
     } s_Data;
 }
 
-bool Input::IsKeyPressed(uint8_t keyCode)
+bool Input::IsKeyPressed(uint8_t keyCode) noexcept
 {
     return s_Data.m_KeysStates[keyCode];
 }
 
-Math::Vec2 Input::GetCursorPosition()
+Math::Vec2 Input::GetCursorPosition() noexcept
 {
     return Math::Vec2 { static_cast<float>(s_Data.m_MouseX), static_cast<float>(s_Data.m_MouseY) };
 }
 
-int32_t Input::GetMouseX()
+int32_t Input::GetMouseX() noexcept
 {
     return s_Data.m_MouseX;
 }
 
-int32_t Input::GetMouseY()
+int32_t Input::GetMouseY() noexcept
 {
     return s_Data.m_MouseY;
 }
 
-void Input::OnKeyPressed(uint8_t keyCode)
+void Input::OnKeyPressed(uint8_t keyCode) noexcept
 {
     s_Data.m_KeysStates[keyCode] = true;
 }
 
-void Input::OnKeyReleased(uint8_t keyCode)
+void Input::OnKeyReleased(uint8_t keyCode) noexcept
 {
     s_Data.m_KeysStates[keyCode] = false;
 }
 
-void Input::OnMouseMove(int32_t x, int32_t y)
+void Input::OnMouseMove(int32_t x, int32_t y) noexcept
 {
     s_Data.m_MouseX = x;
     s_Data.m_MouseY = y;
 }
 
-void Input::ResetKeys()
+void Input::ResetKeys() noexcept
 {
     s_Data.m_KeysStates.reset();
 }

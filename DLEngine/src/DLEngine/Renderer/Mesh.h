@@ -6,12 +6,12 @@
 class Mesh
 {
 public:
-    Mesh(const std::vector<Math::Triangle>& triangles);
+    Mesh(const std::vector<Math::Triangle>& triangles) noexcept;
 
-    const std::vector<Math::Triangle>& GetTriangles() const { return m_Triangles; }
-    const TriangleOctree& GetOctree() const { return m_Octree; }
+    const std::vector<Math::Triangle>& GetTriangles() const noexcept { return m_Triangles; }
+    const TriangleOctree& GetOctree() const noexcept { return m_Octree; }
 
-    static const Mesh& GetUnitCube();
+    static const Mesh& GetUnitCube() noexcept;
 
 private:
     std::vector<Math::Triangle> m_Triangles;
