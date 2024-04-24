@@ -146,7 +146,6 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
 
 void Renderer::SetFramebufferSizeCoefficient(uint32_t framebufferSizeCoefficient)
 {
-    std::cout << "FramebufferSizeCoefficient: " << framebufferSizeCoefficient << '\n';
     s_Data.FramebufferSizeCoefficient = framebufferSizeCoefficient;
     OnResize(Application::Get().GetWindow()->GetWidth(), Application::Get().GetWindow()->GeHeigth());
 }

@@ -20,10 +20,15 @@ public:
     void OnEvent(Event& e) override;
 
 private:
+    bool OnAppRenderEvent(AppRenderEvent& e);
+
+private:
     Scope<IDragger> FindDragger(const Math::Ray& ray) const;
 
 private:
     CameraController m_CameraController;
+
+    bool m_ShouldRender { false };
 
     std::vector<Ref<SphereInstance>> m_Spheres;
     std::vector<Ref<PlaneInstance>> m_Planes;

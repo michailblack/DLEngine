@@ -93,8 +93,10 @@ void WorldLayer::OnUpdate(float dt)
     if (m_CameraController.AskedForDragger())
         m_CameraController.SetDragger(FindDragger(m_CameraController.GetDraggingRay()));
 
-    if (m_CameraController.IsCameraTransformed())
+    if (m_CameraController.IsCameraTransformed() || m_ShouldRender)
     {
+        m_ShouldRender = false;
+
         Renderer::BeginScene(m_CameraController.GetCamera(), m_Environment);
 
         for (const auto& sphere : m_Spheres)
@@ -114,7 +116,16 @@ void WorldLayer::OnUpdate(float dt)
 
 void WorldLayer::OnEvent(Event& e)
 {
+    EventDispatcher dispatcher(e);
+    dispatcher.Dispatch<AppRenderEvent>(DL_BIND_EVENT_FN(WorldLayer::OnAppRenderEvent));
+
     m_CameraController.OnEvent(e);
+}
+
+bool WorldLayer::OnAppRenderEvent(AppRenderEvent& e)
+{
+    m_ShouldRender = true;
+    return false;
 }
 
 Scope<IDragger> WorldLayer::FindDragger(const Math::Ray& ray) const

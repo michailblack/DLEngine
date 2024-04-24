@@ -94,17 +94,33 @@ bool Application::OnKeyPressed(KeyPressedEvent& e)
         m_IsRunning = false;
         break;
     case '1':
+    {
         Renderer::SetFramebufferSizeCoefficient(1);
-        break;
+
+        AppRenderEvent e {};
+        OnEvent(e);
+    } break;
     case '2':
+    {
         Renderer::SetFramebufferSizeCoefficient(3);
-        break;
+        
+        AppRenderEvent e{};
+        OnEvent(e);
+    } break;
     case '3':
+    {
         Renderer::SetFramebufferSizeCoefficient(6);
-        break;
+
+        AppRenderEvent e{};
+        OnEvent(e);
+    } break;
     case '4':
+    {
         Renderer::SetFramebufferSizeCoefficient(9);
-        break;
+
+        AppRenderEvent e{};
+        OnEvent(e);
+    } break;
     default:
         break;
     }
