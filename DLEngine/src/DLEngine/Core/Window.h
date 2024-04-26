@@ -49,13 +49,13 @@ public:
 
     void Present() const;
 
-    Math::Vec2 GetSize() const noexcept { return Math::Vec2 { static_cast<float>(m_Data.m_Width), static_cast<float>(m_Data.m_Height) }; }
-    uint32_t GetWidth() const noexcept { return m_Data.m_Width; }
-    uint32_t GeHeight() const noexcept { return m_Data.m_Height; }
+    Math::Vec2 GetSize() const noexcept { return Math::Vec2 { static_cast<float>(m_Data.Width), static_cast<float>(m_Data.Height) }; }
+    uint32_t GetWidth() const noexcept { return m_Data.Width; }
+    uint32_t GeHeight() const noexcept { return m_Data.Height; }
 
     HWND GetHandle() const noexcept { return m_hWnd; }
 
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> GetRenderTargetView() const noexcept { return m_Data.m_RenderTargetView; }
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> GetRenderTargetView() const noexcept { return m_Data.RenderTargetView; }
 
 private:
     static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -67,12 +67,12 @@ private:
 
     struct WindowData
     {
-        uint32_t m_Width, m_Height;
-        const wchar_t* m_Title;
+        uint32_t Width, Height;
+        const wchar_t* Title;
 
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> m_SwapChain;
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> m_RenderTargetView;
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> SwapChain;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> RenderTargetView;
 
-        EventCallbackFn m_EventCallback;
+        EventCallbackFn EventCallback;
     } m_Data;
 };

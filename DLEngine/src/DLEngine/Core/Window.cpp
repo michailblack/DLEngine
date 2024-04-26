@@ -5,11 +5,10 @@
 #include "DLEngine/Core/Input.h"
 
 #include "DLEngine/Core/D3D.h"
+
 #include "DLEngine/Core/Events/ApplicationEvent.h"
 #include "DLEngine/Core/Events/KeyEvent.h"
 #include "DLEngine/Core/Events/MouseEvent.h"
-
-#include "DLEngine/Renderer/Renderer.h"
 
 #pragma comment(lib, "dxgi.lib")
 
@@ -39,10 +38,10 @@ Window::WindowClass::~WindowClass()
 
 Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const EventCallbackFn& callback)
 {
-    m_Data.m_Width = width;
-    m_Data.m_Height = height;
-    m_Data.m_Title = title;
-    m_Data.m_EventCallback = callback;
+    m_Data.Width = width;
+    m_Data.Height = height;
+    m_Data.Title = title;
+    m_Data.EventCallback = callback;
 
     RECT windowRect { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
     if (AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0) == FALSE)
@@ -80,7 +79,7 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
     swapChainDesk.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesk.BufferCount = 2;
     swapChainDesk.Scaling = DXGI_SCALING_STRETCH;
-    swapChainDesk.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    swapChainDesk.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
     swapChainDesk.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
     swapChainDesk.Flags = 0;
 
@@ -90,13 +89,8 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
         &swapChainDesk,
         nullptr,
         nullptr,
-        &m_Data.m_SwapChain
+        &m_Data.SwapChain
     ));
-
-    Microsoft::WRL::ComPtr<ID3D11Texture2D1> backBuffer;
-    DL_THROW_IF(m_Data.m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &backBuffer));
-
-    D3D::Get().GetDevice()->CreateRenderTargetView1(backBuffer.Get(), nullptr, &m_Data.m_RenderTargetView);
 
     ShowWindow(m_hWnd, SW_SHOW);
 }
@@ -108,7 +102,7 @@ Window::~Window()
 
 void Window::Present() const
 {
-    DL_THROW_IF(m_Data.m_SwapChain->Present(1, 0));
+    DL_THROW_IF(m_Data.SwapChain->Present(1, 0));
 }
 
 LRESULT Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -140,20 +134,29 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             PostQuitMessage(0);
             auto windowCloseEvent { WindowCloseEvent {} };
-            m_Data.m_EventCallback(windowCloseEvent);
+            m_Data.EventCallback(windowCloseEvent);
         } return 0;
     case WM_SIZE:
         {
             const auto width = LOWORD(lParam);
             const auto height = HIWORD(lParam);
 
-            m_Data.m_Width = width;
-            m_Data.m_Height = height;
+            m_Data.Width = width;
+            m_Data.Height = height;
 
-            Renderer::OnResize(width, height);
+            D3D::Get().GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
+
+            m_Data.RenderTargetView.Reset();
+
+            DL_THROW_IF(m_Data.SwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
+
+            Microsoft::WRL::ComPtr<ID3D11Texture2D1> backBuffer;
+            DL_THROW_IF(m_Data.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &backBuffer));
+
+            DL_THROW_IF(D3D::Get().GetDevice()->CreateRenderTargetView1(backBuffer.Get(), nullptr, &m_Data.RenderTargetView));
 
             auto windowResizeEvent { WindowResizeEvent { width, height } };
-            m_Data.m_EventCallback(windowResizeEvent);
+            m_Data.EventCallback(windowResizeEvent);
         } break;
     case WM_KILLFOCUS:
         {
@@ -170,7 +173,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 Input::OnKeyPressed(key);
 
                 auto keyPressedEvent { KeyPressedEvent { key } };
-                m_Data.m_EventCallback(keyPressedEvent);
+                m_Data.EventCallback(keyPressedEvent);
             }
         } break;
     case WM_KEYUP:
@@ -180,7 +183,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             Input::OnKeyReleased(key);
 
             auto keyReleasedEvent { KeyReleasedEvent { key } };
-            m_Data.m_EventCallback(keyReleasedEvent);
+            m_Data.EventCallback(keyReleasedEvent);
         } break;
     // End of keyboard input
 
@@ -190,7 +193,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             const auto delta = GET_WHEEL_DELTA_WPARAM(wParam);
 
             auto mouseWheelEvent { MouseScrolledEvent { delta } };
-            m_Data.m_EventCallback(mouseWheelEvent);
+            m_Data.EventCallback(mouseWheelEvent);
         } break;
     case WM_MOUSEMOVE:
         {
@@ -198,49 +201,49 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             Input::OnMouseMove(pt.x, pt.y);
 
             auto mouseMovedEvent { MouseMovedEvent { pt.x, pt.y } };
-            m_Data.m_EventCallback(mouseMovedEvent);
+            m_Data.EventCallback(mouseMovedEvent);
         } break;
     case WM_LBUTTONDOWN:
         {
             Input::OnKeyPressed(VK_LBUTTON);
 
             auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_LBUTTON } };
-            m_Data.m_EventCallback(mouseButtonPressedEvent);
+            m_Data.EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_LBUTTONUP:
         {
             Input::OnKeyReleased(VK_LBUTTON);
 
             auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_LBUTTON } };
-            m_Data.m_EventCallback(mouseButtonReleasedEvent);
+            m_Data.EventCallback(mouseButtonReleasedEvent);
         } break;
     case WM_RBUTTONDOWN:
         {
             Input::OnKeyPressed(VK_RBUTTON);
 
             auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_RBUTTON } };
-            m_Data.m_EventCallback(mouseButtonPressedEvent);
+            m_Data.EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_RBUTTONUP:
         {
             Input::OnKeyReleased(VK_RBUTTON);
 
             auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_RBUTTON } };
-            m_Data.m_EventCallback(mouseButtonReleasedEvent);
+            m_Data.EventCallback(mouseButtonReleasedEvent);
         } break;
     case WM_MBUTTONDOWN:
         {
             Input::OnKeyPressed(VK_MBUTTON);
 
             auto mouseButtonPressedEvent { MouseButtonPressedEvent { VK_MBUTTON } };
-            m_Data.m_EventCallback(mouseButtonPressedEvent);
+            m_Data.EventCallback(mouseButtonPressedEvent);
         } break;
     case WM_MBUTTONUP:
         {
             Input::OnKeyReleased(VK_MBUTTON);
 
             auto mouseButtonReleasedEvent { MouseButtonReleasedEvent { VK_MBUTTON } };
-            m_Data.m_EventCallback(mouseButtonReleasedEvent);
+            m_Data.EventCallback(mouseButtonReleasedEvent);
         } break;
     // End of mouse input
     }

@@ -194,4 +194,8 @@
       <Filter>Header Files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="src\DLEngine\Shaders\HelloTriangleVS.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\HelloTrianglePS.hlsl" />
+  </ItemGroup>
 </Project>

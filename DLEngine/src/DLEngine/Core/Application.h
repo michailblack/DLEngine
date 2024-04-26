@@ -42,6 +42,7 @@ private:
     void ProcessInputs() const;
 
     bool OnWindowClose(WindowCloseEvent& e);
+    bool OnWindowResize(WindowResizeEvent& e);
     bool OnKeyPressed(KeyPressedEvent& e);
 
 private:

@@ -1,9 +1,17 @@
 #include "WorldLayer.h"
 
+#include "DLEngine/Core/D3D.h"
+#include "DLEngine/Core/DLException.h"
 #include "DLEngine/Math/Intersections.h"
 
 #include "DLEngine/Renderer/RenderCommand.h"
 #include "DLEngine/Renderer/Renderer.h"
+
+#include <d3dcompiler.h>
+
+#pragma comment(lib, "d3dcompiler.lib")
+
+#define HelloTrianglePS 1
 
 WorldLayer::WorldLayer()
     : m_CameraController(Camera { Math::ToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f })
@@ -16,72 +24,127 @@ WorldLayer::~WorldLayer()
 
 void WorldLayer::OnAttach()
 {
-    PlaneInstance planeInst;
-    planeInst.Plane.Origin = Math::Vec3 { 0.0f, 0.0f, 0.0f };
-    planeInst.Plane.Normal = Math::Vec3 { 0.0f, 1.0f, 0.0f };
-    planeInst.Mat.SetAlbedo(Math::Vec3 { 0.1f });
-    planeInst.Mat.SetSpecularPower(32.0f);
-    m_Planes.push_back(CreateRef<PlaneInstance>(planeInst));
+    using namespace Microsoft::WRL;
 
-    SphereInstance sphereInstance;
-    sphereInstance.Sphere.Center = Math::Vec3 { 2.0f, 2.0f, 2.0f };
-    sphereInstance.Sphere.Radius = 1.0f;
-    sphereInstance.Mat.SetAlbedo(Math::Vec3 { 0.5f, 0.1f, 0.3f });
-    sphereInstance.Mat.SetSpecularPower(64.0f);
-    m_Spheres.push_back(CreateRef<SphereInstance>(sphereInstance));
+    const auto& device { D3D::Get().GetDevice() };
 
-    sphereInstance.Sphere.Center = Math::Vec3 { -1.0f, 1.0f, 3.0f };
-    sphereInstance.Sphere.Radius = 0.5f;
-    sphereInstance.Mat.SetAlbedo(Math::Vec3 { 0.0f, 0.2f, 0.01f });
-    sphereInstance.Mat.SetSpecularPower(128.0f);
-    m_Spheres.push_back(CreateRef<SphereInstance>(sphereInstance));
+    struct Vertex
+    {
+        Math::Vec3 Position;
+        Math::Vec3 Color;
+    };
+    constexpr Vertex vertices[]
+    {
+        { Math::Vec3 { -0.5f, -0.5f, 0.0f }, Math::Vec3 { 1.0f, 0.0f, 0.0f } },
+        { Math::Vec3 { 0.5f, -0.5f, 0.0f }, Math::Vec3 { 0.0f, 1.0f, 0.0f } },
+        { Math::Vec3 { 0.0f, 0.5f, 0.0f }, Math::Vec3 { 0.0f, 0.0f, 1.0f } }
+    };
 
-    MeshInstance cubeInstance;
-    cubeInstance.Transform = Math::Mat4x4::Translate(Math::Vec3 { -3.0f, 3.0f, 1.0f });
-    cubeInstance.InvTransform = Math::Mat4x4::Inverse(cubeInstance.Transform);
-    cubeInstance.Mat.SetAlbedo(Math::Vec3 { 0.987f, 0.705f, 0.11f });
-    cubeInstance.Mat.SetSpecularPower(16.0f);
-    m_Cubes.push_back(CreateRef<MeshInstance>(cubeInstance));
+    D3D11_BUFFER_DESC vertexBufferDesc {};
+    vertexBufferDesc.ByteWidth = sizeof(Vertex) * 3u;
+    vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    vertexBufferDesc.CPUAccessFlags = 0u;
+    vertexBufferDesc.MiscFlags = 0u;
+    vertexBufferDesc.StructureByteStride = sizeof(Vertex);
 
-    cubeInstance.Transform = Math::Mat4x4::Scale(Math::Vec3 { 0.5f }) * Math::Mat4x4::Translate(Math::Vec3 { 0.5f, 2.0f, 2.0f });
-    cubeInstance.InvTransform = Math::Mat4x4::Inverse(cubeInstance.Transform);
-    cubeInstance.Mat.SetAlbedo(Math::Vec3 { 0.79f, 0.2f, 0.19f });
-    cubeInstance.Mat.SetSpecularPower(256.0f);
-    m_Cubes.push_back(CreateRef<MeshInstance>(cubeInstance));
+    D3D11_SUBRESOURCE_DATA vertexBufferData {};
+    vertexBufferData.pSysMem = vertices;
+    vertexBufferData.SysMemPitch = 0u;
+    vertexBufferData.SysMemSlicePitch = 0u;
 
-    m_Environment = CreateRef<Environment>();
+    DL_THROW_IF(device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &m_VertexBuffer));
 
-    constexpr float lightIntensity { 20.0f };
+    ComPtr<ID3DBlob> errorBlob;
 
-    m_Environment->IndirectLightingColor = Math::Vec3 { 0.5f };
+    ComPtr<ID3DBlob> vertexShaderBlob;
 
-    m_Environment->Sun.Direction = Math::Normalize(Math::Vec3 { 1.0f, -1.0f, 1.0f });
-    m_Environment->Sun.Color = Math::Vec3 { 0.99f, 0.955f, 0.564f } * lightIntensity / 2.0f;
+    UINT compileFlags = 0u;
 
-    PointLight pointLight;
-    pointLight.Position = Math::Vec3 { -1.0f, 2.0f, 2.0f };
-    pointLight.Color = Math::Vec3 { 0.0f, 0.24f, 0.91f } * lightIntensity;
-    pointLight.Linear = 0.14f;
-    pointLight.Quadratic = 0.07f;
-    m_Environment->PointLights.push_back(pointLight);
+#ifdef _DEBUG
+    compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
 
-    pointLight.Position = Math::Vec3 { -5.0f, 3.0f, 2.0f };
-    pointLight.Color = Math::Vec3 { 0.89f, 0.04f, 0.04f } * lightIntensity;
-    pointLight.Linear = 0.35f;
-    pointLight.Quadratic = 0.44f;
-    m_Environment->PointLights.push_back(pointLight);
+    DL_THROW_IF(D3DCompileFromFile(
+        L"..\\DLEngine\\src\\DLEngine\\Shaders\\HelloTriangleVS.hlsl",
+        nullptr, nullptr,
+        "main", "vs_5_0",
+        compileFlags, 0u,
+        &vertexShaderBlob, &errorBlob
+    ));
 
-    SpotLight spotLight;
-    spotLight.Position = Math::Vec3 { 0.0f, 3.0f, 0.0f };
-    spotLight.Color = Math::Vec3 { 0.0f, 0.0f, 1.0f } * lightIntensity;
-    spotLight.Direction = Math::Normalize(Math::Vec3 { 0.0f, -1.0f, 0.0f });
-    spotLight.InnerCutoffCos = Math::Cos(Math::ToRadians(12.5f));
-    spotLight.OuterCutoffCos = Math::Cos(Math::ToRadians(17.5f));
-    spotLight.Linear = 0.07f;
-    spotLight.Quadratic = 0.017f;
-    m_Environment->SpotLights.push_back(spotLight);
+    DL_THROW_IF(device->CreateVertexShader(
+        vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(),
+        nullptr,
+        &m_VertexShader
+    ));
 
-    m_Environment->Exposure = 1.0f;
+    ComPtr<ID3DBlob> pixelShaderBlob;
+
+#if HelloTrianglePS
+    D3D_SHADER_MACRO shaderMacros[]
+    {
+        { nullptr, nullptr }
+    };
+#else
+    D3D_SHADER_MACRO shaderMacros[]
+    {
+        { "HelloShaderToy", "1" },
+        { nullptr, nullptr }
+    };
+#endif
+
+    DL_THROW_IF(D3DCompileFromFile(
+        L"..\\DLEngine\\src\\DLEngine\\Shaders\\HelloTrianglePS.hlsl",
+        shaderMacros, nullptr,
+        "main", "ps_5_0",
+        compileFlags, 0u,
+        &pixelShaderBlob, &errorBlob
+    ));
+
+    DL_THROW_IF(device->CreatePixelShader(
+        pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(),
+        nullptr,
+        &m_PixelShader
+    ));
+
+    D3D11_INPUT_ELEMENT_DESC inputElementDescs[]
+    {
+        { "POSITION", 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, 0u, D3D11_INPUT_PER_VERTEX_DATA, 0u },
+        { "COLOR", 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, 12u, D3D11_INPUT_PER_VERTEX_DATA, 0u }
+    };
+
+    DL_THROW_IF(device->CreateInputLayout(
+        inputElementDescs, 2,
+        vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(),
+        &m_InputLayout
+    ));
+
+    D3D11_RASTERIZER_DESC2 rasterizerDesc {};
+    rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+    rasterizerDesc.CullMode = D3D11_CULL_NONE;
+    rasterizerDesc.FrontCounterClockwise = true;
+    rasterizerDesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+    rasterizerDesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+    rasterizerDesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+    rasterizerDesc.DepthClipEnable = true;
+    rasterizerDesc.ScissorEnable = false;
+    rasterizerDesc.MultisampleEnable = false;
+    rasterizerDesc.AntialiasedLineEnable = false;
+    rasterizerDesc.ForcedSampleCount = 0u;
+    rasterizerDesc.ConservativeRaster = D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+    DL_THROW_IF(device->CreateRasterizerState2(&rasterizerDesc, &m_RasterizerState));
+
+    D3D11_BUFFER_DESC constantBufferDesc {};
+    constantBufferDesc.ByteWidth = sizeof(m_PerFrameData);
+    constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+    constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    constantBufferDesc.MiscFlags = 0u;
+    constantBufferDesc.StructureByteStride = 0u;
+
+    DL_THROW_IF(device->CreateBuffer(&constantBufferDesc, nullptr, &m_ConstantBuffer));
 }
 
 void WorldLayer::OnDetach()
@@ -91,86 +154,45 @@ void WorldLayer::OnDetach()
 
 void WorldLayer::OnUpdate(float dt)
 {
-    /*if (m_CameraController.AskedForDragger())
-        m_CameraController.SetDragger(FindDragger(m_CameraController.GetDraggingRay()));
-    
-    if (m_CameraController.IsCameraTransformed() || m_ShouldRender)
-    {
-        m_ShouldRender = false;
-    
-        Renderer::BeginScene(m_CameraController.GetCamera(), m_Environment);
-    
-        for (const auto& sphere : m_Spheres)
-            Renderer::Submit(sphere);
-    
-        for (const auto& plane : m_Planes)
-            Renderer::Submit(plane);
-    
-        for (const auto& cube : m_Cubes)
-            Renderer::Submit(cube);
-    
-        Renderer::EndScene();
-    }
-    
-    m_CameraController.OnUpdate(dt);*/
+    m_PerFrameData.Time += dt * 1e-3f; // In seconds
+    m_PerFrameData.Resolution = Application::Get().GetWindow()->GetSize();
 
     DrawTestTriangle();
 }
 
 void WorldLayer::OnEvent(Event& e)
 {
-    EventDispatcher dispatcher(e);
-    dispatcher.Dispatch<AppRenderEvent>(DL_BIND_EVENT_FN(WorldLayer::OnAppRenderEvent));
-
     m_CameraController.OnEvent(e);
-}
-
-bool WorldLayer::OnAppRenderEvent(AppRenderEvent& e)
-{
-    m_ShouldRender = true;
-    return false;
-}
-
-Scope<IDragger> WorldLayer::FindDragger(const Math::Ray& ray) const
-{
-    Math::IntersectInfo intersectInfo {};
-    const Math::Plane nearPlane { ray.Origin, m_CameraController.GetCamera().GetForward() };
-
-    Scope<IDragger> dragger {};
-
-    for (const auto& sphere : m_Spheres)
-    {
-        if (Math::Intersects(ray, sphere->Sphere, intersectInfo))
-        {
-            const float distanceToDraggingPlane { Math::Distance(intersectInfo.IntersectionPoint, nearPlane) };
-            dragger.reset(new ISphereDragger { sphere, intersectInfo.IntersectionPoint, distanceToDraggingPlane });
-        }
-    }
-
-    for (const auto& plane : m_Planes)
-    {
-        if (Math::Intersects(ray, plane->Plane, intersectInfo))
-        {
-            const float distanceToDraggingPlane { Math::Distance(intersectInfo.IntersectionPoint, nearPlane) };
-            dragger.reset(new IPlaneDragger { plane, intersectInfo.IntersectionPoint, distanceToDraggingPlane });
-        }
-    }
-
-    for (const auto& cube : m_Cubes)
-    {
-        if (Math::Intersects(ray, *cube, Mesh::GetUnitCube(), intersectInfo))
-        {
-            const float distanceToDraggingPlane { Math::Distance(intersectInfo.IntersectionPoint, nearPlane) };
-            dragger.reset(new IMeshDragger { cube, intersectInfo.IntersectionPoint, distanceToDraggingPlane });
-        }
-    }
-
-    return dragger;
 }
 
 void WorldLayer::DrawTestTriangle()
 {
     const auto& renderTargetView { Application::Get().GetWindow()->GetRenderTargetView() };
+    const auto& deviceContext { D3D::Get().GetDeviceContext() };
+
     RenderCommand::BindRenderTargetView(renderTargetView);
     RenderCommand::Clear(renderTargetView, Math::Vec4 { 0.1f, 0.1f, 0.1f, 1.0f });
+
+    D3D11_MAPPED_SUBRESOURCE mappedSubresource {};
+    deviceContext->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &mappedSubresource);
+
+    memcpy_s(mappedSubresource.pData, sizeof(m_PerFrameData), &m_PerFrameData, sizeof(m_PerFrameData));
+
+    deviceContext->Unmap(m_ConstantBuffer.Get(), 0u);
+
+    deviceContext->PSSetConstantBuffers1(0u, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
+
+    deviceContext->RSSetState(m_RasterizerState.Get());
+
+    deviceContext->IASetInputLayout(m_InputLayout.Get());
+
+    deviceContext->VSSetShader(m_VertexShader.Get(), nullptr, 0u);
+    deviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+
+    constexpr uint32_t stride { 24u };
+    constexpr uint32_t offset { 0u };
+    deviceContext->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
+
+    deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    deviceContext->Draw(3u, 0u);
 }

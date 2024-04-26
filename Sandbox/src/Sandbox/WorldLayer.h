@@ -1,5 +1,4 @@
 #pragma once
-#include "DLEngine/Core/Base.h"
 #include "DLEngine/Core/Layer.h"
 
 #include "DLEngine/Core/Events/ApplicationEvent.h"
@@ -20,21 +19,23 @@ public:
     void OnEvent(Event& e) override;
 
 private:
-    bool OnAppRenderEvent(AppRenderEvent& e);
-
-private:
-    Scope<IDragger> FindDragger(const Math::Ray& ray) const;
     void DrawTestTriangle();
 
 private:
     CameraController m_CameraController;
 
-    bool m_ShouldRender { false };
+    struct
+    {
+        Math::Vec2 Resolution { 0.0f };
+        float Time { 0.0f };
+        uint8_t _padding[4];
+    } m_PerFrameData;
 
-    std::vector<Ref<SphereInstance>> m_Spheres;
-    std::vector<Ref<PlaneInstance>> m_Planes;
-    std::vector<Ref<MeshInstance>> m_Cubes;
-
-    Ref<Environment> m_Environment;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_RasterizerState;
 };
 
