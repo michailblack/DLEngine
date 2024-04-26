@@ -4,11 +4,14 @@
 #include "DLEngine/Core/DLException.h"
 #include "DLEngine/Core/Input.h"
 
+#include "DLEngine/Core/D3D.h"
 #include "DLEngine/Core/Events/ApplicationEvent.h"
 #include "DLEngine/Core/Events/KeyEvent.h"
 #include "DLEngine/Core/Events/MouseEvent.h"
 
 #include "DLEngine/Renderer/Renderer.h"
+
+#pragma comment(lib, "dxgi.lib")
 
 Window::WindowClass::WindowClass()
 {
@@ -64,12 +67,48 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
         throw DL_LAST_ERROR();
     }
 
+    Microsoft::WRL::ComPtr<IDXGIFactory2> idxgiFactory2;
+    DL_THROW_IF(CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), &idxgiFactory2));
+    
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesk {};
+    swapChainDesk.Width = width;
+    swapChainDesk.Height = height;
+    swapChainDesk.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swapChainDesk.Stereo = FALSE;
+    swapChainDesk.SampleDesc.Count = 1;
+    swapChainDesk.SampleDesc.Quality = 0;
+    swapChainDesk.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesk.BufferCount = 2;
+    swapChainDesk.Scaling = DXGI_SCALING_STRETCH;
+    swapChainDesk.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    swapChainDesk.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+    swapChainDesk.Flags = 0;
+
+    DL_THROW_IF(idxgiFactory2->CreateSwapChainForHwnd(
+        D3D::Get().GetDevice().Get(),
+        m_hWnd,
+        &swapChainDesk,
+        nullptr,
+        nullptr,
+        &m_Data.m_SwapChain
+    ));
+
+    Microsoft::WRL::ComPtr<ID3D11Texture2D1> backBuffer;
+    DL_THROW_IF(m_Data.m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &backBuffer));
+
+    D3D::Get().GetDevice()->CreateRenderTargetView1(backBuffer.Get(), nullptr, &m_Data.m_RenderTargetView);
+
     ShowWindow(m_hWnd, SW_SHOW);
 }
 
 Window::~Window()
 {
     DestroyWindow(m_hWnd);
+}
+
+void Window::Present() const
+{
+    DL_THROW_IF(m_Data.m_SwapChain->Present(1, 0));
 }
 
 LRESULT Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)

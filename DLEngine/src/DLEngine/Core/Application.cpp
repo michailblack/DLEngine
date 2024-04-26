@@ -1,6 +1,7 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
+#include "DLEngine/Renderer/RenderCommand.h"
 #include "DLEngine/Renderer/Renderer.h"
 
 Application::~Application()
@@ -23,6 +24,8 @@ void Application::Run()
 
             for (const auto& layer : m_LayerStack)
                 layer->OnUpdate(dt);
+
+            m_Window->Present();
         }
 
         std::this_thread::yield();

@@ -2,6 +2,7 @@
 
 #include "DLEngine/Math/Intersections.h"
 
+#include "DLEngine/Renderer/RenderCommand.h"
 #include "DLEngine/Renderer/Renderer.h"
 
 WorldLayer::WorldLayer()
@@ -90,28 +91,30 @@ void WorldLayer::OnDetach()
 
 void WorldLayer::OnUpdate(float dt)
 {
-    if (m_CameraController.AskedForDragger())
+    /*if (m_CameraController.AskedForDragger())
         m_CameraController.SetDragger(FindDragger(m_CameraController.GetDraggingRay()));
-
+    
     if (m_CameraController.IsCameraTransformed() || m_ShouldRender)
     {
         m_ShouldRender = false;
-
+    
         Renderer::BeginScene(m_CameraController.GetCamera(), m_Environment);
-
+    
         for (const auto& sphere : m_Spheres)
             Renderer::Submit(sphere);
-
+    
         for (const auto& plane : m_Planes)
             Renderer::Submit(plane);
-
+    
         for (const auto& cube : m_Cubes)
             Renderer::Submit(cube);
-
+    
         Renderer::EndScene();
     }
+    
+    m_CameraController.OnUpdate(dt);*/
 
-    m_CameraController.OnUpdate(dt);
+    DrawTestTriangle();
 }
 
 void WorldLayer::OnEvent(Event& e)
@@ -163,4 +166,11 @@ Scope<IDragger> WorldLayer::FindDragger(const Math::Ray& ray) const
     }
 
     return dragger;
+}
+
+void WorldLayer::DrawTestTriangle()
+{
+    const auto& renderTargetView { Application::Get().GetWindow()->GetRenderTargetView() };
+    RenderCommand::BindRenderTargetView(renderTargetView);
+    RenderCommand::Clear(renderTargetView, Math::Vec4 { 0.1f, 0.1f, 0.1f, 1.0f });
 }

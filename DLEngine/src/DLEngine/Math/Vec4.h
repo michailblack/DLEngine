@@ -42,6 +42,7 @@ namespace Math
         inline void operator/=(float s) noexcept;
 
         constexpr Vec3 xyz() const noexcept { return Vec3 { x, y, z }; }
+        constexpr const float* data() const noexcept { return &x; }
     };
 
     inline float Length(const Vec4& v) noexcept;

@@ -24,6 +24,7 @@ private:
 
 private:
     Scope<IDragger> FindDragger(const Math::Ray& ray) const;
+    void DrawTestTriangle();
 
 private:
     CameraController m_CameraController;
