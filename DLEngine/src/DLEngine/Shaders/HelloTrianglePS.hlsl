@@ -47,7 +47,8 @@ PixelOutput main(PixelInput psInput)
     const float lim = particles / limit;
     const float step = 1.0 / particles;
     float n = 0.0;
-    
+
+    [unroll(40)]
     for (float i = 0.0; i <= 1.0; i += 0.025)
     {
         if (i <= lim)

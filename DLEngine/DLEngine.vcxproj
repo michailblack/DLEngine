@@ -159,10 +159,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\DirectX\ConstantBuffers.h" />
+    <ClInclude Include="src\DLEngine\DirectX\IBindable.h" />
     <ClInclude Include="src\DLEngine\Core\Application.h" />
     <ClInclude Include="src\DLEngine\Core\Base.h" />
     <ClInclude Include="src\DLEngine\Core\DXGIInfoQueueManager.h" />
-    <ClInclude Include="src\DLEngine\Core\D3D.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D.h" />
     <ClInclude Include="src\DLEngine\Core\DLException.h" />
     <ClInclude Include="src\DLEngine\Core\DLWin.h" />
     <ClInclude Include="src\DLEngine\Core\EntryPoint.h" />
@@ -173,6 +175,10 @@
     <ClInclude Include="src\DLEngine\Core\Input.h" />
     <ClInclude Include="src\DLEngine\Core\Layer.h" />
     <ClInclude Include="src\DLEngine\Core\LayerStack.h" />
+    <ClInclude Include="src\DLEngine\DirectX\InputLayout.h" />
+    <ClInclude Include="src\DLEngine\DirectX\Shaders.h" />
+    <ClInclude Include="src\DLEngine\DirectX\VertexBuffer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\VertexLayout.h" />
     <ClInclude Include="src\DLEngine\Math\Primitives.h" />
     <ClInclude Include="src\DLEngine\Math\Intersections.h" />
     <ClInclude Include="src\DLEngine\Math\Math.h" />
@@ -187,7 +193,6 @@
     <ClInclude Include="src\DLEngine\Renderer\Light.h" />
     <ClInclude Include="src\DLEngine\Renderer\Material.h" />
     <ClInclude Include="src\DLEngine\Renderer\Mesh.h" />
-    <ClInclude Include="src\DLEngine\Renderer\RenderCommand.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
     <ClInclude Include="src\DLEngine\Utils\ThreadPool.h" />
@@ -198,16 +203,19 @@
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Application.cpp" />
     <ClCompile Include="src\DLEngine\Core\DXGIInfoQueueManager.cpp" />
-    <ClCompile Include="src\DLEngine\Core\D3D.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D.cpp" />
     <ClCompile Include="src\DLEngine\Core\DLException.cpp" />
     <ClCompile Include="src\DLEngine\Core\Input.cpp" />
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\InputLayout.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\VertexLayout.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\IDragger.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Material.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Mesh.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\RenderCommand.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
     <ClCompile Include="src\DLEngine\Utils\ThreadPool.cpp" />
@@ -233,16 +241,16 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">6.6</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\HelloTriangleVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">6.6</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

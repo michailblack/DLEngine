@@ -4,7 +4,7 @@
 #include "DLEngine/Core/DLException.h"
 #include "DLEngine/Core/Input.h"
 
-#include "DLEngine/Core/D3D.h"
+#include "DLEngine/DirectX/D3D.h"
 
 #include "DLEngine/Core/Events/ApplicationEvent.h"
 #include "DLEngine/Core/Events/KeyEvent.h"

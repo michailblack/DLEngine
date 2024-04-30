@@ -1,8 +1,9 @@
 ﻿#pragma once
 #include "DLEngine/Core/Application.h"
-#include "DLEngine/Core/D3D.h"
 #include "DLEngine/Core/DLException.h"
 #include "DLEngine/Core/DXGIInfoQueueManager.h"
+
+#include "DLEngine/DirectX/D3D.h"
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
 {

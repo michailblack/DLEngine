@@ -1,7 +1,7 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
-#include "DLEngine/Core/D3D.h"
+#include "DLEngine/DirectX/D3D.h"
 
 #include "DLEngine/Renderer/Renderer.h"
 

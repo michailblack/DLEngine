@@ -1,10 +1,13 @@
 #pragma once
 #include "DLEngine/Core/Layer.h"
 
-#include "DLEngine/Core/Events/ApplicationEvent.h"
-
 #include "DLEngine/Renderer/CameraController.h"
 #include "DLEngine/Renderer/Entity.h"
+
+#include "DLEngine/DirectX/Shaders.h"
+#include "DLEngine/DirectX/ConstantBuffers.h"
+#include "DLEngine/DirectX/VertexBuffer.h"
+#include "DLEngine/DirectX/InputLayout.h"
 
 class WorldLayer
     : public Layer
@@ -31,11 +34,12 @@ private:
         uint8_t _padding[4];
     } m_PerFrameData;
 
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
+    Ref<VertexBuffer> m_VertexBuffer;
+    //Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
+    Ref<InputLayout> m_InputLayout;
+    Ref<VertexShader> m_VertexShader;
+    Ref<PixelShader> m_PixelShader;
+    Ref<PixelConstantBuffer<decltype(m_PerFrameData)>> m_ConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_RasterizerState;
 };
 
