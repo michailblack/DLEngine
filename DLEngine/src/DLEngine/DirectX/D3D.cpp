@@ -14,7 +14,7 @@ void D3D::Init()
     Microsoft::WRL::ComPtr<ID3D11Device> device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceContext;
 
-    DL_THROW_IF(D3D11CreateDevice(
+    DL_THROW_IF_HR(D3D11CreateDevice(
         nullptr,
         D3D_DRIVER_TYPE_HARDWARE,
         nullptr,
@@ -26,6 +26,10 @@ void D3D::Init()
         &deviceContext
     ));
 
-    DL_THROW_IF(device.As(&m_Device));
-    DL_THROW_IF(deviceContext.As(&m_DeviceContext));
+    DL_THROW_IF_HR(device.As(&m_Device));
+    DL_THROW_IF_HR(deviceContext.As(&m_DeviceContext));
+
+#ifdef DL_DEBUG
+    DL_THROW_IF_HR(m_Device.As(&m_InfoQueue));
+#endif
 }

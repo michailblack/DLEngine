@@ -16,7 +16,7 @@ Window::WindowClass::WindowClass()
 {
     if (GetModuleHandleExW(0, nullptr, &m_hInstance) == 0)
     {
-        throw DL_LAST_ERROR();
+        DL_THROW_LAST_WIN32();
     }
 
     WNDCLASSEXW wc {};
@@ -46,7 +46,7 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
     RECT windowRect { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
     if (AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0) == FALSE)
     {
-        throw DL_LAST_ERROR();
+        DL_THROW_LAST_WIN32();
     }
 
     m_hWnd = CreateWindowExW(
@@ -63,11 +63,11 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
 
     if (!m_hWnd)
     {
-        throw DL_LAST_ERROR();
+        DL_THROW_LAST_WIN32();
     }
 
     Microsoft::WRL::ComPtr<IDXGIFactory2> idxgiFactory2;
-    DL_THROW_IF(CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), &idxgiFactory2));
+    DL_THROW_IF_HR(CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), &idxgiFactory2));
     
     DXGI_SWAP_CHAIN_DESC1 swapChainDesk {};
     swapChainDesk.Width = width;
@@ -83,7 +83,7 @@ Window::Window(uint32_t width, uint32_t height, const wchar_t* title, const Even
     swapChainDesk.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
     swapChainDesk.Flags = 0;
 
-    DL_THROW_IF(idxgiFactory2->CreateSwapChainForHwnd(
+    DL_THROW_IF_HR(idxgiFactory2->CreateSwapChainForHwnd(
         D3D::Get().GetDevice().Get(),
         m_hWnd,
         &swapChainDesk,
@@ -102,7 +102,7 @@ Window::~Window()
 
 void Window::Present() const
 {
-    DL_THROW_IF(m_Data.SwapChain->Present(1, 0));
+    DL_THROW_IF_HR(m_Data.SwapChain->Present(1, 0));
 }
 
 LRESULT Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -148,12 +148,12 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             m_Data.RenderTargetView.Reset();
 
-            DL_THROW_IF(m_Data.SwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
+            DL_THROW_IF_HR(m_Data.SwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
 
             Microsoft::WRL::ComPtr<ID3D11Texture2D1> backBuffer;
-            DL_THROW_IF(m_Data.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &backBuffer));
+            DL_THROW_IF_HR(m_Data.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &backBuffer));
 
-            DL_THROW_IF(D3D::Get().GetDevice()->CreateRenderTargetView1(backBuffer.Get(), nullptr, &m_Data.RenderTargetView));
+            DL_THROW_IF_HR(D3D::Get().GetDevice()->CreateRenderTargetView1(backBuffer.Get(), nullptr, &m_Data.RenderTargetView));
 
             auto windowResizeEvent { WindowResizeEvent { width, height } };
             m_Data.EventCallback(windowResizeEvent);

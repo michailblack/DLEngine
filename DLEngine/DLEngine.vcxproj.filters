@@ -114,7 +114,7 @@
     <ClInclude Include="src\DLEngine\DirectX\D3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Core\DXGIInfoQueueManager.h">
+    <ClInclude Include="src\DLEngine\DirectX\DXGIInfoQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\DirectX\IBindable.h">
@@ -182,7 +182,7 @@
     <ClCompile Include="src\DLEngine\DirectX\D3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Core\DXGIInfoQueueManager.cpp">
+    <ClCompile Include="src\DLEngine\DirectX\DXGIInfoQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp">

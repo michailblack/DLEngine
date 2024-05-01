@@ -20,7 +20,7 @@ VertexBuffer::VertexBuffer(const VertexLayout& vertexLayout, const void* data, u
     vertexBufferData.SysMemPitch = 0u;
     vertexBufferData.SysMemSlicePitch = 0u;
 
-    DL_THROW_IF(D3D::Get().GetDevice()->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &m_VertexBuffer));
+    DL_THROW_IF_HR(D3D::Get().GetDevice()->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &m_VertexBuffer));
 }
 
 void VertexBuffer::Bind()

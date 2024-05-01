@@ -67,7 +67,7 @@ void WorldLayer::OnAttach()
     rasterizerDesc.ForcedSampleCount = 0u;
     rasterizerDesc.ConservativeRaster = D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
-    DL_THROW_IF(device->CreateRasterizerState2(&rasterizerDesc, &m_RasterizerState));
+    DL_THROW_IF_HR(device->CreateRasterizerState2(&rasterizerDesc, &m_RasterizerState));
 
     m_ConstantBuffer = CreateRef<PixelConstantBuffer<decltype(m_PerFrameData)>>();
 }
@@ -112,5 +112,5 @@ void WorldLayer::DrawTestTriangle()
     deviceContext->RSSetState(m_RasterizerState.Get());
 
     deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    deviceContext->Draw(3u, 0u);
+    DL_THROW_IF_D3D11(deviceContext->Draw(3u, 0u));
 }

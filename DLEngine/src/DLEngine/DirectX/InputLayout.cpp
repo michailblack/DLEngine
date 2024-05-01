@@ -23,7 +23,7 @@ InputLayout::InputLayout(const VertexLayout& vertexLayout, const Ref<VertexShade
         };
     }
 
-    DL_THROW_IF(D3D::Get().GetDevice()->CreateInputLayout(
+    DL_THROW_IF_HR(D3D::Get().GetDevice()->CreateInputLayout(
         inputElementDescs.data(), static_cast<uint32_t>(inputElementDescs.size()),
         vertexShader->GetVertexShaderBlob()->GetBufferPointer(), vertexShader->GetVertexShaderBlob()->GetBufferSize(),
         &m_InputLayout

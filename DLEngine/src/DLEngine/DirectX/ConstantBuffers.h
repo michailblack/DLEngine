@@ -25,7 +25,7 @@ public:
         constantBufferData.SysMemPitch = 0u;
         constantBufferData.SysMemSlicePitch = 0u;
 
-        DL_THROW_IF(D3D::Get().GetDevice()->CreateBuffer(&constantBufferDesc, &constantBufferData, &m_ConstantBuffer));
+        DL_THROW_IF_HR(D3D::Get().GetDevice()->CreateBuffer(&constantBufferDesc, &constantBufferData, &m_ConstantBuffer));
     }
 
     ConstantBuffer(uint32_t slot = 0u)
@@ -39,7 +39,7 @@ public:
         constantBufferDesc.MiscFlags = 0u;
         constantBufferDesc.StructureByteStride = 0u;
 
-        DL_THROW_IF(D3D::Get().GetDevice()->CreateBuffer(&constantBufferDesc, nullptr, &m_ConstantBuffer));
+        DL_THROW_IF_HR(D3D::Get().GetDevice()->CreateBuffer(&constantBufferDesc, nullptr, &m_ConstantBuffer));
     }
 
     ~ConstantBuffer() override = default;
@@ -47,7 +47,7 @@ public:
     void Set(const Data& data)
     {
         D3D11_MAPPED_SUBRESOURCE mappedSubresource {};
-        DL_THROW_IF(D3D::Get().GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &mappedSubresource));
+        DL_THROW_IF_HR(D3D::Get().GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &mappedSubresource));
         memcpy_s(mappedSubresource.pData, sizeof(Data), &data, sizeof(data));
         D3D::Get().GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
     }

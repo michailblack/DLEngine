@@ -2,6 +2,7 @@
 #include "Application.h"
 
 #include "DLEngine/DirectX/D3D.h"
+#include "DLEngine/DirectX/DXGIInfoQueue.h"
 
 #include "DLEngine/Renderer/Renderer.h"
 
@@ -62,6 +63,12 @@ Application::Application(const ApplicationSpecification& spec)
     s_Instance = this;
 
     InitConsole();
+
+    D3D::Get().Init();
+
+#ifdef DL_DEBUG
+    DXGIInfoQueue::Get().Init();
+#endif
 
     m_Window = CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle, DL_BIND_EVENT_FN(Application::OnEvent));
     Renderer::Init();
