@@ -160,10 +160,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\DLEngine\DirectX\ConstantBuffers.h" />
+    <ClInclude Include="src\DLEngine\DirectX\DXGIInfoQueue.h" />
     <ClInclude Include="src\DLEngine\DirectX\IBindable.h" />
     <ClInclude Include="src\DLEngine\Core\Application.h" />
     <ClInclude Include="src\DLEngine\Core\Base.h" />
-    <ClInclude Include="src\DLEngine\Core\DXGIInfoQueueManager.h" />
     <ClInclude Include="src\DLEngine\DirectX\D3D.h" />
     <ClInclude Include="src\DLEngine\Core\DLException.h" />
     <ClInclude Include="src\DLEngine\Core\DLWin.h" />
@@ -202,11 +202,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Application.cpp" />
-    <ClCompile Include="src\DLEngine\Core\DXGIInfoQueueManager.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\D3D.cpp" />
     <ClCompile Include="src\DLEngine\Core\DLException.cpp" />
     <ClCompile Include="src\DLEngine\Core\Input.cpp" />
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\DXGIInfoQueue.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\InputLayout.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
