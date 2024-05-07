@@ -2,37 +2,40 @@
 #include "DLEngine/Math/Mat4x4.h"
 #include "DLEngine/Math/Vec3.h"
 
-class Camera
+namespace DLEngine
 {
-public:
-    Camera(float fov, float aspectRatio, float zNear, float zFar) noexcept;
+    class Camera
+    {
+    public:
+        Camera(float fov, float aspectRatio, float zNear, float zFar) noexcept;
 
-    void SetAspectRatio(float aspectRatio) noexcept { m_AspectRatio = aspectRatio; }
+        void SetAspectRatio(float aspectRatio) noexcept { m_AspectRatio = aspectRatio; }
 
-    void Translate(const Math::Vec3& translation) noexcept { m_Position += translation; }
+        void Translate(const Math::Vec3& translation) noexcept { m_Position += translation; }
 
-    void RotateForward(float angle) noexcept;
-    void RotateRight(float angle) noexcept;
-    void RotateUp(float angle) noexcept;
+        void RotateForward(float angle) noexcept;
+        void RotateRight(float angle) noexcept;
+        void RotateUp(float angle) noexcept;
 
-    Math::Vec3 GetPosition() const noexcept { return m_Position; }
+        Math::Vec3 GetPosition() const noexcept { return m_Position; }
 
-    Math::Vec3 GetRight() const noexcept { return m_Right; }
-    Math::Vec3 GetUp() const noexcept { return m_Up; }
-    Math::Vec3 GetForward() const noexcept { return m_Forward; }
+        Math::Vec3 GetRight() const noexcept { return m_Right; }
+        Math::Vec3 GetUp() const noexcept { return m_Up; }
+        Math::Vec3 GetForward() const noexcept { return m_Forward; }
 
-    Math::Mat4x4 GetProjectionMatrix() const noexcept;
-    Math::Mat4x4 GetViewMatrix() const noexcept;
+        Math::Mat4x4 GetProjectionMatrix() const noexcept;
+        Math::Mat4x4 GetViewMatrix() const noexcept;
 
-private:
-    Math::Vec3 m_Position { 0.0f, 0.0f, 0.0f };
+    private:
+        Math::Vec3 m_Position{ 0.0f, 0.0f, 0.0f };
 
-    Math::Vec3 m_Right   { 1.0f, 0.0f, 0.0f };
-    Math::Vec3 m_Up      { 0.0f, 1.0f, 0.0f };
-    Math::Vec3 m_Forward { 0.0f, 0.0f, 1.0f };
+        Math::Vec3 m_Right{ 1.0f, 0.0f, 0.0f };
+        Math::Vec3 m_Up{ 0.0f, 1.0f, 0.0f };
+        Math::Vec3 m_Forward{ 0.0f, 0.0f, 1.0f };
 
-    float m_FOV;
-    float m_AspectRatio;
-    float m_Near;
-    float m_Far;
-};
+        float m_FOV;
+        float m_AspectRatio;
+        float m_Near;
+        float m_Far;
+    };
+}

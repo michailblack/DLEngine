@@ -3,17 +3,20 @@
 
 #include "DLEngine/Renderer/TriangleOctree.h"
 
-class Mesh
+namespace DLEngine
 {
-public:
-    Mesh(const std::vector<Math::Triangle>& triangles) noexcept;
+    class Mesh
+    {
+    public:
+        Mesh(const std::vector<Math::Triangle>& triangles) noexcept;
 
-    const std::vector<Math::Triangle>& GetTriangles() const noexcept { return m_Triangles; }
-    const TriangleOctree& GetOctree() const noexcept { return m_Octree; }
+        const std::vector<Math::Triangle>& GetTriangles() const noexcept { return m_Triangles; }
+        const TriangleOctree& GetOctree() const noexcept { return m_Octree; }
 
-    static const Mesh& GetUnitCube() noexcept;
+        static const Mesh& GetUnitCube() noexcept;
 
-private:
-    std::vector<Math::Triangle> m_Triangles;
-    TriangleOctree m_Octree;
-};
+    private:
+        std::vector<Math::Triangle> m_Triangles;
+        TriangleOctree m_Octree;
+    };
+}

@@ -90,9 +90,6 @@
     <ClInclude Include="src\DLEngine\Renderer\TriangleOctree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Utils\ThreadPool.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\Renderer\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -135,6 +132,12 @@
     <ClInclude Include="src\DLEngine\DirectX\DXGIInfoQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\DLEngine\Core\Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Core\Engine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Window.cpp">
@@ -167,9 +170,6 @@
     <ClCompile Include="src\DLEngine\Renderer\TriangleOctree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Utils\ThreadPool.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\DLEngine\Renderer\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -195,6 +195,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\DXGIInfoQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Core\Log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Core\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

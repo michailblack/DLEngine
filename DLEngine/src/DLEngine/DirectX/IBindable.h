@@ -3,10 +3,13 @@
 #include <d3d11_4.h>
 #include <wrl.h>
 
-class IBindable
+namespace DLEngine
 {
-public:
-    virtual ~IBindable() = default;
+    class IBindable
+    {
+    public:
+        virtual ~IBindable() = default;
 
-    virtual void Bind() = 0;
-};
+        virtual void Bind() = 0;
+    };
+}

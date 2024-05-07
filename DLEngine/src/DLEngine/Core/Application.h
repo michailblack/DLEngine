@@ -8,55 +8,56 @@
 
 #include "DLEngine/Utils/Timer.h"
 
-struct ApplicationSpecification
+namespace DLEngine
 {
-    uint32_t WndWidth { 800 };
-    uint32_t WndHeight { 600 };
-    const wchar_t* WndTitle { L"New Window" };
-};
+    struct ApplicationSpecification
+    {
+        uint32_t WndWidth{ 800 };
+        uint32_t WndHeight{ 600 };
+        const wchar_t* WndTitle{ L"New Window" };
+    };
 
-class Application
-{
-public:
-    ~Application();
+    class Application
+    {
+    public:
+        ~Application();
 
-    Application (const Application&) = delete;
-    Application (Application&&) = delete;
-    Application& operator=(const Application&) = delete;
-    Application& operator=(Application&&) = delete;
+        Application(const Application&) = delete;
+        Application(Application&&) = delete;
+        Application& operator=(const Application&) = delete;
+        Application& operator=(Application&&) = delete;
 
-    void Run();
-    void OnEvent(Event& e);
+        void Run();
+        void OnEvent(Event& e);
 
-    void PushLayer(Layer* layer);
+        void PushLayer(Layer* layer);
 
-    Scope<Window>& GetWindow() noexcept { return m_Window; }
-    static Application& Get() noexcept { return *s_Instance; }
+        Scope<Window>& GetWindow() noexcept { return m_Window; }
+        static Application& Get() noexcept { return *s_Instance; }
 
-protected:
-    explicit Application(const ApplicationSpecification& spec);
+    protected:
+        explicit Application(const ApplicationSpecification& spec);
 
-private:
-    static void InitConsole();
+    private:
+        void ProcessInputs() const;
 
-    void ProcessInputs() const;
+        bool OnWindowClose(WindowCloseEvent& e);
+        bool OnWindowResize(WindowResizeEvent& e);
+        bool OnKeyPressed(KeyPressedEvent& e);
 
-    bool OnWindowClose(WindowCloseEvent& e);
-    bool OnWindowResize(WindowResizeEvent& e);
-    bool OnKeyPressed(KeyPressedEvent& e);
+    private:
+        inline static Application* s_Instance{ nullptr };
+        inline static constexpr float s_TimeOfOneFrameMS{ 1.0f / 60.0f * 1.e3f };
 
-private:
-    inline static Application* s_Instance { nullptr };
-    inline static constexpr float s_TimeOfOneFrameMS { 1.0f / 60.0f * 1.e3f };
+        ApplicationSpecification m_Specification;
 
-    ApplicationSpecification m_Specification;
+        bool m_IsRunning{ true };
 
-    bool m_IsRunning { true };
+        Scope<Window> m_Window;
+        LayerStack m_LayerStack;
 
-    Scope<Window> m_Window;
-    LayerStack m_LayerStack;
+        Timer m_Timer;
+    };
 
-    Timer m_Timer;
-};
-
-extern Application* CreateApplication();
+    extern Application* CreateApplication();
+}

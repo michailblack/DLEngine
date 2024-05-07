@@ -6,28 +6,55 @@
 #include <dxgidebug.h>
 #include <wrl.h>
 
-class DXGIInfoQueue
+namespace DLEngine
 {
-public:
-    DXGIInfoQueue(const DXGIInfoQueue&) = delete;
-    DXGIInfoQueue(DXGIInfoQueue&&) = delete;
-    DXGIInfoQueue& operator=(const DXGIInfoQueue&) = delete;
-    DXGIInfoQueue& operator=(DXGIInfoQueue&&) = delete;
-
-    static DXGIInfoQueue& Get()
+    class DXGIInfoQueue
     {
-        static DXGIInfoQueue s_Instance;
-        return s_Instance;
-    }
+    public:
+        DXGIInfoQueue(const DXGIInfoQueue&) = delete;
+        DXGIInfoQueue(DXGIInfoQueue&&) = delete;
+        DXGIInfoQueue& operator=(const DXGIInfoQueue&) = delete;
+        DXGIInfoQueue& operator=(DXGIInfoQueue&&) = delete;
 
-    void Init();
-    std::string GetMessages() const noexcept;
+        static DXGIInfoQueue& Get()
+        {
+            static DXGIInfoQueue s_Instance;
+            return s_Instance;
+        }
 
-    bool IsValid() const noexcept { return m_DXGIInfoQueue.Get() != nullptr; }
-private:
-    DXGIInfoQueue() = default;
+        void Init();
+        std::string GetMessages() const noexcept;
+    private:
+        DXGIInfoQueue() = default;
 
-private:
-    Microsoft::WRL::ComPtr<IDXGIInfoQueue> m_DXGIInfoQueue;
-};
+    private:
+        Microsoft::WRL::ComPtr<IDXGIInfoQueue> m_DXGIInfoQueue;
+    };
+}
+
+#else
+
+namespace DLEngine
+{
+    class DXGIInfoQueue
+    {
+    public:
+        DXGIInfoQueue(const DXGIInfoQueue&) = delete;
+        DXGIInfoQueue(DXGIInfoQueue&&) = delete;
+        DXGIInfoQueue& operator=(const DXGIInfoQueue&) = delete;
+        DXGIInfoQueue& operator=(DXGIInfoQueue&&) = delete;
+
+        static DXGIInfoQueue& Get()
+        {
+            static DXGIInfoQueue s_Instance;
+            return s_Instance;
+        }
+
+        void Init() {};
+        std::string GetMessages() const noexcept { return ""; };
+    private:
+        DXGIInfoQueue() = default;
+    };
+}
+
 #endif

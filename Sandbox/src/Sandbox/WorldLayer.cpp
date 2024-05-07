@@ -7,7 +7,7 @@
 #define HelloShaderToyPS 1
 
 WorldLayer::WorldLayer()
-    : m_CameraController(Camera { Math::ToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f })
+    : m_CameraController(DLEngine::Camera { DLEngine::Math::ToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f })
 {
 }
 
@@ -17,13 +17,13 @@ WorldLayer::~WorldLayer()
 
 void WorldLayer::OnAttach()
 {
-    const auto& device { D3D::Get().GetDevice() };
+    const auto& device { DLEngine::D3D::GetDevice5() };
 
-    ShaderSpecification shaderSpec {};
+    DLEngine::ShaderSpecification shaderSpec {};
     shaderSpec.Name = "HelloTriangleVS";
     shaderSpec.Path = L"..\\DLEngine\\src\\DLEngine\\Shaders\\HelloTriangleVS.hlsl";
 
-    m_VertexShader = CreateRef<VertexShader>(shaderSpec);
+    m_VertexShader = CreateRef<DLEngine::VertexShader>(shaderSpec);
 
     shaderSpec.Name = "HelloTrianglePS";
     shaderSpec.Path = L"..\\DLEngine\\src\\DLEngine\\Shaders\\HelloTrianglePS.hlsl";
@@ -31,27 +31,27 @@ void WorldLayer::OnAttach()
     shaderSpec.Defines.push_back({ "HelloShaderToy", nullptr });
 #endif
 
-    m_PixelShader = CreateRef<PixelShader>(shaderSpec);
+    m_PixelShader = CreateRef<DLEngine::PixelShader>(shaderSpec);
 
     struct Vertex
     {
-        Math::Vec3 Position;
-        Math::Vec3 Color;
+        DLEngine::Math::Vec3 Position;
+        DLEngine::Math::Vec3 Color;
     };
     constexpr Vertex vertices[]
     {
-        { Math::Vec3 { -0.5f, -0.5f, 0.0f }, Math::Vec3 { 1.0f, 0.0f, 0.0f } },
-        { Math::Vec3 { 0.5f, -0.5f, 0.0f }, Math::Vec3 { 0.0f, 1.0f, 0.0f } },
-        { Math::Vec3 { 0.0f, 0.5f, 0.0f }, Math::Vec3 { 0.0f, 0.0f, 1.0f } }
+        { DLEngine::Math::Vec3 { -0.5f, -0.5f, 0.0f }, DLEngine::Math::Vec3 { 1.0f, 0.0f, 0.0f } },
+        { DLEngine::Math::Vec3 {  0.5f, -0.5f, 0.0f }, DLEngine::Math::Vec3 { 0.0f, 1.0f, 0.0f } },
+        { DLEngine::Math::Vec3 {  0.0f,  0.5f, 0.0f }, DLEngine::Math::Vec3 { 0.0f, 0.0f, 1.0f } }
     };
 
-    VertexLayout vertexLayout {};
+    DLEngine::VertexLayout vertexLayout {};
     vertexLayout.Append({ "POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0u });
     vertexLayout.Append({ "COLOR", DXGI_FORMAT_R32G32B32_FLOAT, 0u });
 
-    m_VertexBuffer = CreateRef<VertexBuffer>(vertexLayout, vertices, 3u);
+    m_VertexBuffer = CreateRef<DLEngine::VertexBuffer>(vertexLayout, vertices, 3u);
 
-    m_InputLayout = CreateRef<InputLayout>(vertexLayout, m_VertexShader);
+    m_InputLayout = CreateRef<DLEngine::InputLayout>(vertexLayout, m_VertexShader);
 
     D3D11_RASTERIZER_DESC2 rasterizerDesc {};
     rasterizerDesc.FillMode = D3D11_FILL_SOLID;
@@ -69,7 +69,7 @@ void WorldLayer::OnAttach()
 
     DL_THROW_IF_HR(device->CreateRasterizerState2(&rasterizerDesc, &m_RasterizerState));
 
-    m_ConstantBuffer = CreateRef<PixelConstantBuffer<decltype(m_PerFrameData)>>();
+    m_ConstantBuffer = CreateRef<DLEngine::PixelConstantBuffer<decltype(m_PerFrameData)>>();
 }
 
 void WorldLayer::OnDetach()
@@ -80,25 +80,25 @@ void WorldLayer::OnDetach()
 void WorldLayer::OnUpdate(float dt)
 {
     m_PerFrameData.Time += dt * 1e-3f; // In seconds
-    m_PerFrameData.Resolution = Application::Get().GetWindow()->GetSize();
+    m_PerFrameData.Resolution = DLEngine::Application::Get().GetWindow()->GetSize();
 
     DrawTestTriangle();
 }
 
-void WorldLayer::OnEvent(Event& e)
+void WorldLayer::OnEvent(DLEngine::Event& e)
 {
     m_CameraController.OnEvent(e);
 }
 
 void WorldLayer::DrawTestTriangle()
 {
-    const auto& renderTargetView { Application::Get().GetWindow()->GetRenderTargetView() };
-    const auto& deviceContext { D3D::Get().GetDeviceContext() };
+    const auto& renderTargetView { DLEngine::Application::Get().GetWindow()->GetRenderTargetView() };
+    const auto& deviceContext { DLEngine::D3D::GetDeviceContext4() };
 
     auto* renderTargetView0 { static_cast<ID3D11RenderTargetView*>(renderTargetView.Get()) };
-    D3D::Get().GetDeviceContext()->OMSetRenderTargets(1, &renderTargetView0, nullptr);
+    DLEngine::D3D::GetDeviceContext4()->OMSetRenderTargets(1, &renderTargetView0, nullptr);
 
-    D3D::Get().GetDeviceContext()->ClearRenderTargetView(renderTargetView.Get(), Math::Vec4 { 0.1f, 0.1f, 0.1f, 1.0f }.data());
+    DLEngine::D3D::GetDeviceContext4()->ClearRenderTargetView(renderTargetView.Get(), DLEngine::Math::Vec4 { 0.1f, 0.1f, 0.1f, 1.0f }.data());
 
     m_InputLayout->Bind();
     m_VertexBuffer->Bind();

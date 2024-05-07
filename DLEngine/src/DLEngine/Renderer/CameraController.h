@@ -12,57 +12,60 @@
 #include "DLEngine/Renderer/Camera.h"
 #include "DLEngine/Renderer/IDragger.h"
 
-class CameraController
+namespace DLEngine
 {
-public:
-    CameraController(const Camera& camera) noexcept;
-    ~CameraController() = default;
+    class CameraController
+    {
+    public:
+        CameraController(const Camera& camera) noexcept;
+        ~CameraController() = default;
 
-    CameraController(const CameraController&) = delete;
-    CameraController(CameraController&&) = delete;
-    CameraController& operator=(const CameraController&) = delete;
-    CameraController& operator=(CameraController&&) = delete;
+        CameraController(const CameraController&) = delete;
+        CameraController(CameraController&&) = delete;
+        CameraController& operator=(const CameraController&) = delete;
+        CameraController& operator=(CameraController&&) = delete;
 
-    void OnUpdate(float dt);
-    void OnEvent(Event& e);
+        void OnUpdate(float dt);
+        void OnEvent(Event& e);
 
-    bool IsCameraTransformed() const noexcept { return m_Transformed; }
+        bool IsCameraTransformed() const noexcept { return m_Transformed; }
 
-    bool AskedForDragger() const noexcept { return m_AskForDragger; }
-    void SetDragger(Scope<IDragger> dragger) noexcept { m_Dragger = std::move(dragger); m_AskForDragger = false; }
+        bool AskedForDragger() const noexcept { return m_AskForDragger; }
+        void SetDragger(Scope<IDragger> dragger) noexcept { m_Dragger = std::move(dragger); m_AskForDragger = false; }
 
-    const Camera& GetCamera() const noexcept { return m_Camera; }
-    const Math::Ray& GetDraggingRay() const noexcept { return m_StartDraggingRay; }
+        const Camera& GetCamera() const noexcept { return m_Camera; }
+        const Math::Ray& GetDraggingRay() const noexcept { return m_StartDraggingRay; }
 
-private:
-    bool OnWindowResize(WindowResizeEvent& e);
-    bool OnKeyPressed(KeyPressedEvent& e);
-    bool OnKeyReleased(KeyReleasedEvent& e);
-    bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
-    bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
-    bool OnMouseScrolled(MouseScrolledEvent& e);
+    private:
+        bool OnWindowResize(WindowResizeEvent& e);
+        bool OnKeyPressed(KeyPressedEvent& e);
+        bool OnKeyReleased(KeyReleasedEvent& e);
+        bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
+        bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
+        bool OnMouseScrolled(MouseScrolledEvent& e);
 
-private:
-    Camera m_Camera;
+    private:
+        Camera m_Camera;
 
-    float m_Velocity { 0.003f };
-    float m_VelocityScale { 5.0f };
-    float m_DeltaVelocityPercents { 5.0f };
-    float m_MinVelocity { 0.001f };
-    float m_MaxVelocity { 0.01f };
+        float m_Velocity{ 0.003f };
+        float m_VelocityScale{ 5.0f };
+        float m_DeltaVelocityPercents{ 5.0f };
+        float m_MinVelocity{ 0.001f };
+        float m_MaxVelocity{ 0.01f };
 
-    // Radians per millisecond
-    float m_RotationVelocity { std::numbers::pi_v<float> * 1.e-3f };
-    float m_ForwardRotationVelocityScale { 0.25f };
+        // Radians per millisecond
+        float m_RotationVelocity{ std::numbers::pi_v<float> *1.e-3f };
+        float m_ForwardRotationVelocityScale{ 0.25f };
 
-    bool m_IsRotating { false };
+        bool m_IsRotating{ false };
 
-    Math::Vec2 m_MouseStartPosition { 0.0f };
+        Math::Vec2 m_MouseStartPosition{ 0.0f };
 
-    Math::Ray m_StartDraggingRay {};
-    Math::Ray m_EndDraggingRay {};
-    Scope<IDragger> m_Dragger {};
-    bool m_AskForDragger { false };
+        Math::Ray m_StartDraggingRay{};
+        Math::Ray m_EndDraggingRay{};
+        Scope<IDragger> m_Dragger{};
+        bool m_AskForDragger{ false };
 
-    bool m_Transformed { true };
-};
+        bool m_Transformed{ true };
+    };
+}

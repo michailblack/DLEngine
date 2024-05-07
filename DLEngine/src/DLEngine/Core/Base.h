@@ -1,8 +1,10 @@
 ﻿#pragma once
 #include <memory>
 
+#include "DLEngine/Core/Log.h"
+
 #ifdef DL_ENABLE_ASSERTS
-    #define DL_ASSERT(x, ...) { if(!(x)) { printf("Assertion Failed: %s", __VA_ARGS__); __debugbreak(); } }
+    #define DL_ASSERT(x, ...) { if(!(x)) { DL_LOG_CRITICAL("Assertion Failed: {}", __VA_ARGS__); __debugbreak(); } }
 #else
     #define DL_ASSERT(x, ...)
 #endif

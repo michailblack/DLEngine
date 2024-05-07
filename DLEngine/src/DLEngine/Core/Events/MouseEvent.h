@@ -1,67 +1,70 @@
 ﻿#pragma once
 #include "DLEngine/Core/Events/Event.h"
 
-class MouseButtonEvent : public Event
+namespace DLEngine
 {
-public:
-    uint8_t GetButton() const noexcept { return m_Button; }
+    class MouseButtonEvent : public Event
+    {
+    public:
+        uint8_t GetButton() const noexcept { return m_Button; }
 
-protected:
-    MouseButtonEvent(uint8_t button)
-        : m_Button(button)
-    {}
+    protected:
+        MouseButtonEvent(uint8_t button)
+            : m_Button(button)
+        {}
 
-private:
-    uint8_t m_Button;
-};
+    private:
+        uint8_t m_Button;
+    };
 
-class MouseButtonPressedEvent : public MouseButtonEvent
-{
-public:
-    MouseButtonPressedEvent(uint8_t button)
-        : MouseButtonEvent(button)
-    {}
+    class MouseButtonPressedEvent : public MouseButtonEvent
+    {
+    public:
+        MouseButtonPressedEvent(uint8_t button)
+            : MouseButtonEvent(button)
+        {}
 
-    EVENT_CLASS_TYPE(MouseButtonPressed)
-};
+        EVENT_CLASS_TYPE(MouseButtonPressed)
+    };
 
-class MouseButtonReleasedEvent : public MouseButtonEvent
-{
-public:
-    MouseButtonReleasedEvent(uint8_t button)
-        : MouseButtonEvent(button)
-    {}
+    class MouseButtonReleasedEvent : public MouseButtonEvent
+    {
+    public:
+        MouseButtonReleasedEvent(uint8_t button)
+            : MouseButtonEvent(button)
+        {}
 
-    EVENT_CLASS_TYPE(MouseButtonReleased)
-};
+        EVENT_CLASS_TYPE(MouseButtonReleased)
+    };
 
-class MouseMovedEvent : public Event
-{
-public:
-    MouseMovedEvent(int32_t x, int32_t y)
-        : m_MouseX(x), m_MouseY(y)
-    {}
+    class MouseMovedEvent : public Event
+    {
+    public:
+        MouseMovedEvent(int32_t x, int32_t y)
+            : m_MouseX(x), m_MouseY(y)
+        {}
 
-    int32_t GetX() const noexcept { return m_MouseX; }
-    int32_t GetY() const noexcept { return m_MouseY; }
+        int32_t GetX() const noexcept { return m_MouseX; }
+        int32_t GetY() const noexcept { return m_MouseY; }
 
-    EVENT_CLASS_TYPE(MouseMoved)
+        EVENT_CLASS_TYPE(MouseMoved)
 
-private:
-    int32_t m_MouseX, m_MouseY;
-};
+    private:
+        int32_t m_MouseX, m_MouseY;
+    };
 
-class MouseScrolledEvent : public Event
-{
-public:
-    MouseScrolledEvent(int32_t offset)
-        : m_Offset(offset)
-    {}
+    class MouseScrolledEvent : public Event
+    {
+    public:
+        MouseScrolledEvent(int32_t offset)
+            : m_Offset(offset)
+        {}
 
-    int32_t GetOffset() const noexcept { return m_Offset; }
+        int32_t GetOffset() const noexcept { return m_Offset; }
 
-    EVENT_CLASS_TYPE(MouseScrolled)
+        EVENT_CLASS_TYPE(MouseScrolled)
 
-private:
-    int32_t m_Offset;
-};
+    private:
+        int32_t m_Offset;
+    };
+}
