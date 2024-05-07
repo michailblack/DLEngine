@@ -54,7 +54,7 @@ namespace DLEngine
         bool m_IsRunning{ true };
 
         Scope<Window> m_Window;
-        LayerStack m_LayerStack;
+        LayerStack m_LayerStack{};
 
         Timer m_Timer;
     };

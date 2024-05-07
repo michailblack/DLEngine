@@ -2,8 +2,8 @@
 #include "DLEngine/Core/DLWin.h"
 #include <exception>
 
-#define DL_THROW_LAST_WIN32() throw DLEngine::HRException { static_cast<uint32_t>(__LINE__), __FILE__, HRESULT_FROM_WIN32(GetLastError()) }
-#define DL_THROW_IF_HR(hrCall) { const auto hr { (hrCall) }; if (FAILED(hr)) throw DLEngine::HRException { static_cast<uint32_t>(__LINE__), __FILE__, hr }; }
+#define DL_THROW_LAST_WIN32() throw DLEngine::HRException{ static_cast<uint32_t>(__LINE__), __FILE__, HRESULT_FROM_WIN32(GetLastError()) }
+#define DL_THROW_IF_HR(hrCall) { const auto hr{ (hrCall) }; if (FAILED(hr)) throw DLEngine::HRException { static_cast<uint32_t>(__LINE__), __FILE__, hr }; }
 
 #ifdef DL_DEBUG
 

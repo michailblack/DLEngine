@@ -1,6 +1,8 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
+#include "DLEngine/Core/DLException.h"
+
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/DXGIInfoQueue.h"
 
@@ -38,17 +40,35 @@ namespace DLEngine
 
     void Application::OnEvent(Event& e)
     {
-        EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<WindowCloseEvent>(DL_BIND_EVENT_FN(Application::OnWindowClose));
-        dispatcher.Dispatch<WindowResizeEvent>(DL_BIND_EVENT_FN(Application::OnWindowResize));
-        dispatcher.Dispatch<KeyPressedEvent>(DL_BIND_EVENT_FN(Application::OnKeyPressed));
-
-        for (const auto& layer : m_LayerStack | std::views::reverse)
+        try
         {
-            if (e.Handled)
-                break;
+            EventDispatcher dispatcher(e);
+            dispatcher.Dispatch<WindowCloseEvent>(DL_BIND_EVENT_FN(Application::OnWindowClose));
+            dispatcher.Dispatch<WindowResizeEvent>(DL_BIND_EVENT_FN(Application::OnWindowResize));
+            dispatcher.Dispatch<KeyPressedEvent>(DL_BIND_EVENT_FN(Application::OnKeyPressed));
 
-            layer->OnEvent(e);
+            for (const auto& layer : m_LayerStack | std::views::reverse)
+            {
+                if (e.Handled)
+                    break;
+
+                layer->OnEvent(e);
+            }
+        }
+        catch (const DLException& e)
+        {
+            MessageBoxExA(nullptr, e.what(), e.GetType(), MB_OK | MB_ICONEXCLAMATION, 0);
+            m_IsRunning = false;
+        }
+        catch (const std::exception& e)
+        {
+            MessageBoxExA(nullptr, e.what(), "Standard exception", MB_OK | MB_ICONEXCLAMATION, 0);
+            m_IsRunning = false;
+        }
+        catch (...)
+        {
+            MessageBoxExA(nullptr, "Unknown exception", "Unknown exception", MB_OK | MB_ICONEXCLAMATION, 0);
+            m_IsRunning = false;
         }
     }
 
@@ -60,11 +80,12 @@ namespace DLEngine
 
     Application::Application(const ApplicationSpecification& spec)
         : m_Specification(spec)
+        , m_Window(CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle))
         , m_Timer(s_TimeOfOneFrameMS)
     {
         s_Instance = this;
 
-        m_Window = CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle, DL_BIND_EVENT_FN(Application::OnEvent));
+        m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
     }
 
     void Application::ProcessInputs() const
@@ -85,15 +106,7 @@ namespace DLEngine
 
     bool Application::OnWindowResize(WindowResizeEvent& e)
     {
-        D3D11_VIEWPORT viewport{};
-        viewport.TopLeftX = 0.0f;
-        viewport.TopLeftY = 0.0f;
-        viewport.Width = static_cast<float>(e.GetWidth());
-        viewport.Height = static_cast<float>(e.GetHeight());
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-
-        D3D::GetDeviceContext4()->RSSetViewports(1, &viewport);
+        m_Window->OnResize(e.GetWidth(), e.GetHeight());
 
         return false;
     }

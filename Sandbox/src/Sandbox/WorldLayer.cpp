@@ -92,13 +92,20 @@ void WorldLayer::OnEvent(DLEngine::Event& e)
 
 void WorldLayer::DrawTestTriangle()
 {
-    const auto& renderTargetView { DLEngine::Application::Get().GetWindow()->GetRenderTargetView() };
-    const auto& deviceContext { DLEngine::D3D::GetDeviceContext4() };
+    const auto& deviceContext{ DLEngine::D3D::GetDeviceContext4() };
+    
+    const auto& backBufferView{ DLEngine::Application::Get().GetWindow()->GetBackBufferView() };
+    const auto& depthStencilView { DLEngine::Application::Get().GetWindow()->GetDepthStencilView() };
 
-    auto* renderTargetView0 { static_cast<ID3D11RenderTargetView*>(renderTargetView.Get()) };
-    DLEngine::D3D::GetDeviceContext4()->OMSetRenderTargets(1, &renderTargetView0, nullptr);
+    auto* renderTarget{ static_cast<ID3D11RenderTargetView*>(backBufferView.Get()) };
+    DLEngine::D3D::GetDeviceContext4()->OMSetRenderTargets(
+        1,
+        &renderTarget,
+        depthStencilView.Get()
+    );
 
-    DLEngine::D3D::GetDeviceContext4()->ClearRenderTargetView(renderTargetView.Get(), DLEngine::Math::Vec4 { 0.1f, 0.1f, 0.1f, 1.0f }.data());
+    DLEngine::D3D::GetDeviceContext4()->ClearRenderTargetView(backBufferView.Get(), DLEngine::Math::Vec4 { 0.1f, 0.1f, 0.1f, 1.0f }.data());
+    DLEngine::D3D::GetDeviceContext4()->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     m_InputLayout->Bind();
     m_VertexBuffer->Bind();
