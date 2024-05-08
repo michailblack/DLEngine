@@ -132,14 +132,14 @@ namespace DLEngine
             }
         }
 
-        for (const auto& cube : s_Data.Cubes)
+        /*for (const auto& cube : s_Data.Cubes)
         {
             if (Math::Intersects(ray, *cube, Mesh::GetUnitCube(), intersectInfo))
             {
                 if (intersectInfo.T < lightSourceT)
                     return true;
             }
-        }
+        }*/
 
         return false;
     }

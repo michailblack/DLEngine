@@ -9,6 +9,8 @@
     #define DL_ASSERT(x, ...)
 #endif
 
+#define DL_ASSERT_NOINFO(x) DL_ASSERT(x, "No info provided")
+
 #define BIT(x) (1 << (x))
 
 #define DL_BIND_EVENT_FN(EventFn) [this]<typename EventType>(EventType&& e) { return this->EventFn(std::forward<EventType>(e)); }

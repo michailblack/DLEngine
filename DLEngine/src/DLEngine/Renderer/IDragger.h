@@ -12,6 +12,7 @@ namespace DLEngine
             : m_StartDraggingPoint(startDraggingPoint)
             , m_DistanceToDraggingPlane(distanceToDraggingPlane)
         {}
+        virtual ~IDragger() = default;
 
         virtual void Drag(const Math::Plane& nearPlane, const Math::Ray& endRay) = 0;
 
@@ -20,14 +21,15 @@ namespace DLEngine
         float m_DistanceToDraggingPlane;
     };
 
-    class ISphereDragger
+    class SphereDragger
         : public IDragger
     {
     public:
-        ISphereDragger(const Ref<SphereInstance>& targetSphere, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
+        SphereDragger(const Ref<SphereInstance>& targetSphere, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
             : IDragger(startDraggingPoint, distanceToDraggingPlane)
             , m_TargetSphere(targetSphere)
         {}
+        ~SphereDragger() override = default;
 
         void Drag(const Math::Plane& nearPlane, const Math::Ray& endRay) override;
 
@@ -35,14 +37,15 @@ namespace DLEngine
         Ref<SphereInstance> m_TargetSphere;
     };
 
-    class IPlaneDragger
+    class PlaneDragger
         : public IDragger
     {
     public:
-        IPlaneDragger(const Ref<PlaneInstance>& targetPlane, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
+        PlaneDragger(const Ref<PlaneInstance>& targetPlane, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
             : IDragger(startDraggingPoint, distanceToDraggingPlane)
             , m_TargetPlane(targetPlane)
         {}
+        ~PlaneDragger() override = default;
 
         void Drag(const Math::Plane& nearPlane, const Math::Ray& endRay) override;
 
@@ -50,14 +53,15 @@ namespace DLEngine
         Ref<PlaneInstance> m_TargetPlane;
     };
 
-    class IMeshDragger
+    class MeshDragger
         : public IDragger
     {
     public:
-        IMeshDragger(const Ref<MeshInstance>& targetMesh, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
+        MeshDragger(const Ref<MeshInstance>& targetMesh, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
             : IDragger(startDraggingPoint, distanceToDraggingPlane)
             , m_TargetMesh(targetMesh)
         {}
+        ~MeshDragger() override = default;
 
         void Drag(const Math::Plane& nearPlane, const Math::Ray& endRay) override;
 

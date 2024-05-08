@@ -161,7 +161,7 @@ namespace DLEngine
             return true;
         }
 
-        inline bool Intersects(const Ray& ray, const Mesh& mesh, IntersectInfo& outIntersectInfo)
+        /*inline bool Intersects(const Ray& ray, const Mesh& mesh, IntersectInfo& outIntersectInfo)
         {
             const auto& nodes = mesh.GetOctree().GetNodes();
             const std::vector<Triangle>& triangles = mesh.GetTriangles();
@@ -199,9 +199,9 @@ namespace DLEngine
             }
 
             return intersects;
-        }
+        }*/
 
-        inline bool Intersects(const Ray& ray, const MeshInstance& meshInstance, const Mesh& mesh, IntersectInfo& outIntersectInfo)
+        /*inline bool Intersects(const Ray& ray, const MeshInstance& meshInstance, const Mesh& mesh, IntersectInfo& outIntersectInfo)
         {
             const Vec4 rayOriginModelSpace = Vec4{ ray.Origin, 1.0f } *meshInstance.InvTransform;
             const Vec4 rayDirModelSpace = Vec4{ ray.Direction, 0.0f } *meshInstance.InvTransform;
@@ -234,6 +234,6 @@ namespace DLEngine
             outIntersectInfo.T = Length(outIntersectInfo.IntersectionPoint - ray.Origin);
 
             return true;
-        }
+        }*/
     }
 }

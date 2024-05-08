@@ -1,22 +1,36 @@
 ﻿#pragma once
 #include "DLEngine/Math/Primitives.h"
-
-#include "DLEngine/Renderer/TriangleOctree.h"
+#include "DLEngine/Math/Vec2.h"
+#include "DLEngine/Math/Vec3.h"
 
 namespace DLEngine
 {
     class Mesh
     {
+        friend class Model;
     public:
-        Mesh(const std::vector<Math::Triangle>& triangles) noexcept;
+        struct Vertex
+        {
+            Math::Vec3 Position;
+            Math::Vec3 Normal;
+            Math::Vec3 Tangent;
+            Math::Vec3 Bitangent;
+            Math::Vec2 TexCoords;
+        };
 
-        const std::vector<Math::Triangle>& GetTriangles() const noexcept { return m_Triangles; }
-        const TriangleOctree& GetOctree() const noexcept { return m_Octree; }
+        struct Triangle
+        {
+            uint32_t Indices[3];
+        };
 
-        static const Mesh& GetUnitCube() noexcept;
+    public:
+
 
     private:
-        std::vector<Math::Triangle> m_Triangles;
-        TriangleOctree m_Octree;
+        std::vector<Vertex> m_Vertices;
+        std::vector<Triangle> m_Triangles;
+
+        std::string m_Name;
+        Math::AABB m_BoundingBox;
     };
 }

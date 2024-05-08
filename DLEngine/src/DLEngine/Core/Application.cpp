@@ -8,6 +8,8 @@
 
 #include "DLEngine/Renderer/Renderer.h"
 
+#include "DLEngine/Utils/DeltaTime.h"
+
 namespace DLEngine
 {
     Application::~Application()
@@ -20,7 +22,7 @@ namespace DLEngine
     {
         while (m_IsRunning)
         {
-            const float dt = static_cast<float>(m_Timer.GetDeltaTimeMS());
+            DeltaTime dt{static_cast<float>(m_Timer.GetDeltaTimeMS())};
 
             ProcessInputs();
 
@@ -98,7 +100,7 @@ namespace DLEngine
         }
     }
 
-    bool Application::OnWindowClose(WindowCloseEvent& e)
+    bool Application::OnWindowClose(WindowCloseEvent&)
     {
         m_IsRunning = false;
         return true;

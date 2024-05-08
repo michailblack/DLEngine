@@ -3,6 +3,7 @@
 #include "DLEngine/Core/DLException.h"
 
 #include "DLEngine/DirectX/D3D.h"
+#include "DLEngine/DirectX/VertexBuffer.h"
 
 #define HelloShaderToyPS 1
 
@@ -19,6 +20,8 @@ void WorldLayer::OnAttach()
 {
     const auto& device { DLEngine::D3D::GetDevice5() };
 
+    m_Cube = CreateRef<DLEngine::Model>(R"(..\models\cube\cube.obj)");
+
     DLEngine::ShaderSpecification shaderSpec {};
     shaderSpec.Name = "HelloTriangleVS";
     shaderSpec.Path = L"..\\DLEngine\\src\\DLEngine\\Shaders\\HelloTriangleVS.hlsl";
@@ -33,25 +36,22 @@ void WorldLayer::OnAttach()
 
     m_PixelShader = CreateRef<DLEngine::PixelShader>(shaderSpec);
 
-    struct Vertex
-    {
-        DLEngine::Math::Vec3 Position;
-        DLEngine::Math::Vec3 Color;
-    };
-    constexpr Vertex vertices[]
-    {
+    const std::vector<Vertex> vertices{
         { DLEngine::Math::Vec3 { -0.5f, -0.5f, 0.0f }, DLEngine::Math::Vec3 { 1.0f, 0.0f, 0.0f } },
         { DLEngine::Math::Vec3 {  0.5f, -0.5f, 0.0f }, DLEngine::Math::Vec3 { 0.0f, 1.0f, 0.0f } },
-        { DLEngine::Math::Vec3 {  0.0f,  0.5f, 0.0f }, DLEngine::Math::Vec3 { 0.0f, 0.0f, 1.0f } }
+        { DLEngine::Math::Vec3 {  0.0f,  0.5f, 0.0f }, DLEngine::Math::Vec3 { 0.0f, 0.0f, 1.0f } },
     };
 
-    DLEngine::VertexLayout vertexLayout {};
-    vertexLayout.Append({ "POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0u });
-    vertexLayout.Append({ "COLOR", DXGI_FORMAT_R32G32B32_FLOAT, 0u });
+    DLEngine::BufferLayout bufferLayout{
+        { "POSITION" , DLEngine::BufferLayout::ShaderDataType::Float3 },
+        { "COLOR"    , DLEngine::BufferLayout::ShaderDataType::Float3 },
+    };
 
-    m_VertexBuffer = CreateRef<DLEngine::VertexBuffer>(vertexLayout, vertices, 3u);
+    m_VertexBuffer = CreateRef<DLEngine::PerVertexBuffer<Vertex>>(bufferLayout, vertices);
 
-    m_InputLayout = CreateRef<DLEngine::InputLayout>(vertexLayout, m_VertexShader);
+    m_InputLayout = CreateRef<DLEngine::InputLayout>();
+    m_InputLayout->AppendVertexBuffer(bufferLayout, D3D11_INPUT_PER_VERTEX_DATA);
+    m_InputLayout->Construct(m_VertexShader);
 
     D3D11_RASTERIZER_DESC2 rasterizerDesc {};
     rasterizerDesc.FillMode = D3D11_FILL_SOLID;
@@ -77,9 +77,9 @@ void WorldLayer::OnDetach()
     
 }
 
-void WorldLayer::OnUpdate(float dt)
+void WorldLayer::OnUpdate(DeltaTime dt)
 {
-    m_PerFrameData.Time += dt * 1e-3f; // In seconds
+    m_PerFrameData.Time += dt.GetSeconds();
     m_PerFrameData.Resolution = DLEngine::Application::Get().GetWindow()->GetSize();
 
     DrawTestTriangle();

@@ -5,7 +5,7 @@
 
 namespace DLEngine
 {
-    void ISphereDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
+    void SphereDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
     {
         const Math::Plane draggingPlane{
             .Origin = nearPlane.Origin + nearPlane.Normal * m_DistanceToDraggingPlane,
@@ -20,7 +20,7 @@ namespace DLEngine
         m_StartDraggingPoint = newIntersectInfo.IntersectionPoint;
     }
 
-    void IPlaneDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
+    void PlaneDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
     {
         const Math::Plane draggingPlane{
             .Origin = nearPlane.Origin + nearPlane.Normal * m_DistanceToDraggingPlane,
@@ -35,7 +35,7 @@ namespace DLEngine
         m_StartDraggingPoint = newIntersectInfo.IntersectionPoint;
     }
 
-    void IMeshDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
+    void MeshDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
     {
         const Math::Plane draggingPlane{
                .Origin = nearPlane.Origin + nearPlane.Normal * m_DistanceToDraggingPlane,

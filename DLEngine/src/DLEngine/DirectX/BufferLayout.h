@@ -1,0 +1,38 @@
+#pragma once
+
+namespace DLEngine
+{
+    class BufferLayout
+    {
+    public:
+        enum class ShaderDataType
+        {
+            None = 0,
+            Float, Float2, Float3, Float4,
+            Int, Int2, Int3, Int4,
+            Mat3, Mat4
+        };
+
+        struct Element
+        {
+            std::string Semantics;
+            ShaderDataType DataType;
+        };
+
+    public:
+        BufferLayout(const std::initializer_list<Element>& elements)
+            : m_Elements(elements)
+        {}
+
+        const std::vector<Element>& GetElements() const noexcept { return m_Elements; }
+
+        std::vector<Element>::iterator begin() { return m_Elements.begin(); }
+        std::vector<Element>::iterator end() { return m_Elements.end(); }
+
+        std::vector<Element>::const_iterator begin() const { return m_Elements.begin(); }
+        std::vector<Element>::const_iterator end() const { return m_Elements.end(); }
+
+    private:
+        std::vector<Element> m_Elements;
+    };
+}

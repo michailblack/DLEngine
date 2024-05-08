@@ -33,7 +33,7 @@ namespace DLEngine
     {
     public:
         static void Init() {};
-        static void SetLogLevel(spdlog::level::level_enum level) {};
+        static void SetLogLevel(spdlog::level::level_enum) {};
         static std::shared_ptr<spdlog::logger> GetLogger() { return {}; }
     };
 }

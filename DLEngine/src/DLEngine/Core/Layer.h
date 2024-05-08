@@ -1,5 +1,7 @@
 ﻿#pragma once
-#include "Events/Event.h"
+#include "DLEngine/Core/Events/Event.h"
+
+#include "DLEngine/Utils/DeltaTime.h"
 
 namespace DLEngine
 {
@@ -16,7 +18,7 @@ namespace DLEngine
 
         virtual void OnAttach() {}
         virtual void OnDetach() {}
-        virtual void OnUpdate(float dt) {}
-        virtual void OnEvent(Event& event) {}
+        virtual void OnUpdate(DeltaTime) {}
+        virtual void OnEvent(Event&) {}
     };
 }

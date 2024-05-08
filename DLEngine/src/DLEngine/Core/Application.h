@@ -41,7 +41,7 @@ namespace DLEngine
     private:
         void ProcessInputs() const;
 
-        bool OnWindowClose(WindowCloseEvent& e);
+        bool OnWindowClose(WindowCloseEvent&);
         bool OnWindowResize(WindowResizeEvent& e);
         bool OnKeyPressed(KeyPressedEvent& e);
 

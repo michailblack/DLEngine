@@ -88,7 +88,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>DL_ENABLE_ASSERTS;DL_DEBUG;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -96,6 +96,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,7 +114,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -123,6 +124,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,7 +144,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>DL_ENABLE_ASSERTS;DL_DEBUG;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -150,6 +152,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -167,7 +170,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -177,6 +180,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -195,6 +199,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\Renderer\Model.h" />
+    <ClInclude Include="src\DLEngine\DirectX\BufferLayout.h" />
+    <ClInclude Include="src\DLEngine\DirectX\IndexBuffer.h" />
     <ClInclude Include="src\DLEngine\Core\Engine.h" />
     <ClInclude Include="src\DLEngine\Core\Log.h" />
     <ClInclude Include="src\DLEngine\DirectX\ConstantBuffers.h" />
@@ -216,7 +223,6 @@
     <ClInclude Include="src\DLEngine\DirectX\InputLayout.h" />
     <ClInclude Include="src\DLEngine\DirectX\Shaders.h" />
     <ClInclude Include="src\DLEngine\DirectX\VertexBuffer.h" />
-    <ClInclude Include="src\DLEngine\DirectX\VertexLayout.h" />
     <ClInclude Include="src\DLEngine\Math\Primitives.h" />
     <ClInclude Include="src\DLEngine\Math\Intersections.h" />
     <ClInclude Include="src\DLEngine\Math\Math.h" />
@@ -234,10 +240,13 @@
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
     <ClInclude Include="src\DLEngine\Renderer\TriangleOctree.h" />
+    <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\Renderer\Model.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\IndexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Engine.cpp" />
     <ClCompile Include="src\DLEngine\Core\Log.cpp" />
     <ClCompile Include="src\DLEngine\Core\Application.cpp" />
@@ -249,7 +258,6 @@
     <ClCompile Include="src\DLEngine\DirectX\InputLayout.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\VertexLayout.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\IDragger.cpp" />
