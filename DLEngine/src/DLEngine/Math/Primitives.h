@@ -44,12 +44,4 @@ namespace DLEngine
             Vec3 Max;
         };
     }
-
-    namespace Math
-    {
-        inline float Distance(const Vec3& point, const Plane& plane)
-        {
-            return Dot(plane.Normal, point - plane.Origin);
-        }
-    }
 }

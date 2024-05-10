@@ -61,13 +61,15 @@ namespace DLEngine
 #ifdef DL_DEBUG
         compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-
-        DL_THROW_IF_HR(D3DCompile(
+        if (FAILED(D3DCompile(
             shaderSrc.data(), shaderSrc.size(),
             nullptr, defines.data(), nullptr, "main", "vs_5_0",
             compileFlags, 0,
             &m_VertexShaderBlob, &errorBlob
-        ));
+        )))
+        {
+            throw std::runtime_error{ static_cast<const char*>(errorBlob->GetBufferPointer()) };
+        }
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateVertexShader(
             m_VertexShaderBlob->GetBufferPointer(),
@@ -102,13 +104,15 @@ namespace DLEngine
 #ifdef DL_DEBUG
         compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-
-        DL_THROW_IF_HR(D3DCompile(
+        if (FAILED(D3DCompile(
             shaderSrc.data(), shaderSrc.size(),
             nullptr, defines.data(), nullptr, "main", "ps_5_0",
             compileFlags, 0,
             &m_PixelShaderBlob, &errorBlob
-        ));
+        )))
+        {
+            throw std::runtime_error{ static_cast<const char*>(errorBlob->GetBufferPointer()) };
+        }
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreatePixelShader(
             m_PixelShaderBlob->GetBufferPointer(),

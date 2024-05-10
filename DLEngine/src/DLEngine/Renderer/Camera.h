@@ -16,6 +16,7 @@ namespace DLEngine
         void RotateForward(float angle) noexcept;
         void RotateRight(float angle) noexcept;
         void RotateUp(float angle) noexcept;
+        void RotateAxis(Math::Vec3 normalizedAxis, float angle) noexcept;
 
         Math::Vec3 GetPosition() const noexcept { return m_Position; }
 

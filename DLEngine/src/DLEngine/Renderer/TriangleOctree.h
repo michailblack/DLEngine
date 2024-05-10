@@ -9,9 +9,9 @@ namespace DLEngine
         struct OctreeNode
         {
             Math::AABB BoundingBox;
-            uint32_t FirstChild{ 0 };
-            uint32_t FirstTriangle{ 0 };
-            uint32_t TriangleCount{ 0 };
+            uint32_t FirstChild{ 0u };
+            uint32_t FirstTriangle{ 0u };
+            uint32_t TriangleCount{ 0u };
         };
 
     public:
@@ -36,7 +36,7 @@ namespace DLEngine
 
         const uint32_t m_EmptyLeafIndicator;
 
-        const uint32_t m_MaxTrianglesPerNode{ 1 };
+        const uint32_t m_MaxTrianglesPerNode{ 1u };
         const uint32_t m_MaxDepth;
     };
 }

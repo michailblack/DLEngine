@@ -1,18 +1,19 @@
 ﻿#pragma once
 #include "DLEngine/Core/DLException.h"
+#include "DLEngine/Core/DLWin.h"
 
 #include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/IBindable.h"
+
+#include <d3d11_4.h>
+#include <wrl.h>
 
 namespace DLEngine
 {
     template <typename Data>
     class ConstantBuffer
-        : public IBindable
     {
     public:
-        ConstantBuffer(const Data& data, uint32_t slot = 0u)
-            : m_Slot(slot)
+        ConstantBuffer(const Data& data)
         {
             D3D11_BUFFER_DESC constantBufferDesc{};
             constantBufferDesc.ByteWidth = sizeof(Data);
@@ -30,8 +31,7 @@ namespace DLEngine
             DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&constantBufferDesc, &constantBufferData, &m_ConstantBuffer));
         }
 
-        ConstantBuffer(uint32_t slot = 0u)
-            : m_Slot(slot)
+        ConstantBuffer()
         {
             D3D11_BUFFER_DESC constantBufferDesc{};
             constantBufferDesc.ByteWidth = sizeof(Data);
@@ -44,7 +44,15 @@ namespace DLEngine
             DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&constantBufferDesc, nullptr, &m_ConstantBuffer));
         }
 
-        ~ConstantBuffer() override = default;
+        void BindVS(uint32_t slot = 0u)
+        {
+            D3D::GetDeviceContext4()->VSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
+        }
+
+        void BindPS(uint32_t slot = 0u)
+        {
+            D3D::GetDeviceContext4()->PSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
+        }
 
         void Set(const Data& data)
         {
@@ -54,40 +62,7 @@ namespace DLEngine
             D3D::GetDeviceContext4()->Unmap(m_ConstantBuffer.Get(), 0u);
         }
 
-    protected:
+    private:
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
-        uint32_t m_Slot;
-    };
-
-    template <typename Data>
-    class VertexConstantBuffer
-        : public ConstantBuffer<Data>
-    {
-        using ConstantBuffer<Data>::m_ConstantBuffer;
-        using ConstantBuffer<Data>::m_Slot;
-
-    public:
-        using ConstantBuffer<Data>::ConstantBuffer;
-
-        void Bind() override
-        {
-            D3D::GetDeviceContext4()->VSSetConstantBuffers1(m_Slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
-        }
-    };
-
-    template <typename Data>
-    class PixelConstantBuffer
-        : public ConstantBuffer<Data>
-    {
-        using ConstantBuffer<Data>::m_ConstantBuffer;
-        using ConstantBuffer<Data>::m_Slot;
-
-    public:
-        using ConstantBuffer<Data>::ConstantBuffer;
-
-        void Bind() override
-        {
-            D3D::GetDeviceContext4()->PSSetConstantBuffers1(m_Slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
-        }
     };
 }

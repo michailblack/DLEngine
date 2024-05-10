@@ -2,11 +2,15 @@
 #include "Renderer.h"
 
 #include "DLEngine/Core/Application.h"
+#include "DLEngine/Core/Input.h"
+
+#include "DLEngine/DirectX/ConstantBuffers.h"
 
 #include "DLEngine/Math/Intersections.h"
 #include "DLEngine/Math/Math.h"
 
 #include "DLEngine/Renderer/Mesh.h"
+#include "DLEngine/Renderer/MeshSystem.h"
 
 namespace DLEngine
 {
@@ -14,60 +18,119 @@ namespace DLEngine
     {
         struct RenderData
         {
-            Math::Mat4x4 InvViewProjectionMatrix;
-            Math::Vec3 CameraPosition;
+            struct PerFrameData
+            {
+                float TimeMS{ 0u };
+                float TimeS{ 0u };
+                Math::Vec2 Resolution;
+                Math::Vec2 MousePos;
+                uint8_t _padding[8];
+            } PerFrame;
+            Ref<ConstantBuffer<PerFrameData>> PerFrameConstantBuffer;
 
-            std::vector<Ref<SphereInstance>> Spheres;
-            std::vector<Ref<PlaneInstance>> Planes;
-            std::vector<Ref<MeshInstance>> Cubes;
+            struct PerViewData
+            {
+                Math::Mat4x4 Projection;
+                Math::Mat4x4 InvProjection;
+                Math::Mat4x4 View;
+                Math::Mat4x4 InvView;
+                Math::Mat4x4 ViewProjection;
+                Math::Mat4x4 InvViewProjection;
+                Math::Vec4 CameraPosition;
+            } PerView;
+            Ref<ConstantBuffer<PerViewData>> PerViewConstantBuffer;
 
-            Ref<Environment> EnvironmentInfo;
-
-            float LightSphereRadius{ 0.1f };
+            Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthStencilState;
         } s_Data;
     }
 
     void Renderer::Init()
     {
+        const auto& device{ D3D::GetDevice5() };
+        const auto& deviceContext{ D3D::GetDeviceContext4() };
+        
+        s_Data.PerFrameConstantBuffer = CreateRef<ConstantBuffer<RenderData::PerFrameData>>();
+        s_Data.PerViewConstantBuffer = CreateRef<ConstantBuffer<RenderData::PerViewData>>();
 
+        D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
+        depthStencilDesc.DepthEnable = TRUE;
+        depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER;
+        depthStencilDesc.StencilEnable = FALSE;
+
+        DL_THROW_IF_HR(device->CreateDepthStencilState(&depthStencilDesc, &s_Data.DepthStencilState));
+        deviceContext->OMSetDepthStencilState(s_Data.DepthStencilState.Get(), 1u);
+        deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     }
 
-    void Renderer::BeginScene(const Camera& camera, const Ref<Environment>& environment)
+    void Renderer::OnFrameBegin(DeltaTime dt)
     {
-        s_Data.InvViewProjectionMatrix = Math::Mat4x4::Inverse(camera.GetViewMatrix() * camera.GetProjectionMatrix());
-        s_Data.CameraPosition = camera.GetPosition();
-        s_Data.EnvironmentInfo = environment;
+        s_Data.PerFrame.TimeMS += dt.GetMilliseconds();
+        s_Data.PerFrame.TimeS += dt.GetSeconds();
+        s_Data.PerFrame.Resolution = Application::Get().GetWindow()->GetSize();
+        s_Data.PerFrame.MousePos = Input::GetCursorPosition();
+
+        s_Data.PerFrameConstantBuffer->Set(s_Data.PerFrame);
+    }
+
+    void Renderer::BeginScene(const Camera& camera)
+    {
+        s_Data.PerView.Projection = camera.GetProjectionMatrix();
+        s_Data.PerView.InvProjection = Math::Mat4x4::Inverse(s_Data.PerView.Projection);
+        s_Data.PerView.View = camera.GetViewMatrix();
+        s_Data.PerView.InvView = Math::Mat4x4::Inverse(s_Data.PerView.View);
+        s_Data.PerView.ViewProjection = s_Data.PerView.View * s_Data.PerView.Projection;
+        s_Data.PerView.InvViewProjection = Math::Mat4x4::Inverse(s_Data.PerView.ViewProjection);
+        s_Data.PerView.CameraPosition = Math::Vec4{ camera.GetPosition(), 1.0f };
+
+        s_Data.PerViewConstantBuffer->Set(s_Data.PerView);
     }
 
     void Renderer::EndScene()
     {
+        const auto& deviceContext{ D3D::GetDeviceContext4() };
 
+        const auto& backBufferView{ Application::Get().GetWindow()->GetBackBufferView() };
+        const auto& depthStencilView{ Application::Get().GetWindow()->GetDepthStencilView() };
+
+        auto* renderTarget{ static_cast<ID3D11RenderTargetView*>(backBufferView.Get()) };
+        deviceContext->OMSetRenderTargets(
+            1,
+            &renderTarget,
+            depthStencilView.Get()
+        );
+
+        deviceContext->ClearRenderTargetView(backBufferView.Get(), DLEngine::Math::Vec4{ 0.1f, 0.1f, 0.1f, 1.0f }.data());
+        deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 0.0f, 0);
+        
+        s_Data.PerFrameConstantBuffer->BindVS(0u);
+        s_Data.PerFrameConstantBuffer->BindPS(0u);
+
+        s_Data.PerViewConstantBuffer->BindVS(1u);
+        s_Data.PerViewConstantBuffer->BindPS(1u);
+
+        MeshSystem::Render();
     }
 
-    void Renderer::Submit(const Ref<SphereInstance>& sphere)
+    void Renderer::SubmitToNormalVisGroup(const Ref<Model>& model, const std::vector<NormalVisGroup::Instance>& instances)
     {
-        s_Data.Spheres.emplace_back(sphere);
+        MeshSystem::AddToNormalVisGroup(model, instances);
     }
 
-    void Renderer::Submit(const Ref<PlaneInstance>& plane)
+    void Renderer::SubmitToHologramGroup(const Ref<Model>& model, const std::vector<HologramGroup::Instance>& instances)
     {
-        s_Data.Planes.emplace_back(plane);
-    }
-
-    void Renderer::Submit(const Ref<MeshInstance>& cube)
-    {
-        s_Data.Cubes.emplace_back(cube);
+        MeshSystem::AddToHologramGroup(model, instances);
     }
 
     Math::Ray Renderer::GetRay(uint32_t mouseX, uint32_t mouseY)
     {
-        Math::Vec4 BL = Math::Vec4{ -1.0f, -1.0f, 0.0f, 1.0f } *s_Data.InvViewProjectionMatrix;
+        Math::Vec4 BL = Math::Vec4{ -1.0f, -1.0f, 1.0f, 1.0f } * s_Data.PerView.InvViewProjection;
         BL /= BL.w;
 
-        Math::Vec4 BR = Math::Vec4{ 1.0f, -1.0f, 0.0f, 1.0f } *s_Data.InvViewProjectionMatrix;
+        Math::Vec4 BR = Math::Vec4{ 1.0f, -1.0f, 1.0f, 1.0f } * s_Data.PerView.InvViewProjection;
         BR /= BR.w;
 
-        Math::Vec4 TL = Math::Vec4{ -1.0f,  1.0f, 0.0f, 1.0f } *s_Data.InvViewProjectionMatrix;
+        Math::Vec4 TL = Math::Vec4{ -1.0f,  1.0f, 1.0f, 1.0f } * s_Data.PerView.InvViewProjection;
         TL /= TL.w;
 
         const Math::Vec4 Up = TL - BL;
@@ -78,69 +141,8 @@ namespace DLEngine
 
         Math::Ray ray{};
         ray.Origin = P.xyz();
-        ray.Direction = Math::Normalize(ray.Origin - s_Data.CameraPosition);
+        ray.Direction = Math::Normalize(ray.Origin - s_Data.PerView.CameraPosition.xyz());
 
         return ray;
-    }
-
-    Environment Renderer::CalculateEnvironmentContribution(const Math::IntersectInfo& intersectionInfo, const Environment& environment)
-    {
-        constexpr float bias{ 1e-3f };
-        Environment resultEnvironment{ environment };
-
-        Math::Ray shadowRay;
-        shadowRay.Origin = intersectionInfo.IntersectionPoint + intersectionInfo.Normal * bias;
-
-        shadowRay.Direction = -environment.Sun.Direction;
-        if (PointIsOccluded(shadowRay, Math::Infinity()))
-            resultEnvironment.Sun.Color = Math::Vec3{ 0.0f };
-
-        std::erase_if(resultEnvironment.PointLights, [&](const PointLight& pointLight)
-            {
-                shadowRay.Direction = Math::Normalize(pointLight.Position - intersectionInfo.IntersectionPoint);
-                return PointIsOccluded(shadowRay, Math::Length(pointLight.Position - intersectionInfo.IntersectionPoint));
-            });
-
-        std::erase_if(resultEnvironment.SpotLights, [&](const SpotLight& spotLight)
-            {
-                shadowRay.Direction = Math::Normalize(spotLight.Position - intersectionInfo.IntersectionPoint);
-                return PointIsOccluded(shadowRay, Math::Length(spotLight.Position - intersectionInfo.IntersectionPoint));
-            });
-
-        return resultEnvironment;
-    }
-
-    bool Renderer::PointIsOccluded(const Math::Ray& ray, const float lightSourceT)
-    {
-        Math::IntersectInfo intersectInfo{};
-
-        for (const auto& plane : s_Data.Planes)
-        {
-            if (Math::Intersects(ray, plane->Plane, intersectInfo))
-            {
-                if (intersectInfo.T < lightSourceT)
-                    return true;
-            }
-        }
-
-        for (const auto& sphere : s_Data.Spheres)
-        {
-            if (Math::Intersects(ray, sphere->Sphere, intersectInfo))
-            {
-                if (intersectInfo.T < lightSourceT)
-                    return true;
-            }
-        }
-
-        /*for (const auto& cube : s_Data.Cubes)
-        {
-            if (Math::Intersects(ray, *cube, Mesh::GetUnitCube(), intersectInfo))
-            {
-                if (intersectInfo.T < lightSourceT)
-                    return true;
-            }
-        }*/
-
-        return false;
     }
 }

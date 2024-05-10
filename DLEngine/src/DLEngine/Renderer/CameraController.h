@@ -28,8 +28,6 @@ namespace DLEngine
         void OnUpdate(float dt);
         void OnEvent(Event& e);
 
-        bool IsCameraTransformed() const noexcept { return m_Transformed; }
-
         bool AskedForDragger() const noexcept { return m_AskForDragger; }
         void SetDragger(Scope<IDragger> dragger) noexcept { m_Dragger = std::move(dragger); m_AskForDragger = false; }
 
@@ -65,7 +63,5 @@ namespace DLEngine
         Math::Ray m_EndDraggingRay{};
         Scope<IDragger> m_Dragger{};
         bool m_AskForDragger{ false };
-
-        bool m_Transformed{ true };
     };
 }

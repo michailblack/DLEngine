@@ -43,13 +43,13 @@ namespace DLEngine
             static Mat4x4 View(const Vec3& right, const Vec3& up, const Vec3& forward, const Vec3& position) noexcept;
 
             static Mat4x4 Inverse(const Mat4x4& mat) noexcept;
+            static Mat4x4 Transpose(const Mat4x4& mat) noexcept;
 
             static Mat4x4 Translate(const Vec3& translation) noexcept;
             static Mat4x4 Scale(const Vec3& scale) noexcept;
             static Mat4x4 Rotate(float pitch, float yaw, float roll) noexcept;
             static Mat4x4 Rotate(const Vec3& normalizedAxis, float angle) noexcept;
         };
-
         inline Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs) noexcept;
         inline Vec4 operator*(const Vec4& v, const Mat4x4& m) noexcept;
     }

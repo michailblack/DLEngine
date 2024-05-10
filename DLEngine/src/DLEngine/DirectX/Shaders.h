@@ -1,5 +1,7 @@
 ﻿#pragma once
-#include "DLEngine/DirectX/IBindable.h"
+#include "DLEngine/Core/DLWin.h"
+#include <d3d11_4.h>
+#include <wrl.h>
 
 namespace DLEngine
 {
@@ -11,13 +13,11 @@ namespace DLEngine
     };
 
     class VertexShader
-        : public IBindable
     {
     public:
         VertexShader(ShaderSpecification spec);
-        ~VertexShader() override = default;
 
-        void Bind() override;
+        void Bind();
 
         Microsoft::WRL::ComPtr<ID3DBlob> GetVertexShaderBlob() const { return m_VertexShaderBlob; }
 
@@ -32,13 +32,11 @@ namespace DLEngine
     };
 
     class PixelShader
-        : public IBindable
     {
     public:
         PixelShader(ShaderSpecification spec);
-        ~PixelShader() override = default;
 
-        void Bind() override;
+        void Bind();
 
     private:
         void CompileShader();

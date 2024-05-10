@@ -19,11 +19,11 @@ namespace DLEngine
         inline Mat4x4 Mat4x4::Perspective(float fov, float aspectRatio, float zNear, float zFar) noexcept
         {
             Mat4x4 mat{};
-            mat._11 = (1.0f / std::tan(fov / 2.0f)) / aspectRatio;
+            mat._11 = 1.0f / (std::tan(fov / 2.0f) * aspectRatio);
             mat._22 = 1.0f / std::tan(fov / 2.0f);
-            mat._33 = zFar / (zFar - zNear);
+            mat._33 = zNear / (zNear - zFar);
             mat._34 = 1.0f;
-            mat._43 = -zFar * zNear / (zFar - zNear);
+            mat._43 = -zFar * zNear / (zNear - zFar);
 
             return mat;
         }
@@ -57,6 +57,11 @@ namespace DLEngine
         inline Mat4x4 Mat4x4::Inverse(const Mat4x4& mat) noexcept
         {
             return static_cast<Mat4x4>(DirectX::XMMatrixInverse(nullptr, static_cast<DirectX::XMMATRIX>(mat)));
+        }
+
+        inline Mat4x4 Mat4x4::Transpose(const Mat4x4& mat) noexcept
+        {
+            return static_cast<Mat4x4>(DirectX::XMMatrixTranspose(static_cast<DirectX::XMMATRIX>(mat)));
         }
 
         inline Mat4x4 Mat4x4::Translate(const Vec3& translation) noexcept

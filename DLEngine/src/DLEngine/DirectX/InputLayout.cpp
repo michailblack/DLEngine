@@ -15,17 +15,11 @@ namespace DLEngine
                 {
                 case BufferLayout::ShaderDataType::Float:  return DXGI_FORMAT_R32_FLOAT;
                 case BufferLayout::ShaderDataType::Float2: return DXGI_FORMAT_R32G32_FLOAT;
-                
-                case BufferLayout::ShaderDataType::Mat3:
                 case BufferLayout::ShaderDataType::Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
                 
                 case BufferLayout::ShaderDataType::Mat4:
                 case BufferLayout::ShaderDataType::Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-                
-                case BufferLayout::ShaderDataType::Int:  return DXGI_FORMAT_R32_SINT;
-                case BufferLayout::ShaderDataType::Int2: return DXGI_FORMAT_R32G32_SINT;
-                case BufferLayout::ShaderDataType::Int3: return DXGI_FORMAT_R32G32B32_SINT;
-                case BufferLayout::ShaderDataType::Int4: return DXGI_FORMAT_R32G32B32A32_SINT;
+
                 default: DL_ASSERT(false, "Unknown ShaderDatatType"); return DXGI_FORMAT_UNKNOWN;
                 }
             }
@@ -66,14 +60,6 @@ namespace DLEngine
 
             switch (bufferElement.DataType)
             {
-            case BufferLayout::ShaderDataType::Mat3:
-            {
-                for (uint32_t i{ 0u }; i < 3u; ++i)
-                {
-                    elementDesc.SemanticIndex = i;
-                    m_InputElementDescs.push_back(elementDesc);
-                }
-            } break;
             case BufferLayout::ShaderDataType::Mat4:
             {
                 for (uint32_t i{ 0u }; i < 4u; ++i)
@@ -83,6 +69,7 @@ namespace DLEngine
                 }
             } break;
             default:
+                elementDesc.SemanticIndex = 0u;
                 m_InputElementDescs.push_back(elementDesc);
                 break;
             }

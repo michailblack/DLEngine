@@ -8,7 +8,7 @@ namespace DLEngine
     IndexBuffer::IndexBuffer(const std::vector<uint32_t>& indices)
 {
         D3D11_BUFFER_DESC indexBufferDesc{};
-        indexBufferDesc.ByteWidth = sizeof(uint32_t) * 3u;
+        indexBufferDesc.ByteWidth = sizeof(uint32_t) * static_cast<uint32_t>(indices.size());
         indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
         indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
         indexBufferDesc.CPUAccessFlags = 0u;

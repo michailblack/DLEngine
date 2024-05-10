@@ -3,6 +3,8 @@
 
 #include "DLEngine/Math/Intersections.h"
 
+#include "DLEngine/Renderer/Model.h"
+
 namespace DLEngine
 {
     void SphereDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
@@ -38,8 +40,8 @@ namespace DLEngine
     void MeshDragger::Drag(const Math::Plane& nearPlane, const Math::Ray& endRay)
     {
         const Math::Plane draggingPlane{
-               .Origin = nearPlane.Origin + nearPlane.Normal * m_DistanceToDraggingPlane,
-               .Normal = nearPlane.Normal
+            .Origin = nearPlane.Origin + nearPlane.Normal * m_DistanceToDraggingPlane,
+            .Normal = nearPlane.Normal
         };
 
         Math::IntersectInfo newIntersectInfo;
@@ -47,8 +49,12 @@ namespace DLEngine
 
         const Math::Vec3 translation = newIntersectInfo.IntersectionPoint - m_StartDraggingPoint;
 
-        m_TargetMesh->Transform = m_TargetMesh->Transform * Math::Mat4x4::Translate(translation);
-        m_TargetMesh->InvTransform = Math::Mat4x4::Inverse(m_TargetMesh->Transform);
+        auto& srcMesh{ m_TargetMesh->Model->GetMesh(m_TargetMesh->MeshIndex) };
+        auto& srcMeshInstance{ srcMesh.GetInstance(m_TargetMesh->MeshInstanceIndex) };
+        auto& srcMeshInvInstance{ srcMesh.GetInvInstance(m_TargetMesh->MeshInstanceIndex) };
+
+        srcMeshInstance = srcMeshInstance * Math::Mat4x4::Translate(translation);
+        srcMeshInvInstance = Math::Mat4x4::Inverse(srcMeshInstance);
 
         m_StartDraggingPoint = newIntersectInfo.IntersectionPoint;
     }

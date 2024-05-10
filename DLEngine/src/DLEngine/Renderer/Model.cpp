@@ -1,8 +1,6 @@
 #include "dlpch.h"
 #include "Model.h"
 
-#include "DLEngine/DirectX/VertexBuffer.h"
-
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -101,5 +99,25 @@ namespace DLEngine
         };
         m_VertexBuffer = CreateScope<PerVertexBuffer<Mesh::Vertex>>(bufferLayout, vertices);
         m_IndexBuffer = CreateScope<IndexBuffer>(indices);
+
+        std::function<void(aiNode*)> loadInstances;
+        loadInstances = [&loadInstances, this](const aiNode* node)
+            {
+                auto assimpNodeToParent{ node->mTransformation };
+                const Math::Mat4x4 nodeToParent{ reinterpret_cast<const Math::Mat4x4&>(assimpNodeToParent.Transpose()) };
+                const Math::Mat4x4 parentToNode{ Math::Mat4x4::Inverse(nodeToParent) };
+
+                for (uint32_t i{ 0u }; i < node->mNumMeshes; ++i)
+                {
+                    uint32_t meshIndex{ node->mMeshes[i] };
+                    m_Meshes[meshIndex].m_Instances.push_back(nodeToParent);
+                    m_Meshes[meshIndex].m_InvInstances.push_back(parentToNode);
+                }
+
+                for (uint32_t i{ 0u }; i < node->mNumChildren; ++i)
+                    loadInstances(node->mChildren[i]);
+            };
+
+        loadInstances(assimpScene->mRootNode);
     }
 }

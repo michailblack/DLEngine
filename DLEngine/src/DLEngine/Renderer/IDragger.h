@@ -2,6 +2,7 @@
 #include "DLEngine/Math/Primitives.h"
 
 #include "DLEngine/Renderer/Entity.h"
+#include "DLEngine/Renderer/Mesh.h"
 
 namespace DLEngine
 {
@@ -57,7 +58,7 @@ namespace DLEngine
         : public IDragger
     {
     public:
-        MeshDragger(const Ref<MeshInstance>& targetMesh, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
+        MeshDragger(const Ref<Mesh::Instance>& targetMesh, Math::Vec3 startDraggingPoint, float distanceToDraggingPlane) noexcept
             : IDragger(startDraggingPoint, distanceToDraggingPlane)
             , m_TargetMesh(targetMesh)
         {}
@@ -66,6 +67,6 @@ namespace DLEngine
         void Drag(const Math::Plane& nearPlane, const Math::Ray& endRay) override;
 
     private:
-        Ref<MeshInstance> m_TargetMesh;
+        Ref<Mesh::Instance> m_TargetMesh;
     };
 }

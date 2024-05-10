@@ -30,6 +30,8 @@ namespace DLEngine
             {
                 m_Timer.Reset();
 
+                Renderer::OnFrameBegin(dt);
+
                 for (const auto& layer : m_LayerStack)
                     layer->OnUpdate(dt);
 

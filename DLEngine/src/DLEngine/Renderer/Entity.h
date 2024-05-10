@@ -16,11 +16,4 @@ namespace DLEngine
         Math::Plane Plane;
         Material Mat;
     };
-
-    struct MeshInstance
-    {
-        Math::Mat4x4 Transform;
-        Math::Mat4x4 InvTransform;
-        Material Mat;
-    };
 }

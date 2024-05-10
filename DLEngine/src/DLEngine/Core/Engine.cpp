@@ -4,6 +4,7 @@
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/DXGIInfoQueue.h"
 
+#include "DLEngine/Renderer/MeshSystem.h"
 #include "DLEngine/Renderer/Renderer.h"
 
 namespace DLEngine
@@ -31,6 +32,8 @@ namespace DLEngine
 
         D3D::Init();
         Renderer::Init();
+
+        MeshSystem::Init();
     }
 
     void Engine::Deinit()

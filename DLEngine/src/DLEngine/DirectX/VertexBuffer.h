@@ -1,16 +1,17 @@
 ﻿#pragma once
-#include <dxgiformat.h>
-
+#include "DLEngine/Core/DLWin.h"
 #include "DLEngine/Core/DLException.h"
 
-#include "DLEngine/DirectX/IBindable.h"
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/BufferLayout.h"
+
+#include <d3d11_4.h>
+#include <wrl.h>
+#include <dxgiformat.h>
 
 namespace DLEngine
 {
     class VertexBuffer
-        : public IBindable
     {
     public:
 
@@ -20,9 +21,9 @@ namespace DLEngine
             m_Stride = CalculateStride();
         }
 
-        ~VertexBuffer() override = default;
+        virtual ~VertexBuffer() = default;
 
-        void Bind() override;
+        void Bind(uint32_t slot = 0u);
 
         const BufferLayout& GetBufferLayout() const noexcept { return m_BufferLayout; }
         const uint32_t GetStride() const noexcept { return m_Stride; }
@@ -72,39 +73,45 @@ namespace DLEngine
         : public VertexBuffer
     {
     public:
-        PerInstanceBuffer(BufferLayout bufferLayout, const std::vector<Vertex> vertices)
+        PerInstanceBuffer(BufferLayout bufferLayout, uint32_t instancesCount = 1u)
             : VertexBuffer(bufferLayout)
-            , m_BufferSize(m_Stride * vertices.size())
         {
-            D3D11_BUFFER_DESC vertexBufferDesc{};
-            vertexBufferDesc.ByteWidth = static_cast<uint32_t>(m_BufferSize);
-            vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-            vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-            vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-            vertexBufferDesc.MiscFlags = 0u;
-            vertexBufferDesc.StructureByteStride = m_Stride;
-
-            D3D11_SUBRESOURCE_DATA vertexBufferData{};
-            vertexBufferData.pSysMem = vertices.data();
-            vertexBufferData.SysMemPitch = 0u;
-            vertexBufferData.SysMemSlicePitch = 0u;
-
-            DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &m_VertexBuffer));
+            Resize(instancesCount);
         }
 
-        void Set(const std::vector<Vertex> vertices) const
+        void Resize(uint32_t instancesCount)
         {
-            DL_ASSERT_NOINFO(vertices.size() == m_BufferSize);
+            if (instancesCount == m_InstancesCount)
+                return;
 
+            m_InstancesCount = instancesCount;
+
+            D3D11_BUFFER_DESC instanceBufferDesc{};
+            instanceBufferDesc.ByteWidth = static_cast<uint32_t>(sizeof(Vertex)) * instancesCount;
+            instanceBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+            instanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+            instanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            instanceBufferDesc.MiscFlags = 0u;
+            instanceBufferDesc.StructureByteStride = m_Stride;
+
+            DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&instanceBufferDesc, nullptr, &m_VertexBuffer));
+        }
+
+        Vertex* Map() const
+        {
             D3D11_MAPPED_SUBRESOURCE mappedSubresource{};
             DL_THROW_IF_HR(D3D::GetDeviceContext4()->Map(m_VertexBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &mappedSubresource));
-            memcpy_s(mappedSubresource.pData, m_BufferSize, vertices.data(), vertices.size() * sizeof(Vertex));
+            return reinterpret_cast<Vertex*>(mappedSubresource.pData);
+        }
+
+        void Unmap() const
+        {
             D3D::GetDeviceContext4()->Unmap(m_VertexBuffer.Get(), 0u);
         }
 
         ~PerInstanceBuffer() override = default;
 
     private:
-        size_t m_BufferSize;
+        uint32_t m_InstancesCount;
     };
 }

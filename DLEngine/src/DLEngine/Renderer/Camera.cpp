@@ -26,6 +26,13 @@ namespace DLEngine
         m_Forward = Math::Normalize(Math::RotateQuaternion(m_Forward, m_Up, angle));
     }
 
+    void Camera::RotateAxis(Math::Vec3 normalizedAxis, float angle) noexcept
+    {
+        m_Up = Math::Normalize(Math::RotateQuaternion(m_Up, normalizedAxis, angle));
+        m_Right = Math::Normalize(Math::RotateQuaternion(m_Right, normalizedAxis, angle));
+        m_Forward = Math::Normalize(Math::RotateQuaternion(m_Forward, normalizedAxis, angle));
+    }
+
     Math::Mat4x4 Camera::GetProjectionMatrix() const noexcept
     {
         return Math::Mat4x4::Perspective(m_FOV, m_AspectRatio, m_Near, m_Far);

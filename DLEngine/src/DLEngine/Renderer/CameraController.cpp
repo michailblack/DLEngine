@@ -16,74 +16,52 @@ namespace DLEngine
 
     void CameraController::OnUpdate(float dt)
     {
-        m_Transformed = false;
-
         if (Input::IsKeyPressed('W'))
         {
-            m_Transformed = true;
             m_Camera.Translate(m_Camera.GetForward() * m_Velocity * dt);
         }
 
         if (Input::IsKeyPressed('S'))
         {
-            m_Transformed = true;
             m_Camera.Translate(-m_Camera.GetForward() * m_Velocity * dt);
         }
 
         if (Input::IsKeyPressed('D'))
         {
-            m_Transformed = true;
             m_Camera.Translate(m_Camera.GetRight() * m_Velocity * dt);
         }
 
         if (Input::IsKeyPressed('A'))
         {
-            m_Transformed = true;
             m_Camera.Translate(-m_Camera.GetRight() * m_Velocity * dt);
-        }
-
-        if (Input::IsKeyPressed(VK_SPACE))
-        {
-            m_Transformed = true;
-            m_Camera.Translate(m_Camera.GetUp() * m_Velocity * dt);
-        }
-
-        if (Input::IsKeyPressed(VK_CONTROL))
-        {
-            m_Transformed = true;
-            m_Camera.Translate(-m_Camera.GetUp() * m_Velocity * dt);
         }
 
         if (Input::IsKeyPressed('Q'))
         {
-            m_Transformed = true;
-            m_Camera.RotateForward(-m_RotationVelocity * m_ForwardRotationVelocityScale * dt);
+            m_Camera.Translate(m_Camera.GetUp() * m_Velocity * dt);
         }
 
         if (Input::IsKeyPressed('E'))
         {
-            m_Transformed = true;
-            m_Camera.RotateForward(m_RotationVelocity * m_ForwardRotationVelocityScale * dt);
+            m_Camera.Translate(-m_Camera.GetUp() * m_Velocity * dt);
         }
 
         if (m_IsRotating)
         {
-            m_Transformed = true;
-
             const Math::Vec2 delta = Input::GetCursorPosition() - m_MouseStartPosition;
             const Math::Vec2 deltaDir = Math::Normalize(delta);
 
             const auto [wndWidth, wndHeight] = Application::Get().GetWindow()->GetSize();
             const float speed = Math::Length(delta) / (wndWidth * 0.5f) * m_RotationVelocity;
 
+            static constexpr Math::Vec3 worldUp{ 0.0f, 1.0f, 0.0f };
+
             m_Camera.RotateRight(-deltaDir.y * speed * dt);
-            m_Camera.RotateUp(-deltaDir.x * speed * dt);
+            m_Camera.RotateAxis(worldUp, -deltaDir.x * speed * dt);
         }
 
         if (m_Dragger)
         {
-            m_Transformed = true;
-
             m_EndDraggingRay = Renderer::GetRay(Input::GetMouseX(), Input::GetMouseY());
 
             const Math::Plane nearPlane{ m_StartDraggingRay.Origin, m_Camera.GetForward() };
@@ -107,7 +85,6 @@ namespace DLEngine
     bool CameraController::OnWindowResize(WindowResizeEvent& e)
     {
         m_Camera.SetAspectRatio(static_cast<float>(e.GetWidth()) / static_cast<float>(e.GetHeight()));
-        m_Transformed = true;
 
         return false;
     }
