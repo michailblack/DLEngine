@@ -1,6 +1,9 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
+#include "DLEngine/DirectX/D3D.h"
+#include "DLEngine/DirectX/DXGIInfoQueue.h"
+
 #include "DLEngine/Renderer/Renderer.h"
 
 Application::~Application()
@@ -23,6 +26,8 @@ void Application::Run()
 
             for (const auto& layer : m_LayerStack)
                 layer->OnUpdate(dt);
+
+            m_Window->Present();
         }
 
         std::this_thread::yield();
@@ -33,6 +38,7 @@ void Application::OnEvent(Event& e)
 {
     EventDispatcher dispatcher(e);
     dispatcher.Dispatch<WindowCloseEvent>(DL_BIND_EVENT_FN(Application::OnWindowClose));
+    dispatcher.Dispatch<WindowResizeEvent>(DL_BIND_EVENT_FN(Application::OnWindowResize));
     dispatcher.Dispatch<KeyPressedEvent>(DL_BIND_EVENT_FN(Application::OnKeyPressed));
 
     for (const auto& layer : m_LayerStack | std::views::reverse)
@@ -57,6 +63,12 @@ Application::Application(const ApplicationSpecification& spec)
     s_Instance = this;
 
     InitConsole();
+
+    D3D::Get().Init();
+
+#ifdef DL_DEBUG
+    DXGIInfoQueue::Get().Init();
+#endif
 
     m_Window = CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle, DL_BIND_EVENT_FN(Application::OnEvent));
     Renderer::Init();
@@ -86,6 +98,21 @@ bool Application::OnWindowClose(WindowCloseEvent& e)
     return true;
 }
 
+bool Application::OnWindowResize(WindowResizeEvent& e)
+{
+    D3D11_VIEWPORT viewport {};
+    viewport.TopLeftX = 0.0f;
+    viewport.TopLeftY = 0.0f;
+    viewport.Width = static_cast<float>(e.GetWidth());
+    viewport.Height = static_cast<float>(e.GetHeight());
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+
+    D3D::Get().GetDeviceContext()->RSSetViewports(1, &viewport);
+
+    return false;
+}
+
 bool Application::OnKeyPressed(KeyPressedEvent& e)
 {
     switch (e.GetKeyCode())
@@ -93,34 +120,6 @@ bool Application::OnKeyPressed(KeyPressedEvent& e)
     case VK_ESCAPE:
         m_IsRunning = false;
         break;
-    case '1':
-    {
-        Renderer::SetFramebufferSizeCoefficient(1);
-
-        AppRenderEvent e {};
-        OnEvent(e);
-    } break;
-    case '2':
-    {
-        Renderer::SetFramebufferSizeCoefficient(3);
-        
-        AppRenderEvent e{};
-        OnEvent(e);
-    } break;
-    case '3':
-    {
-        Renderer::SetFramebufferSizeCoefficient(6);
-
-        AppRenderEvent e{};
-        OnEvent(e);
-    } break;
-    case '4':
-    {
-        Renderer::SetFramebufferSizeCoefficient(9);
-
-        AppRenderEvent e{};
-        OnEvent(e);
-    } break;
     default:
         break;
     }

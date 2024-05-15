@@ -4,7 +4,7 @@
 class MouseButtonEvent : public Event
 {
 public:
-    uint8_t GetButton() const { return m_Button; }
+    uint8_t GetButton() const noexcept { return m_Button; }
 
 protected:
     MouseButtonEvent(uint8_t button)
@@ -42,8 +42,8 @@ public:
         : m_MouseX(x), m_MouseY(y)
     {}
 
-    int32_t GetX() const { return m_MouseX; }
-    int32_t GetY() const { return m_MouseY; }
+    int32_t GetX() const noexcept { return m_MouseX; }
+    int32_t GetY() const noexcept { return m_MouseY; }
 
     EVENT_CLASS_TYPE(MouseMoved)
 
@@ -58,7 +58,7 @@ public:
         : m_Offset(offset)
     {}
 
-    int32_t GetOffset() const { return m_Offset; }
+    int32_t GetOffset() const noexcept { return m_Offset; }
 
     EVENT_CLASS_TYPE(MouseScrolled)
 

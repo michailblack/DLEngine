@@ -63,7 +63,7 @@ COLORREF Material::CalculateLight(const Math::Ray& ray, const Math::IntersectInf
     return HDRToCOLORREF(fragmentColor, environment.Exposure);
 }
 
-COLORREF Material::HDRToCOLORREF(const Math::Vec3& hdrColor, float exposure)
+COLORREF Material::HDRToCOLORREF(const Math::Vec3& hdrColor, float exposure) noexcept
 {
     Math::Vec3 color = Math::Vec3(1.0f) - Math::Exp(-hdrColor * exposure);
 

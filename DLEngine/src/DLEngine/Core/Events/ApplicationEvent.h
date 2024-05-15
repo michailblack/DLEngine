@@ -8,8 +8,8 @@ public:
         : m_Width(width), m_Height(height)
     {}
 
-    uint32_t GetWidth() const { return m_Width; }
-    uint32_t GetHeight() const { return m_Height; }
+    uint32_t GetWidth() const noexcept { return m_Width; }
+    uint32_t GetHeight() const noexcept { return m_Height; }
 
     EVENT_CLASS_TYPE(WindowResize)
 

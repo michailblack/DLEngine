@@ -4,11 +4,11 @@
 #include <complex>
 #include <numeric>
 
-TriangleOctree::TriangleOctree(const std::vector<Math::Triangle>& triangles)
+TriangleOctree::TriangleOctree(const std::vector<Math::Triangle>& triangles) noexcept
     : m_EmptyLeafIndicator(static_cast<uint32_t>(triangles.size()))
     , m_MaxDepth(static_cast<uint32_t>(std::ceil(std::log(static_cast<float>(triangles.size())) / std::log(8))))
 {
-    m_Nodes.resize(triangles.size() * 8 - 1,
+    m_Nodes.resize(CountMaxElementsWithDepth(m_MaxDepth),
         OctreeNode {
             .BoundingBox = Math::AABB {},
             .FirstChild = m_EmptyLeafIndicator,
@@ -139,7 +139,7 @@ void TriangleOctree::ShrinkNodes()
     m_Nodes.shrink_to_fit();
 }
 
-uint32_t TriangleOctree::GetCurrentDepth(uint32_t nodeIndex) const
+uint32_t TriangleOctree::GetCurrentDepth(uint32_t nodeIndex) const noexcept
 {
     uint32_t depth { 1 };
     while (depth <= m_MaxDepth)
@@ -156,7 +156,7 @@ uint32_t TriangleOctree::GetCurrentDepth(uint32_t nodeIndex) const
     return 0;
 }
 
-uint32_t TriangleOctree::CountMaxElementsWithDepth(uint32_t depth)
+uint32_t TriangleOctree::CountMaxElementsWithDepth(uint32_t depth) noexcept
 {
     if (depth == 0)
         return 1;

@@ -17,7 +17,7 @@ Application* CreateApplication()
 {
     ApplicationSpecification spec;
     spec.WndTitle  = L"Sandbox";
-    spec.WndWidth  = 600;
-    spec.WndHeight = 450;
+    spec.WndWidth  = 800;
+    spec.WndHeight = 600;
     return new SandboxApp(spec);
 }

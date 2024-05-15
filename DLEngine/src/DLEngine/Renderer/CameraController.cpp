@@ -7,7 +7,7 @@
 
 #include "DLEngine/Renderer/Renderer.h"
 
-CameraController::CameraController(const Camera& camera)
+CameraController::CameraController(const Camera& camera) noexcept
     : m_Camera(camera)
 {
 }

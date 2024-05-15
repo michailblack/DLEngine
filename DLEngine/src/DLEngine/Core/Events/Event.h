@@ -11,7 +11,7 @@ enum class EventType
 };
 
 #define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::##type; }\
-    EventType GetEventType() const override { return GetStaticType(); }
+    EventType GetEventType() const noexcept override { return GetStaticType(); }
 
 class Event
 {
@@ -25,7 +25,7 @@ public:
 
     bool Handled { false };
 
-    virtual EventType GetEventType() const = 0;
+    virtual EventType GetEventType() const noexcept = 0;
 };
 
 

@@ -1,11 +1,12 @@
 #pragma once
 #include <cstdint>
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#define EXCLUDE_COMMON_WINDOWS_HEADERS
+#include "DLEngine/Core/DLWin.h"
 
-#undef max
-#undef min
+#include <d3d11_4.h>
+#include <dxgi1_6.h>
+#include <wrl.h>
 
 #include "DLEngine/Core/Events/Event.h"
 #include "DLEngine/Math/Vec2.h"
@@ -23,8 +24,8 @@ private:
         WindowClass& operator=(const WindowClass&) = delete;
         WindowClass& operator=(WindowClass&&) = delete;
 
-        static const wchar_t* GetName() { return m_WindowClassName; }
-        static HINSTANCE& GetInstance()
+        static const wchar_t* GetName() noexcept { return m_WindowClassName; }
+        static HINSTANCE& GetInstance() noexcept
         {
             static WindowClass m_WindowClass;
             return m_WindowClass.m_hInstance;
@@ -46,11 +47,15 @@ public:
     Window& operator=(const Window&) = delete;
     Window& operator=(Window&&) = delete;
 
-    Math::Vec2 GetSize() const { return Math::Vec2 { static_cast<float>(m_Data.m_Width), static_cast<float>(m_Data.m_Height) }; }
-    uint32_t GetWidth() const { return m_Data.m_Width; }
-    uint32_t GeHeigth() const { return m_Data.m_Height; }
+    void Present() const;
 
-    HWND GetHandle() const { return m_hWnd; }
+    Math::Vec2 GetSize() const noexcept { return Math::Vec2 { static_cast<float>(m_Data.Width), static_cast<float>(m_Data.Height) }; }
+    uint32_t GetWidth() const noexcept { return m_Data.Width; }
+    uint32_t GeHeight() const noexcept { return m_Data.Height; }
+
+    HWND GetHandle() const noexcept { return m_hWnd; }
+
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> GetRenderTargetView() const noexcept { return m_Data.RenderTargetView; }
 
 private:
     static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -62,9 +67,12 @@ private:
 
     struct WindowData
     {
-        uint32_t m_Width, m_Height;
-        const wchar_t* m_Title;
+        uint32_t Width, Height;
+        const wchar_t* Title;
 
-        EventCallbackFn m_EventCallback;
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> SwapChain;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> RenderTargetView;
+
+        EventCallbackFn EventCallback;
     } m_Data;
 };

@@ -30,8 +30,8 @@ public:
 
     void PushLayer(Layer* layer);
 
-    Scope<Window>& GetWindow() { return m_Window; }
-    static Application& Get() { return *s_Instance; }
+    Scope<Window>& GetWindow() noexcept { return m_Window; }
+    static Application& Get() noexcept { return *s_Instance; }
 
 protected:
     explicit Application(const ApplicationSpecification& spec);
@@ -42,6 +42,7 @@ private:
     void ProcessInputs() const;
 
     bool OnWindowClose(WindowCloseEvent& e);
+    bool OnWindowResize(WindowResizeEvent& e);
     bool OnKeyPressed(KeyPressedEvent& e);
 
 private:

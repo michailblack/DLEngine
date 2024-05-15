@@ -1,13 +1,13 @@
 ﻿#include "dlpch.h"
 #include "Mesh.h"
 
-Mesh::Mesh(const std::vector<Math::Triangle>& triangles)
+Mesh::Mesh(const std::vector<Math::Triangle>& triangles) noexcept
     : m_Triangles(triangles)
     , m_Octree(triangles)
 {
 }
 
-const Mesh& Mesh::GetUnitCube()
+const Mesh& Mesh::GetUnitCube() noexcept
 {
     static const Mesh s_UnitCube {
         {

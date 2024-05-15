@@ -4,7 +4,7 @@
 class KeyEvent : public Event
 {
 public:
-    uint8_t GetKeyCode() const { return m_KeyCode; }
+    uint8_t GetKeyCode() const noexcept { return m_KeyCode; }
 
 protected:
     KeyEvent(uint8_t keyCode)

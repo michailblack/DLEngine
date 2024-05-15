@@ -21,3 +21,4 @@
 #include <vector>
 
 #include "DLEngine/Core/Base.h"
+#include "DLEngine/Core/DLException.h"

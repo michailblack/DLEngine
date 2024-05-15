@@ -6,17 +6,17 @@
 
 namespace Math
 {
-    inline float ToRadians(float degrees)
+    inline float ToRadians(float degrees) noexcept
     {
         return DirectX::XMConvertToRadians(degrees);
     }
 
-    inline float ToDegrees(float radians)
+    inline float ToDegrees(float radians) noexcept
     {
         return DirectX::XMConvertToDegrees(radians);
     }
 
-    inline float Infinity()
+    inline float Infinity() noexcept
     {
         return std::numeric_limits<float>::infinity();
     }
@@ -31,7 +31,7 @@ namespace Math
         return std::min(a, b);
     }
 
-    inline float Pow(float base, float exponent)
+    inline float Pow(float base, float exponent) noexcept
     {
         return std::pow(base, exponent);
     }
@@ -41,12 +41,12 @@ namespace Math
         return std::clamp(value, min, max);
     }
 
-    inline float Cos(float angle)
+    inline float Cos(float angle) noexcept
     {
         return std::cos(angle);
     }
 
-    inline float Sin(float angle)
+    inline float Sin(float angle) noexcept
     {
         return std::sin(angle);
     }
