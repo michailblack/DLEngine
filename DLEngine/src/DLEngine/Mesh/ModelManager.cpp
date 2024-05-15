@@ -1,7 +1,7 @@
 #include "dlpch.h"
 #include "ModelManager.h"
 
-#include "DLEngine/Renderer/Model.h"
+#include "DLEngine/Mesh/Model.h"
 
 namespace DLEngine
 {

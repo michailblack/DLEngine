@@ -199,12 +199,16 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\DLEngine\Renderer\HologramGroup.h" />
-    <ClInclude Include="src\DLEngine\Renderer\NormalVisGroup.h" />
-    <ClInclude Include="src\DLEngine\Renderer\MeshSystem.h" />
     <ClInclude Include="src\DLEngine\Math\Distance.h" />
-    <ClInclude Include="src\DLEngine\Renderer\ModelManager.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Model.h" />
+    <ClInclude Include="src\DLEngine\Mesh\HologramGroup.h" />
+    <ClInclude Include="src\DLEngine\Mesh\IDragger.h" />
+    <ClInclude Include="src\DLEngine\Mesh\Mesh.h" />
+    <ClInclude Include="src\DLEngine\Mesh\MeshSystem.h" />
+    <ClInclude Include="src\DLEngine\Mesh\Model.h" />
+    <ClInclude Include="src\DLEngine\Mesh\ModelManager.h" />
+    <ClInclude Include="src\DLEngine\Mesh\NormalVisGroup.h" />
+    <ClInclude Include="src\DLEngine\Mesh\ShaderGroup.h" />
+    <ClInclude Include="src\DLEngine\Mesh\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\DirectX\BufferLayout.h" />
     <ClInclude Include="src\DLEngine\DirectX\IndexBuffer.h" />
     <ClInclude Include="src\DLEngine\Core\Engine.h" />
@@ -236,23 +240,23 @@
     <ClInclude Include="src\DLEngine\Math\Vec4.h" />
     <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
     <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Entity.h" />
-    <ClInclude Include="src\DLEngine\Renderer\IDragger.h" />
     <ClInclude Include="src\DLEngine\Renderer\Light.h" />
     <ClInclude Include="src\DLEngine\Renderer\Material.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Mesh.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
-    <ClInclude Include="src\DLEngine\Renderer\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\DLEngine\Renderer\HologramGroup.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\MeshSystem.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\ModelManager.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Model.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\HologramGroup.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\IDragger.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\Mesh.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\MeshSystem.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\Model.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\ModelManager.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\NormalVisGroup.cpp" />
+    <ClCompile Include="src\DLEngine\Mesh\TriangleOctree.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\IndexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Engine.cpp" />
     <ClCompile Include="src\DLEngine\Core\Log.cpp" />
@@ -267,13 +271,9 @@
     <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\IDragger.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Material.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Mesh.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\NormalVisGroup.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\TriangleOctree.cpp" />
     <ClCompile Include="src\dlpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

@@ -4,12 +4,76 @@
 #include <complex>
 #include <numeric>
 
+#include "DLEngine/Math/Intersections.h"
+
+#include "DLEngine/Mesh/Model.h"
+
 namespace DLEngine
 {
-    TriangleOctree::TriangleOctree(const std::vector<Math::Triangle>& triangles) noexcept
-        : m_EmptyLeafIndicator(static_cast<uint32_t>(triangles.size()))
-        , m_MaxDepth(static_cast<uint32_t>(std::ceil(std::log(static_cast<float>(triangles.size())) / std::log(8))))
+
+    TriangleOctree::TriangleOctree(const Mesh& targetMesh) noexcept
+        : m_TargetMesh{ targetMesh }
     {
+
+    }
+
+    bool TriangleOctree::Intersects(const Math::Ray& ray, uint32_t& outTriangleIndex) const noexcept
+    {
+        bool intersects{ false };
+
+        constexpr uint32_t rootIndex{ 0u };
+        std::stack<uint32_t> stack;
+        stack.push(rootIndex);
+
+        Math::IntersectInfo intersectInfo{};
+
+        while (!stack.empty())
+        {
+            const uint32_t nodeIndex{ stack.top() };
+            stack.pop();
+
+            const OctreeNode& node{ m_Nodes[nodeIndex] };
+
+            if (!Math::Intersects(ray, node.BoundingBox))
+                continue;
+
+            if (node.TriangleCount > 0u)
+            {
+                const auto& triangles{ m_TargetMesh.GetTriangles() };
+                for (uint32_t i{ node.FirstTriangle }; i < node.FirstTriangle + node.TriangleCount; ++i)
+                {
+                    const Mesh::Triangle& triangle{ triangles[m_TriangleIndices[i]] };
+                    Math::Triangle triangleToCheck{
+                        .V0 = m_TargetMesh.GetVertex(triangle.Indices[0]).Position,
+                        .V1 = m_TargetMesh.GetVertex(triangle.Indices[1]).Position,
+                        .V2 = m_TargetMesh.GetVertex(triangle.Indices[2]).Position
+                    };
+
+                    if (Math::Intersects(ray, triangleToCheck, intersectInfo))
+                    {
+                        outTriangleIndex = m_TriangleIndices[i];
+                        intersects = true;
+                    }
+                }
+            }
+
+            if (NodeHasChildren(nodeIndex))
+            {
+                for (uint32_t i{ 0u }; i < 8u; ++i)
+                    stack.push(node.FirstChild + i);
+            }
+        }
+
+        return intersects;
+    }
+
+    void TriangleOctree::Build()
+    {
+        const std::vector<Mesh::Triangle>& triangles{ m_TargetMesh.GetTriangles() };
+
+        m_EmptyLeafIndicator = static_cast<uint32_t>(triangles.size());
+        m_MaxDepth = static_cast<uint32_t>(std::ceil(std::log(static_cast<float>(triangles.size())) / std::log(8)));
+
         m_Nodes.resize(CountMaxElementsWithDepth(m_MaxDepth),
             OctreeNode{
                 .BoundingBox = Math::AABB {},
@@ -20,45 +84,22 @@ namespace DLEngine
         m_TriangleIndices.resize(triangles.size());
         std::iota(m_TriangleIndices.begin(), m_TriangleIndices.end(), 0);
 
-        Build(triangles);
-    }
-
-    bool TriangleOctree::NodeHasChildren(uint32_t nodeIndex) const
-    {
-        return m_Nodes[nodeIndex].FirstChild != m_EmptyLeafIndicator;
-    }
-
-    void TriangleOctree::Build(const std::vector<Math::Triangle>& triangles)
-    {
-        constexpr uint32_t rootIndex{ 0 };
-        ConstructInitialBoundingBox(triangles);
-        Subdivide(rootIndex, triangles);
-        ShrinkNodes();
-    }
-
-    void TriangleOctree::ConstructInitialBoundingBox(const std::vector<Math::Triangle>& triangles)
-    {
         constexpr uint32_t rootIndex{ 0 };
         OctreeNode& root{ m_Nodes[rootIndex] };
+        root.BoundingBox = m_TargetMesh.GetBoundingBox();
         root.FirstChild = 0;
         root.FirstTriangle = 0;
         root.TriangleCount = static_cast<uint32_t>(m_TriangleIndices.size());
 
-        root.BoundingBox = Math::AABB{
-            .Min = Math::Vec3 { std::numeric_limits<float>::max() },
-            .Max = Math::Vec3 { -std::numeric_limits<float>::max() }
-        };
-
-        for (uint32_t i{ root.FirstTriangle }; i < root.FirstTriangle + root.TriangleCount; ++i)
-        {
-            const Math::Triangle& triangle{ triangles[m_TriangleIndices[i]] };
-            root.BoundingBox.Min = Math::Min(root.BoundingBox.Min, Math::Min(triangle.V0, Math::Min(triangle.V1, triangle.V2)));
-            root.BoundingBox.Max = Math::Max(root.BoundingBox.Max, Math::Max(triangle.V0, Math::Max(triangle.V1, triangle.V2)));
-        }
+        Subdivide(rootIndex);
+        
+        ShrinkNodes();
     }
 
-    void TriangleOctree::Subdivide(uint32_t nodeIndex, const std::vector<Math::Triangle>& triangles)
+    void TriangleOctree::Subdivide(uint32_t nodeIndex)
     {
+        const std::vector<Mesh::Triangle>& triangles{ m_TargetMesh.GetTriangles() };
+
         OctreeNode& node{ m_Nodes[nodeIndex] };
         if (node.TriangleCount <= m_MaxTrianglesPerNode || GetCurrentDepth(nodeIndex) >= m_MaxDepth)
             return;
@@ -109,9 +150,15 @@ namespace DLEngine
 
             for (uint32_t j{ node.FirstTriangle }; j < node.FirstTriangle + node.TriangleCount; ++j)
             {
-                const Math::Triangle& triangle{ triangles[m_TriangleIndices[j]] };
+                const Mesh::Triangle& triangle{ triangles[m_TriangleIndices[j]] };
 
-                if (IsTriangleInsideAABB(triangle, child.BoundingBox))
+                Math::Triangle triangleToCheck{
+                    .V0 = m_TargetMesh.GetVertex(triangle.Indices[0]).Position,
+                    .V1 = m_TargetMesh.GetVertex(triangle.Indices[1]).Position,
+                    .V2 = m_TargetMesh.GetVertex(triangle.Indices[2]).Position
+                };
+
+                if (IsTriangleInsideAABB(triangleToCheck, child.BoundingBox))
                     std::swap(m_TriangleIndices[j], m_TriangleIndices[child.FirstTriangle + child.TriangleCount++]);
             }
 
@@ -119,7 +166,7 @@ namespace DLEngine
             {
                 node.FirstTriangle += child.TriangleCount;
                 node.TriangleCount -= child.TriangleCount;
-                Subdivide(firstChildIndex + i, triangles);
+                Subdivide(firstChildIndex + i);
             }
             else
                 child.FirstChild = m_EmptyLeafIndicator;
@@ -139,6 +186,11 @@ namespace DLEngine
         m_Nodes.resize(rightBorder);
 
         m_Nodes.shrink_to_fit();
+    }
+
+    bool TriangleOctree::NodeHasChildren(uint32_t nodeIndex) const
+    {
+        return m_Nodes[nodeIndex].FirstChild != m_EmptyLeafIndicator;
     }
 
     uint32_t TriangleOctree::GetCurrentDepth(uint32_t nodeIndex) const noexcept

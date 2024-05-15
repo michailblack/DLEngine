@@ -2,7 +2,6 @@
 #include "DLEngine/Core/Layer.h"
 
 #include "DLEngine/Renderer/CameraController.h"
-#include "DLEngine/Renderer/Entity.h"
 
 #include "DLEngine/DirectX/ConstantBuffers.h"
 #include "DLEngine/DirectX/InputLayout.h"

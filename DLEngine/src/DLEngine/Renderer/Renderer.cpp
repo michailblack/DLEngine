@@ -9,8 +9,7 @@
 #include "DLEngine/Math/Intersections.h"
 #include "DLEngine/Math/Math.h"
 
-#include "DLEngine/Renderer/Mesh.h"
-#include "DLEngine/Renderer/MeshSystem.h"
+#include "DLEngine/Mesh/MeshSystem.h"
 
 namespace DLEngine
 {
@@ -24,7 +23,7 @@ namespace DLEngine
                 float TimeS{ 0u };
                 Math::Vec2 Resolution;
                 Math::Vec2 MousePos;
-                uint8_t _padding[8];
+                uint8_t _padding[8]{};
             } PerFrame;
             Ref<ConstantBuffer<PerFrameData>> PerFrameConstantBuffer;
 
@@ -112,37 +111,8 @@ namespace DLEngine
         MeshSystem::Render();
     }
 
-    void Renderer::SubmitToNormalVisGroup(const Ref<Model>& model, const std::vector<NormalVisGroup::Instance>& instances)
+    void Renderer::Submit(const Ref<Model>& model, const std::any& material, const std::any& instance)
     {
-        MeshSystem::AddToNormalVisGroup(model, instances);
-    }
-
-    void Renderer::SubmitToHologramGroup(const Ref<Model>& model, const std::vector<HologramGroup::Instance>& instances)
-    {
-        MeshSystem::AddToHologramGroup(model, instances);
-    }
-
-    Math::Ray Renderer::GetRay(uint32_t mouseX, uint32_t mouseY)
-    {
-        Math::Vec4 BL = Math::Vec4{ -1.0f, -1.0f, 1.0f, 1.0f } * s_Data.PerView.InvViewProjection;
-        BL /= BL.w;
-
-        Math::Vec4 BR = Math::Vec4{ 1.0f, -1.0f, 1.0f, 1.0f } * s_Data.PerView.InvViewProjection;
-        BR /= BR.w;
-
-        Math::Vec4 TL = Math::Vec4{ -1.0f,  1.0f, 1.0f, 1.0f } * s_Data.PerView.InvViewProjection;
-        TL /= TL.w;
-
-        const Math::Vec4 Up = TL - BL;
-        const Math::Vec4 Right = BR - BL;
-
-        const Math::Vec4 P = BL + Right * (static_cast<float>(mouseX) / Application::Get().GetWindow()->GetSize().x)
-            + Up * (1.0f - static_cast<float>(mouseY) / Application::Get().GetWindow()->GetSize().y);
-
-        Math::Ray ray{};
-        ray.Origin = P.xyz();
-        ray.Direction = Math::Normalize(ray.Origin - s_Data.PerView.CameraPosition.xyz());
-
-        return ray;
+        MeshSystem::AddModel(model, material, instance);
     }
 }

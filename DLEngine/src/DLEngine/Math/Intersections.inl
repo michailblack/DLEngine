@@ -5,9 +5,6 @@
 
 #include "DLEngine/Math/Vec4.h"
 
-#include "DLEngine/Renderer/Entity.h"
-#include "DLEngine/Renderer/Mesh.h"
-
 namespace DLEngine
 {
     namespace Math
@@ -160,80 +157,5 @@ namespace DLEngine
 
             return true;
         }
-
-        /*inline bool Intersects(const Ray& ray, const Mesh& mesh, IntersectInfo& outIntersectInfo)
-        {
-            const auto& nodes = mesh.GetOctree().GetNodes();
-            const std::vector<Triangle>& triangles = mesh.GetTriangles();
-
-            std::stack<uint32_t> stack;
-            constexpr uint32_t rootIndex{ 0 };
-            stack.push(rootIndex);
-
-            bool intersects{ false };
-
-            while (!stack.empty())
-            {
-                const uint32_t nodeIndex = stack.top();
-                stack.pop();
-
-                const auto& node = nodes[nodeIndex];
-                if (!Intersects(ray, node.BoundingBox))
-                    continue;
-
-                if (node.TriangleCount > 0)
-                {
-                    for (uint32_t i = node.FirstTriangle; i < node.FirstTriangle + node.TriangleCount; ++i)
-                    {
-                        const Triangle& triangle = triangles[i];
-                        if (Intersects(ray, triangle, outIntersectInfo))
-                            intersects = true;
-                    }
-                }
-
-                if (mesh.GetOctree().NodeHasChildren(nodeIndex))
-                {
-                    for (uint32_t i = 0; i < 8; ++i)
-                        stack.push(node.FirstChild + i);
-                }
-            }
-
-            return intersects;
-        }*/
-
-        /*inline bool Intersects(const Ray& ray, const MeshInstance& meshInstance, const Mesh& mesh, IntersectInfo& outIntersectInfo)
-        {
-            const Vec4 rayOriginModelSpace = Vec4{ ray.Origin, 1.0f } *meshInstance.InvTransform;
-            const Vec4 rayDirModelSpace = Vec4{ ray.Direction, 0.0f } *meshInstance.InvTransform;
-
-            Ray rayModelSpace;
-            rayModelSpace.Origin = rayOriginModelSpace.xyz();
-            rayModelSpace.Direction = Normalize(rayDirModelSpace.xyz());
-
-            IntersectInfo intersectInfoModelSpace{};
-            if (outIntersectInfo.T != Infinity())
-            {
-                const Vec4 intersectionPointModelSpace = Vec4{ outIntersectInfo.IntersectionPoint, 1.0f } *meshInstance.InvTransform;
-
-                intersectInfoModelSpace.IntersectionPoint = intersectionPointModelSpace.xyz();
-                intersectInfoModelSpace.T = Length(intersectInfoModelSpace.IntersectionPoint - rayModelSpace.Origin);
-            }
-            const float stepBefore = intersectInfoModelSpace.T;
-
-            if (!Intersects(rayModelSpace, mesh, intersectInfoModelSpace))
-                return false;
-
-            if (intersectInfoModelSpace.T == stepBefore)
-                return false;
-
-            const Vec4 intersectionPointWorldSpace = Vec4{ intersectInfoModelSpace.IntersectionPoint, 1.0f } *meshInstance.Transform;
-            const Vec4 normal = Normalize(Vec4{ intersectInfoModelSpace.Normal, 0.0f } *meshInstance.Transform);
-
-            outIntersectInfo.Normal = normal.xyz();
-            outIntersectInfo.IntersectionPoint = intersectionPointWorldSpace.xyz();
-            outIntersectInfo.T = Length(outIntersectInfo.IntersectionPoint - ray.Origin);
-
-            return true;
-        }*/
     }
 }

@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include "DLEngine/Math/Mat4x4.h"
+#include "DLEngine/Math/Primitives.h"
+#include "DLEngine/Math/Vec2.h"
 #include "DLEngine/Math/Vec3.h"
 
 namespace DLEngine
@@ -17,6 +19,8 @@ namespace DLEngine
         void RotateRight(float angle) noexcept;
         void RotateUp(float angle) noexcept;
         void RotateAxis(Math::Vec3 normalizedAxis, float angle) noexcept;
+
+        Math::Ray ConstructRay(Math::Vec2 cursorPos) const noexcept;
 
         Math::Vec3 GetPosition() const noexcept { return m_Position; }
 

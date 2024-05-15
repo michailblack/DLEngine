@@ -6,9 +6,17 @@
 #ifdef DL_ENABLE_ASSERTS
     #define DL_ASSERT(x, ...) { if(!(x)) { DL_LOG_CRITICAL("Assertion Failed: {}", __VA_ARGS__); __debugbreak(); } }
     #define DL_ASSERT_NOINFO(x) if(!(x)) __debugbreak()
+
+#ifdef DL_DEBUG
+    #define DL_ASSERT_EXPR(expr) { if(!(expr)) { DL_LOG_CRITICAL("Assertion Failed: {}", #expr); __debugbreak(); } }
+#else
+    #define DL_ASSERT_EXPR(expr) (expr)
+#endif
+
 #else
     #define DL_ASSERT(x, ...)
     #define DL_ASSERT_NOINFO(x)
+    #define DL_ASSERT_EXPR(expr) (expr)
 #endif
 
 

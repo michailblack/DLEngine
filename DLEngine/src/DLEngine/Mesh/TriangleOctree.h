@@ -3,6 +3,8 @@
 
 namespace DLEngine
 {
+    class Mesh;
+
     class TriangleOctree
     {
     private:
@@ -15,17 +17,17 @@ namespace DLEngine
         };
 
     public:
-        TriangleOctree(const std::vector<Math::Triangle>& triangles) noexcept;
+        TriangleOctree(const Mesh& targetMesh) noexcept;
 
-        const std::vector<OctreeNode>& GetNodes() const noexcept { return m_Nodes; }
+        void Build();
 
-        bool NodeHasChildren(uint32_t nodeIndex) const;
+        bool Intersects(const Math::Ray& ray, uint32_t& outTriangleIndex) const noexcept;
 
     private:
-        void Build(const std::vector<Math::Triangle>& triangles);
-        void ConstructInitialBoundingBox(const std::vector<Math::Triangle>& triangles);
-        void Subdivide(uint32_t nodeIndex, const std::vector<Math::Triangle>& triangles);
+        void Subdivide(uint32_t nodeIndex);
         void ShrinkNodes();
+
+        bool NodeHasChildren(uint32_t nodeIndex) const;
 
         uint32_t GetCurrentDepth(uint32_t nodeIndex) const noexcept;
         static uint32_t CountMaxElementsWithDepth(uint32_t depth) noexcept;
@@ -34,9 +36,11 @@ namespace DLEngine
         std::vector<OctreeNode> m_Nodes;
         std::vector<uint32_t> m_TriangleIndices;
 
-        const uint32_t m_EmptyLeafIndicator;
+        uint32_t m_EmptyLeafIndicator{ 0u };
 
         const uint32_t m_MaxTrianglesPerNode{ 1u };
-        const uint32_t m_MaxDepth;
+        uint32_t m_MaxDepth{ 1u };
+
+        const Mesh& m_TargetMesh;
     };
 }

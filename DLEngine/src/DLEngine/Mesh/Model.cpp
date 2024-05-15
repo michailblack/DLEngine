@@ -87,17 +87,10 @@ namespace DLEngine
                 indices.push_back(triangle.Indices[2]);
             }
 
-            // TODO: update mesh's TriangleOctree
+            dstMesh.UpdateOctree();
         }
 
-        static const BufferLayout bufferLayout{
-            { "POSITION"  , BufferLayout::ShaderDataType::Float3 },
-            { "NORMAL"    , BufferLayout::ShaderDataType::Float3 },
-            { "TANGENT"   , BufferLayout::ShaderDataType::Float3 },
-            { "BITANGENT" , BufferLayout::ShaderDataType::Float3 },
-            { "TEXCOORDS" , BufferLayout::ShaderDataType::Float2 }
-        };
-        m_VertexBuffer = CreateScope<PerVertexBuffer<Mesh::Vertex>>(bufferLayout, vertices);
+        m_VertexBuffer = CreateScope<PerVertexBuffer<Mesh::Vertex>>(GetCommonVertexBufferLayout(), vertices);
         m_IndexBuffer = CreateScope<IndexBuffer>(indices);
 
         std::function<void(aiNode*)> loadInstances;
@@ -119,5 +112,52 @@ namespace DLEngine
             };
 
         loadInstances(assimpScene->mRootNode);
+    }
+
+    bool Model::Intersects(const Math::Ray& ray, Model::IntersectInfo& outIntersectInfo) const noexcept
+    {
+        bool intersects{ false };
+        for (uint32_t meshIndex{ 0u }; meshIndex < m_Meshes.size(); ++meshIndex)
+        {
+            const Mesh& mesh{ m_Meshes[meshIndex] };
+
+            if (mesh.Intersects(ray, outIntersectInfo.MeshIntersectInfo))
+            {
+                outIntersectInfo.MeshIndex = meshIndex;
+                intersects = true;
+            }
+        }
+        return intersects;
+    }
+
+    Mesh& Model::GetMesh(uint32_t meshIndex) noexcept
+    {
+        DL_ASSERT_NOINFO(meshIndex < static_cast<uint32_t>(m_Meshes.size()));
+        return m_Meshes[meshIndex];
+    }
+
+    const Mesh& Model::GetMesh(uint32_t meshIndex) const noexcept
+    {
+        DL_ASSERT_NOINFO(meshIndex < static_cast<uint32_t>(m_Meshes.size()));
+        return m_Meshes[meshIndex];
+    }
+
+    const Model::MeshRange& Model::GetMeshRange(uint32_t meshIndex) const noexcept
+    {
+        DL_ASSERT_NOINFO(meshIndex < static_cast<uint32_t>(m_Ranges.size()));
+        return m_Ranges[meshIndex];
+    }
+
+    BufferLayout Model::GetCommonVertexBufferLayout() noexcept
+    {
+        static const BufferLayout bufferLayout{
+            { "POSITION"  , BufferLayout::ShaderDataType::Float3 },
+            { "NORMAL"    , BufferLayout::ShaderDataType::Float3 },
+            { "TANGENT"   , BufferLayout::ShaderDataType::Float3 },
+            { "BITANGENT" , BufferLayout::ShaderDataType::Float3 },
+            { "TEXCOORDS" , BufferLayout::ShaderDataType::Float2 }
+        };
+
+        return bufferLayout;
     }
 }

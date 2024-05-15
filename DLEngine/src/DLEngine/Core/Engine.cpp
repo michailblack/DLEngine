@@ -4,7 +4,8 @@
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/DXGIInfoQueue.h"
 
-#include "DLEngine/Renderer/MeshSystem.h"
+#include "DLEngine/Mesh/MeshSystem.h"
+
 #include "DLEngine/Renderer/Renderer.h"
 
 namespace DLEngine

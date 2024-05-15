@@ -3,7 +3,8 @@
 
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Input.h"
-#include "DLEngine/Math/Intersections.h"
+
+#include "DLEngine/Mesh/MeshSystem.h"
 
 #include "DLEngine/Renderer/Renderer.h"
 
@@ -60,14 +61,21 @@ namespace DLEngine
             m_Camera.RotateAxis(worldUp, -deltaDir.x * speed * dt);
         }
 
-        if (m_Dragger)
+        if (m_WantsToDrag)
         {
-            m_EndDraggingRay = Renderer::GetRay(Input::GetMouseX(), Input::GetMouseY());
-
             const Math::Plane nearPlane{ m_StartDraggingRay.Origin, m_Camera.GetForward() };
-            m_Dragger->Drag(nearPlane, m_EndDraggingRay);
 
-            m_StartDraggingRay = m_EndDraggingRay;
+            if (!m_Dragger)
+                MeshSystem::Intersects(m_StartDraggingRay, m_Camera.GetForward(), m_Dragger);
+
+            if (m_Dragger)
+            {
+                m_EndDraggingRay = m_Camera.ConstructRay(Input::GetCursorPosition());
+
+                m_Dragger->Drag(nearPlane, m_EndDraggingRay);
+
+                m_StartDraggingRay = m_EndDraggingRay;
+            }
         }
     }
 
@@ -121,9 +129,9 @@ namespace DLEngine
         }
         case VK_RBUTTON:
         {
-            m_StartDraggingRay = Renderer::GetRay(Input::GetMouseX(), Input::GetMouseY());
+            m_StartDraggingRay = m_Camera.ConstructRay(Input::GetCursorPosition());
             m_EndDraggingRay = m_StartDraggingRay;
-            m_AskForDragger = true;
+            m_WantsToDrag = true;
             break;
         }
         }
@@ -145,7 +153,7 @@ namespace DLEngine
             m_StartDraggingRay = Math::Ray{};
             m_EndDraggingRay = Math::Ray{};
             m_Dragger.reset();
-            m_AskForDragger = false;
+            m_WantsToDrag = false;
             break;
         }
         }

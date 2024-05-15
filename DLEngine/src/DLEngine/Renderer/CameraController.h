@@ -9,8 +9,9 @@
 #include "DLEngine/Math/Primitives.h"
 #include "DLEngine/Math/Vec2.h"
 
+#include "DLEngine/Mesh/IDragger.h"
+
 #include "DLEngine/Renderer/Camera.h"
-#include "DLEngine/Renderer/IDragger.h"
 
 namespace DLEngine
 {
@@ -27,9 +28,6 @@ namespace DLEngine
 
         void OnUpdate(float dt);
         void OnEvent(Event& e);
-
-        bool AskedForDragger() const noexcept { return m_AskForDragger; }
-        void SetDragger(Scope<IDragger> dragger) noexcept { m_Dragger = std::move(dragger); m_AskForDragger = false; }
 
         const Camera& GetCamera() const noexcept { return m_Camera; }
         const Math::Ray& GetDraggingRay() const noexcept { return m_StartDraggingRay; }
@@ -59,9 +57,9 @@ namespace DLEngine
 
         Math::Vec2 m_MouseStartPosition{ 0.0f };
 
+        Ref<IDragger> m_Dragger{};
         Math::Ray m_StartDraggingRay{};
         Math::Ray m_EndDraggingRay{};
-        Scope<IDragger> m_Dragger{};
-        bool m_AskForDragger{ false };
+        bool m_WantsToDrag{ false };
     };
 }

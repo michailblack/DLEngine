@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <string>
+
 #include "DLEngine/Core/DLWin.h"
 #include <exception>
 
