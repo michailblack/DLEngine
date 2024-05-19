@@ -195,19 +195,20 @@ namespace DLEngine
 
     uint32_t TriangleOctree::GetCurrentDepth(uint32_t nodeIndex) const noexcept
     {
-        uint32_t depth{ 1 };
-        while (depth <= m_MaxDepth)
-        {
-            const uint32_t leftBorder{ static_cast<uint32_t>(std::pow(8, depth - 1)) };
-            const uint32_t rightBorder{ static_cast<uint32_t>(std::pow(8, depth)) };
+        if (nodeIndex == 0)
+            return 0;
 
-            if (nodeIndex >= leftBorder && nodeIndex <= rightBorder)
+        uint32_t depth{ 1u };
+        uint32_t offset{ 1u };
+        while (true)
+        {
+            uint32_t nodesOnThisLevel{ static_cast<uint32_t>(std::pow(8, depth)) };
+            if (nodeIndex < offset + nodesOnThisLevel)
                 return depth;
 
+            offset += nodesOnThisLevel;
             ++depth;
         }
-
-        return 0;
     }
 
     uint32_t TriangleOctree::CountMaxElementsWithDepth(uint32_t depth) noexcept

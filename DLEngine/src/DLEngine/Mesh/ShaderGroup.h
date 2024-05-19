@@ -1,6 +1,4 @@
 #pragma once
-#include <any>
-
 #include "DLEngine/Core/Base.h"
 
 #include "DLEngine/DirectX/ConstantBuffers.h"
@@ -10,6 +8,9 @@
 
 #include "DLEngine/Mesh/IDragger.h"
 #include "DLEngine/Mesh/Model.h"
+
+#include <any>
+#include <ranges>
 
 namespace DLEngine
 {
@@ -117,25 +118,21 @@ namespace DLEngine
         const Material& mat{ std::any_cast<Material>(material) };
         const Instance& inst{ std::any_cast<Instance>(instance) };
 
-        for (auto& perModel : m_Models)
-        {
-            if (perModel.Model == model)
-            {
-                for (auto& perMesh : perModel.PerMesh)
-                {
-                    if (mat == std::any_cast<const Material&>(perMesh.Material))
-                    {
-                        perMesh.Instances.push_back(inst);
-                        return;
-                    }
-                }
+        auto modelIt{ std::find_if(m_Models.begin(), m_Models.end(), [&model](const PerModel& perModel) { return perModel.Model == model; }) };
 
-                perModel.PerMesh.push_back({ mat, { inst } });
-                return;
-            }
+        if (modelIt == m_Models.end())
+        {
+            PerModel perModel{};
+            perModel.Model = model;
+            perModel.PerMesh.resize(model->GetMeshesCount());
+
+            m_Models.push_back(perModel);
+            modelIt = m_Models.end() - 1;
         }
 
-        m_Models.push_back({ model, { { mat, { inst } } } });
+        auto materialFilter{ modelIt->PerMesh | std::views::filter([&mat](const PerMesh&) { return true; }) };
+
+        std::ranges::for_each(materialFilter, [&inst](PerMesh& perMesh) { perMesh.Instances.push_back(inst); });
     }
 
     template <typename Material, typename Instance>
@@ -167,11 +164,12 @@ namespace DLEngine
                 const Mesh& srcMesh{ perModel.Model->GetMesh(meshIndex) };
                 const auto& meshRange{ perModel.Model->GetMeshRange(meshIndex) };
 
+                // TODO: Draw multiple instances of a mesh in one draw call
+                uint32_t instancesCount{ static_cast<uint32_t>(perModel.PerMesh[meshIndex].Instances.size()) };
                 for (uint32_t instanceIndex{ 0u }; instanceIndex < srcMesh.GetInstanceCount(); ++instanceIndex)
                 {
                     UpdateAndSetPerDrawBuffer(modelIndex, meshIndex, instanceIndex);
 
-                    uint32_t instancesCount{ static_cast<uint32_t>(perModel.PerMesh[meshIndex].Instances.size()) };
                     DL_THROW_IF_D3D11(deviceContext->DrawIndexedInstanced(
                         meshRange.IndexCount,
                         instancesCount,
@@ -179,8 +177,8 @@ namespace DLEngine
                         meshRange.VertexOffset,
                         renderedInstances
                     ));
-                    renderedInstances += instancesCount;
                 }
+                renderedInstances += instancesCount;
             }
         }
     }

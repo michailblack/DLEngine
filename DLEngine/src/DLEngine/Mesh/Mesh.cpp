@@ -37,7 +37,8 @@ namespace DLEngine
                     Math::Vec4{ Math::Vec4{ m_Vertices[m_Triangles[triangleIndex].Indices[2]].Position, 1.0f } * meshToModel }.xyz()
                 };
 
-                DL_ASSERT_EXPR(Math::Intersects(ray, triangle, triangleIntersectInfo));
+                if (!Math::Intersects(ray, triangle, triangleIntersectInfo))
+                    continue;
 
                 if (triangleIntersectInfo.T < outIntersectInfo.TriangleIntersectInfo.T)
                 {

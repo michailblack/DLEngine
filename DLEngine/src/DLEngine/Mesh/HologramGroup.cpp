@@ -82,22 +82,22 @@ namespace DLEngine
             Math::Normalize(Math::Vec4{ Math::Vec4{ ray.Direction, 0.0f } *worldToModel }.xyz())
         };
 
-        Model::IntersectInfo modelSpaceIntersectInfo{ outIntersectInfo.ModelIntersectInfo };
-        if (modelSpaceIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.T != Math::Infinity())
+        Mesh::IntersectInfo modelSpaceIntersectInfo{ outIntersectInfo.ModelIntersectInfo.MeshIntersectInfo };
+        if (modelSpaceIntersectInfo.TriangleIntersectInfo.T != Math::Infinity())
         {
-            modelSpaceIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint = Math::Vec4{
+            modelSpaceIntersectInfo.TriangleIntersectInfo.IntersectionPoint = Math::Vec4{
                 Math::Vec4{
                     outIntersectInfo.ModelIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint, 1.0f
             } *worldToModel }.xyz();
-            modelSpaceIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.T = Math::Length(
-                modelSpaceIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint - modelSpaceRay.Origin
+            modelSpaceIntersectInfo.TriangleIntersectInfo.T = Math::Length(
+                modelSpaceIntersectInfo.TriangleIntersectInfo.IntersectionPoint - modelSpaceRay.Origin
             );
         }
 
-        if (perModel.Model->Intersects(modelSpaceRay, modelSpaceIntersectInfo))
+        if (perModel.Model->GetMesh(outIntersectInfo.MeshIndex).Intersects(modelSpaceRay, modelSpaceIntersectInfo))
         {
             const Math::Vec3 worldSpaceIntersectionPoint{ Math::Vec4{
-                Math::Vec4{ modelSpaceIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint, 1.0f }
+                Math::Vec4{ modelSpaceIntersectInfo.TriangleIntersectInfo.IntersectionPoint, 1.0f }
                 *modelToWorld
             }.xyz() };
             const float distance{ Math::Length(worldSpaceIntersectionPoint - ray.Origin) };
@@ -107,13 +107,14 @@ namespace DLEngine
                 outIntersectInfo.ModelIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint = worldSpaceIntersectionPoint;
                 outIntersectInfo.ModelIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.Normal = Math::Normalize(
                     Math::Vec4{ Math::Vec4{
-                        modelSpaceIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.Normal, 0.0f
+                        modelSpaceIntersectInfo.TriangleIntersectInfo.Normal, 0.0f
                     } *modelToWorld }.xyz());
                 outIntersectInfo.ModelIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo.T = distance;
 
                 intersects = true;
             }
         }
+
         return intersects;
     }
 

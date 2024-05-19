@@ -27,7 +27,9 @@ namespace DLEngine
 
         const aiScene* assimpScene{ s_Importer.ReadFile(path, importFlags) };
 
-        DL_ASSERT(assimpScene || assimpScene->mRootNode || assimpScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE, "Falied to load model");
+        DL_ASSERT(assimpScene, "Failed to load model '{}'", path);
+        DL_ASSERT(assimpScene->mRootNode, "Failed to load model '{}'", path);
+        DL_ASSERT(!(assimpScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE), "Failed to complete scene flags for model '{}'", path);
 
         static_assert(sizeof(Math::Vec3) == sizeof(aiVector3D));
         static_assert(sizeof(Math::Vec2) == sizeof(aiVector2D));
@@ -61,11 +63,16 @@ namespace DLEngine
             {
                 Mesh::Vertex& vertex{ dstMesh.m_Vertices[v] };
 
-                vertex.Position = reinterpret_cast<Math::Vec3&>(srcMesh->mVertices[v]);
-                vertex.Normal = reinterpret_cast<Math::Vec3&>(srcMesh->mNormals[v]);
-                vertex.Tangent = reinterpret_cast<Math::Vec3&>(srcMesh->mTangents[v]);
-                vertex.Bitangent = reinterpret_cast<Math::Vec3&>(srcMesh->mBitangents[v]) * -1.0f;
-                vertex.TexCoords = reinterpret_cast<Math::Vec2&>(srcMesh->mTextureCoords[0][v]);
+                if (srcMesh->HasPositions())
+                    vertex.Position = reinterpret_cast<Math::Vec3&>(srcMesh->mVertices[v]);
+                if (srcMesh->HasNormals())
+                    vertex.Normal = reinterpret_cast<Math::Vec3&>(srcMesh->mNormals[v]);
+                if (srcMesh->HasTextureCoords(0))
+                {
+                    vertex.Tangent = reinterpret_cast<Math::Vec3&>(srcMesh->mTangents[v]);
+                    vertex.Bitangent = reinterpret_cast<Math::Vec3&>(srcMesh->mBitangents[v]) * -1.0f;
+                    vertex.TexCoords = reinterpret_cast<Math::Vec2&>(srcMesh->mTextureCoords[0][v]);
+                }
 
                 vertices.push_back(vertex);
             }

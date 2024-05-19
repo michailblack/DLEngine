@@ -24,20 +24,20 @@ void WorldLayer::OnAttach()
     DLEngine::NormalVisGroupInstance normalVisGroupInstance{};
     normalVisGroupInstance.Transform = DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 2.0f, 0.0f, 3.0f });
 
-    DLEngine::Renderer::Submit(DLEngine::ModelManager::Get(R"(..\models\cube\cube.obj)"), DLEngine::NormalVisGroupMaterial{}, normalVisGroupInstance);
+    DLEngine::Renderer::Submit(cube, DLEngine::NormalVisGroupMaterial{}, normalVisGroupInstance);
 
     DLEngine::HologramGroupInstance hologramGroupInstance{};
     hologramGroupInstance.Transform = DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 5.0f, 8.0f });
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 0.0f, 1.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
 
-    DLEngine::Renderer::Submit(DLEngine::ModelManager::Get(R"(..\models\cube\cube.obj)"), DLEngine::HologramGroupMaterial{}, hologramGroupInstance);
+    DLEngine::Renderer::Submit(cube, DLEngine::HologramGroupMaterial{}, hologramGroupInstance);
 
     hologramGroupInstance.Transform = DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -3.0f, 0.0f, 0.0f });
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 0.0f };
 
-    DLEngine::Renderer::Submit(DLEngine::ModelManager::Get(R"(..\models\cube\cube.obj)"), DLEngine::HologramGroupMaterial{}, hologramGroupInstance);
+    DLEngine::Renderer::Submit(cube, DLEngine::HologramGroupMaterial{}, hologramGroupInstance);
 }
 
 void WorldLayer::OnDetach()

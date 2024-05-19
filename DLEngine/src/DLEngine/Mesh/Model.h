@@ -54,6 +54,5 @@ namespace DLEngine
         Scope<IndexBuffer> m_IndexBuffer;
 
         std::string m_Name{};
-        Math::AABB m_BoundingBox{};
     };
 }
