@@ -19,11 +19,10 @@ namespace DLEngine
         };
 
     public:
-        BufferLayout(const std::initializer_list<Element>& elements)
-            : m_Elements(elements)
-        {}
+        BufferLayout(const std::initializer_list<Element>& elements);
 
         const std::vector<Element>& GetElements() const noexcept { return m_Elements; }
+        uint32_t GetStride() const noexcept { return m_Stride; }
 
         std::vector<Element>::iterator begin() { return m_Elements.begin(); }
         std::vector<Element>::iterator end() { return m_Elements.end(); }
@@ -32,6 +31,10 @@ namespace DLEngine
         std::vector<Element>::const_iterator end() const { return m_Elements.end(); }
 
     private:
+        void CalculateStride() noexcept;
+
+    private:
         std::vector<Element> m_Elements;
+        uint32_t m_Stride{ 0u };
     };
 }

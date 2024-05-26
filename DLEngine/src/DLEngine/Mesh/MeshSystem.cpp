@@ -3,63 +3,71 @@
 
 #include <typeindex>
 
-#include "DLEngine/Mesh/ShaderGroup.h"
-#include "DLEngine/Mesh/NormalVisGroup.h"
-#include "DLEngine/Mesh/HologramGroup.h"
-
 namespace DLEngine
 {
-    namespace
+    /*namespace
     {
+        struct ShaderGroupKey
+        {
+            std::type_index MaterialType;
+            std::type_index InstanceType;
+
+            bool operator<(const ShaderGroupKey& other) const noexcept
+            {
+                return std::tie(MaterialType, InstanceType) < std::tie(other.MaterialType, other.InstanceType);
+            }
+        };
+
         struct MeshSystemData
         {
-            std::map<std::pair<std::type_index, std::type_index>, Scope<IShaderGroup>> ShaderGroups;
+            struct
+            {
+                Scope<NormalVisGroup> NormalVis;
+                std::map<ShaderGroupKey, Scope<IShadingGroup>> ShaderGroups;
+            } ShadingGroups;
         } s_Data;
     }
 
     void MeshSystem::Init()
     {
-        s_Data.ShaderGroups.emplace(std::make_pair(
-            std::make_pair(std::type_index{ typeid(NormalVisGroupMaterial) }, std::type_index{ typeid(NormalVisGroupInstance) }),
-            CreateScope<NormalVisGroup>()
-        ));
-
-        s_Data.ShaderGroups.emplace(std::make_pair(
-            std::make_pair(std::type_index{ typeid(HologramGroupMaterial) }, std::type_index{ typeid(HologramGroupInstance) }),
-            CreateScope<HologramGroup>()
-        ));
+        s_Data.ShadingGroups.NormalVis = CreateScope<NormalVisGroup>();
     }
 
     void MeshSystem::Render()
     {
-        for (const auto& shaderGroup : s_Data.ShaderGroups | std::views::values)
-            shaderGroup->Render();
+        s_Data.ShadingGroups.NormalVis->Render();
     }
 
-    void MeshSystem::AddModel(const Ref<Model>& model, const std::any& material, const std::any& instance)
+    void MeshSystem::Add(const Ref<Model>& model, const NormalVisGroup::Instance& instance)
     {
-        std::type_index materialType = std::type_index{ material.type() };
-        std::type_index instanceType = std::type_index{ instance.type() };
+        s_Data.ShadingGroups.NormalVis->AddModel(model, instance);
+    }*/
 
-        auto it{ s_Data.ShaderGroups.find(std::make_pair(materialType, instanceType)) };
-
-        DL_ASSERT(it != s_Data.ShaderGroups.end(), "No shader group found for material and instance types");
-
-        it->second->AddModel(model, material, instance);
+    bool MeshSystem::ShadingGroupKey::operator<(const ShadingGroupKey& other) const noexcept
+    {
+        return std::tie(MaterialType, InstanceType) < std::tie(other.MaterialType, other.InstanceType);
     }
 
-    bool MeshSystem::Intersects(const Math::Ray& ray, const Math::Vec3& cameraForward, Ref<IDragger>& outMeshDragger)
+    void MeshSystem::Init()
     {
-        bool intersects{ false };
-        IShaderGroup::IntersectInfo intersectInfo;
-        for (const auto& shaderGroup : s_Data.ShaderGroups | std::views::values)
+
+    }
+
+    void MeshSystem::Render()
+    {
+        for (const auto& [key, shadingGroup] : m_ShadingGroups)
+            shadingGroup->Render();
+    }
+}
+
+namespace std
+{
+    template <>
+    struct hash<DLEngine::MeshSystem::ShadingGroupKey>
+    {
+        size_t operator()(const DLEngine::MeshSystem::ShadingGroupKey& key) const noexcept
         {
-            if (shaderGroup->Intersects(ray, intersectInfo))
-            {
-                outMeshDragger = shaderGroup->CreateMeshDragger(ray, cameraForward, intersectInfo);
-                intersects = true;
-            }
+            return std::hash<std::type_index>{}(key.MaterialType) ^ std::hash<std::type_index>{}(key.InstanceType);
         }
-        return intersects;
-    }
+    };
 }

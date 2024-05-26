@@ -1,23 +1,18 @@
 ﻿#pragma once
-#include "DLEngine/Core/DLWin.h"
-
-#include "DLEngine/DirectX/Shaders.h"
+#include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/BufferLayout.h"
-
-#include <d3d11_4.h>
-#include <wrl.h>
 
 namespace DLEngine
 {
+    class VertexShader;
+
     class InputLayout
     {
     public:
-        InputLayout() = default;
-
-        void Bind();
-
         void AppendVertexBuffer(const BufferLayout& bufferLayout, D3D11_INPUT_CLASSIFICATION inputSlotClass) noexcept;
-        void Construct(const Ref<VertexShader>& vertexShader);
+        void Create(const VertexShader& vertexShader);
+
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> GetComPtr() const noexcept { return m_InputLayout; }
 
     private:
         Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;

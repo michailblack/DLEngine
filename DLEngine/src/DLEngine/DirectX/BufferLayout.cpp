@@ -1,5 +1,5 @@
-﻿#include "dlpch.h"
-#include "VertexBuffer.h"
+#include "dlpch.h"
+#include "BufferLayout.h"
 
 namespace DLEngine
 {
@@ -22,19 +22,15 @@ namespace DLEngine
         }
     }
 
-    void VertexBuffer::Bind(uint32_t slot)
+    BufferLayout::BufferLayout(const std::initializer_list<Element>& elements)
+        : m_Elements(elements)
     {
-        static constexpr uint32_t offset{ 0u };
-
-        D3D::GetDeviceContext4()->IASetVertexBuffers(slot, 1u, m_VertexBuffer.GetAddressOf(), &m_Stride, &offset);
+        CalculateStride();
     }
 
-    uint32_t VertexBuffer::CalculateStride() const noexcept
+    void BufferLayout::CalculateStride() noexcept
     {
-        uint32_t stride{ 0u };
-        for (const auto& bufferElement : m_BufferLayout)
-            stride += Utils::ShaderDataTypeSize(bufferElement.DataType);
-
-        return stride;
+        for (const auto& bufferElement : m_Elements)
+            m_Stride += Utils::ShaderDataTypeSize(bufferElement.DataType);
     }
 }

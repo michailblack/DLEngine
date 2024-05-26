@@ -199,21 +199,22 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\DirectX\ResourceView.h" />
+    <ClInclude Include="src\DLEngine\DirectX\DXStates.h" />
+    <ClInclude Include="src\DLEngine\DirectX\PipelineState.h" />
     <ClInclude Include="src\DLEngine\Math\Distance.h" />
-    <ClInclude Include="src\DLEngine\Mesh\HologramGroup.h" />
     <ClInclude Include="src\DLEngine\Mesh\IDragger.h" />
     <ClInclude Include="src\DLEngine\Mesh\Mesh.h" />
     <ClInclude Include="src\DLEngine\Mesh\MeshSystem.h" />
     <ClInclude Include="src\DLEngine\Mesh\Model.h" />
     <ClInclude Include="src\DLEngine\Mesh\ModelManager.h" />
-    <ClInclude Include="src\DLEngine\Mesh\NormalVisGroup.h" />
-    <ClInclude Include="src\DLEngine\Mesh\ShaderGroup.h" />
+    <ClInclude Include="src\DLEngine\Mesh\ShadingGroup.h" />
     <ClInclude Include="src\DLEngine\Mesh\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\DirectX\BufferLayout.h" />
     <ClInclude Include="src\DLEngine\DirectX\IndexBuffer.h" />
     <ClInclude Include="src\DLEngine\Core\Engine.h" />
     <ClInclude Include="src\DLEngine\Core\Log.h" />
-    <ClInclude Include="src\DLEngine\DirectX\ConstantBuffers.h" />
+    <ClInclude Include="src\DLEngine\DirectX\ConstantBuffer.h" />
     <ClInclude Include="src\DLEngine\DirectX\DXGIInfoQueue.h" />
     <ClInclude Include="src\DLEngine\Core\Application.h" />
     <ClInclude Include="src\DLEngine\Core\Base.h" />
@@ -247,15 +248,19 @@
     <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
+    <ClInclude Include="src\DLEngine\DirectX\Texture2D.h" />
+    <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\DLEngine\Mesh\HologramGroup.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\ResourceView.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\DXStates.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp" />
     <ClCompile Include="src\DLEngine\Mesh\IDragger.cpp" />
     <ClCompile Include="src\DLEngine\Mesh\Mesh.cpp" />
     <ClCompile Include="src\DLEngine\Mesh\MeshSystem.cpp" />
     <ClCompile Include="src\DLEngine\Mesh\Model.cpp" />
     <ClCompile Include="src\DLEngine\Mesh\ModelManager.cpp" />
-    <ClCompile Include="src\DLEngine\Mesh\NormalVisGroup.cpp" />
     <ClCompile Include="src\DLEngine\Mesh\TriangleOctree.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\IndexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Engine.cpp" />
@@ -268,7 +273,6 @@
     <ClCompile Include="src\DLEngine\DirectX\DXGIInfoQueue.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\InputLayout.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Material.cpp" />
@@ -280,6 +284,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\DLEngine\DirectX\Texture2D.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\DLEngine\Math\Distance.inl" />
@@ -289,6 +295,7 @@
     <None Include="src\DLEngine\Math\Vec2.inl" />
     <None Include="src\DLEngine\Math\Vec3.inl" />
     <None Include="src\DLEngine\Math\Vec4.inl" />
+    <None Include="src\DLEngine\Mesh\ShadingGroup.inl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\DLEngine\Shaders\Hologram.ps.hlsl">

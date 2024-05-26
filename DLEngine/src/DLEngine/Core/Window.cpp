@@ -69,60 +69,6 @@ namespace DLEngine
             DL_THROW_LAST_WIN32();
         }
 
-        DXGI_SWAP_CHAIN_DESC1 swapChainDesk {};
-        swapChainDesk.Width = width;
-        swapChainDesk.Height = height;
-        swapChainDesk.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        swapChainDesk.Stereo = FALSE;
-        swapChainDesk.SampleDesc.Count = 1;
-        swapChainDesk.SampleDesc.Quality = 0;
-        swapChainDesk.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapChainDesk.BufferCount = 2;
-        swapChainDesk.Scaling = DXGI_SCALING_STRETCH;
-        swapChainDesk.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-        swapChainDesk.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-        swapChainDesk.Flags = 0;
-
-        DL_THROW_IF_HR(D3D::GetFactory7()->CreateSwapChainForHwnd(
-            D3D::GetDevice5().Get(),
-            m_hWnd,
-            &swapChainDesk,
-            nullptr,
-            nullptr,
-            &m_Data.SwapChain
-        ));
-
-        DL_THROW_IF_HR(m_Data.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &m_Data.BackBuffer));
-        m_Data.BackBuffer->GetDesc1(&m_Data.BackBufferDesc);
-
-        m_Data.DepthStencilDesk.Width = m_Data.BackBufferDesc.Width;
-        m_Data.DepthStencilDesk.Height = m_Data.BackBufferDesc.Height;
-        m_Data.DepthStencilDesk.MipLevels = 1;
-        m_Data.DepthStencilDesk.ArraySize = 1;
-        m_Data.DepthStencilDesk.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-        m_Data.DepthStencilDesk.SampleDesc.Count = 1;
-        m_Data.DepthStencilDesk.SampleDesc.Quality = 0;
-        m_Data.DepthStencilDesk.Usage = D3D11_USAGE_DEFAULT;
-        m_Data.DepthStencilDesk.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-        m_Data.DepthStencilDesk.CPUAccessFlags = 0;
-        m_Data.DepthStencilDesk.MiscFlags = 0;
-        m_Data.DepthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
-
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateTexture2D1(&m_Data.DepthStencilDesk, nullptr, &m_Data.DepthStencil));
-
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateRenderTargetView1(m_Data.BackBuffer.Get(), nullptr, &m_Data.BackBufferView));
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateDepthStencilView(m_Data.DepthStencil.Get(), nullptr, &m_Data.DepthStencilView));
-
-        D3D11_VIEWPORT viewport{};
-        viewport.TopLeftX = 0.0f;
-        viewport.TopLeftY = 0.0f;
-        viewport.Width = static_cast<float>(width);
-        viewport.Height = static_cast<float>(height);
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-
-        D3D::GetDeviceContext4()->RSSetViewports(1, &viewport);
-
         ShowWindow(m_hWnd, SW_SHOW);
 
         DL_LOG_INFO("Created window ({:d}, {:d})", width, height);
@@ -133,45 +79,10 @@ namespace DLEngine
         DestroyWindow(m_hWnd);
     }
 
-    void Window::Present() const
-    {
-        DL_THROW_IF_HR(m_Data.SwapChain->Present(1, 0));
-    }
-
     void Window::OnResize(uint32_t width, uint32_t height)
     {
         m_Data.Width = width;
         m_Data.Height = height;
-
-        D3D11_VIEWPORT viewport{};
-        viewport.TopLeftX = 0.0f;
-        viewport.TopLeftY = 0.0f;
-        viewport.Width = static_cast<float>(width);
-        viewport.Height = static_cast<float>(height);
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-
-        D3D::GetDeviceContext4()->RSSetViewports(1, &viewport);
-
-        D3D::GetDeviceContext4()->OMSetRenderTargets(0, nullptr, nullptr);
-
-        m_Data.BackBuffer.Reset();
-        m_Data.DepthStencil.Reset();
-        m_Data.BackBufferView.Reset();
-        m_Data.DepthStencilView.Reset();
-
-        DL_THROW_IF_HR(m_Data.SwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
-
-        DL_THROW_IF_HR(m_Data.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &m_Data.BackBuffer));
-        m_Data.BackBuffer->GetDesc1(&m_Data.BackBufferDesc);
-
-        m_Data.DepthStencilDesk.Width = m_Data.BackBufferDesc.Width;
-        m_Data.DepthStencilDesk.Height = m_Data.BackBufferDesc.Height;
-
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateTexture2D1(&m_Data.DepthStencilDesk, nullptr, &m_Data.DepthStencil));
-
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateRenderTargetView1(m_Data.BackBuffer.Get(), nullptr, &m_Data.BackBufferView));
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateDepthStencilView(m_Data.DepthStencil.Get(), nullptr, &m_Data.DepthStencilView));
     }
 
     LRESULT Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)

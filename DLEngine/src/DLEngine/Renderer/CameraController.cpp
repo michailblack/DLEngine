@@ -65,8 +65,8 @@ namespace DLEngine
         {
             const Math::Plane nearPlane{ m_StartDraggingRay.Origin, m_Camera.GetForward() };
 
-            if (!m_Dragger)
-                MeshSystem::Intersects(m_StartDraggingRay, m_Camera.GetForward(), m_Dragger);
+            /*if (!m_Dragger)
+                MeshSystem::Intersects(m_StartDraggingRay, m_Camera.GetForward(), m_Dragger);*/
 
             if (m_Dragger)
             {

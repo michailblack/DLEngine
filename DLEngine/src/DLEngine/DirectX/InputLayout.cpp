@@ -1,7 +1,7 @@
 ﻿#include "dlpch.h"
 #include "InputLayout.h"
 
-#include "DLEngine/DirectX/D3D.h"
+#include "DLEngine/DirectX/Shaders.h"
 
 namespace DLEngine
 {
@@ -24,11 +24,6 @@ namespace DLEngine
                 }
             }
         }
-    }
-
-    void InputLayout::Bind()
-    {
-        D3D::GetDeviceContext4()->IASetInputLayout(m_InputLayout.Get());
     }
 
     void InputLayout::AppendVertexBuffer(const BufferLayout& bufferLayout, D3D11_INPUT_CLASSIFICATION inputSlotClass) noexcept
@@ -77,14 +72,14 @@ namespace DLEngine
         }
     }
 
-    void InputLayout::Construct(const Ref<VertexShader>& vertexShader)
+    void InputLayout::Create(const VertexShader& vertexShader)
     {
         DL_ASSERT(!m_InputLayout, "Input Layout is already built")
 
-        D3D::GetDevice5()->CreateInputLayout(
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateInputLayout(
             m_InputElementDescs.data(), static_cast<uint32_t>(m_InputElementDescs.size()),
-            vertexShader->GetVertexShaderBlob()->GetBufferPointer(), vertexShader->GetVertexShaderBlob()->GetBufferSize(),
+            vertexShader.GetVertexShaderBlob()->GetBufferPointer(), vertexShader.GetVertexShaderBlob()->GetBufferSize(),
             &m_InputLayout
-        );
+        ));
     }
 }

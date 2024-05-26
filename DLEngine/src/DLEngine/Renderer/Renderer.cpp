@@ -4,9 +4,12 @@
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Input.h"
 
-#include "DLEngine/DirectX/ConstantBuffers.h"
+#include "DLEngine/DirectX/ConstantBuffer.h"
+#include "DLEngine/DirectX/DXStates.h"
+#include "DLEngine/DirectX/SwapChain.h"
+#include "DLEngine/DirectX/Texture2D.h"
+#include "DLEngine/DirectX/ResourceView.h"
 
-#include "DLEngine/Math/Intersections.h"
 #include "DLEngine/Math/Math.h"
 
 #include "DLEngine/Mesh/MeshSystem.h"
@@ -25,7 +28,7 @@ namespace DLEngine
                 Math::Vec2 MousePos;
                 uint8_t _padding[8]{};
             } PerFrame;
-            Ref<ConstantBuffer<PerFrameData>> PerFrameConstantBuffer;
+            ConstantBuffer<PerFrameData> PerFrameCB;
 
             struct PerViewData
             {
@@ -37,29 +40,107 @@ namespace DLEngine
                 Math::Mat4x4 InvViewProjection;
                 Math::Vec4 CameraPosition;
             } PerView;
-            Ref<ConstantBuffer<PerViewData>> PerViewConstantBuffer;
+            ConstantBuffer<PerViewData> PerViewCB;
 
-            Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthStencilState;
+            SwapChain SwapChain;
+            Texture2D DepthStencilTex;
+            RenderTargetView BackBufferView;
+            DepthStencilView DepthStencilBufferView;
         } s_Data;
     }
 
     void Renderer::Init()
     {
-        const auto& device{ D3D::GetDevice5() };
         const auto& deviceContext{ D3D::GetDeviceContext4() };
-        
-        s_Data.PerFrameConstantBuffer = CreateRef<ConstantBuffer<RenderData::PerFrameData>>();
-        s_Data.PerViewConstantBuffer = CreateRef<ConstantBuffer<RenderData::PerViewData>>();
+        const auto& window{ Application::Get().GetWindow() };
 
-        D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
-        depthStencilDesc.DepthEnable = TRUE;
-        depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER;
-        depthStencilDesc.StencilEnable = FALSE;
+        s_Data.PerFrameCB.Create();
+        s_Data.PerViewCB.Create();
 
-        DL_THROW_IF_HR(device->CreateDepthStencilState(&depthStencilDesc, &s_Data.DepthStencilState));
-        deviceContext->OMSetDepthStencilState(s_Data.DepthStencilState.Get(), 1u);
-        deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        s_Data.SwapChain.Create(Application::Get().GetWindow()->GetHandle());
+
+        s_Data.BackBufferView.Create(s_Data.SwapChain.GetBackBuffer().GetComPtr());
+
+        const auto& backBufferDesk{ s_Data.SwapChain.GetBackBuffer().GetDesc() };
+
+        D3D11_TEXTURE2D_DESC1 depthStencilDesk{};
+        depthStencilDesk.Width = backBufferDesk.Width;
+        depthStencilDesk.Height = backBufferDesk.Height;
+        depthStencilDesk.MipLevels = 1;
+        depthStencilDesk.ArraySize = 1;
+        depthStencilDesk.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        depthStencilDesk.SampleDesc.Count = 1;
+        depthStencilDesk.SampleDesc.Quality = 0;
+        depthStencilDesk.Usage = D3D11_USAGE_DEFAULT;
+        depthStencilDesk.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+        depthStencilDesk.CPUAccessFlags = 0;
+        depthStencilDesk.MiscFlags = 0;
+        depthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
+
+        s_Data.DepthStencilTex.Create(depthStencilDesk);
+
+        s_Data.DepthStencilBufferView.Create(s_Data.DepthStencilTex.GetComPtr());
+
+        D3D11_VIEWPORT viewport{};
+        viewport.TopLeftX = 0.0f;
+        viewport.TopLeftY = 0.0f;
+        viewport.Width = static_cast<float>(window->GetWidth());
+        viewport.Height = static_cast<float>(window->GetHeight());
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
+
+        deviceContext->RSSetViewports(1, &viewport);
+    }
+
+    void Renderer::Present()
+    {
+        s_Data.SwapChain.Present();
+    }
+
+    void Renderer::OnResize(uint32_t width, uint32_t height)
+    {
+        const auto& deviceContext{ D3D::GetDeviceContext4() };
+
+        D3D11_VIEWPORT viewport{};
+        viewport.TopLeftX = 0.0f;
+        viewport.TopLeftY = 0.0f;
+        viewport.Width = static_cast<float>(width);
+        viewport.Height = static_cast<float>(height);
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
+
+        deviceContext->RSSetViewports(1, &viewport);
+
+        deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+
+        s_Data.BackBufferView.Reset();
+        s_Data.DepthStencilBufferView.Reset();
+
+        s_Data.DepthStencilTex.Reset();
+
+        s_Data.SwapChain.Resize(width, height);
+
+        s_Data.BackBufferView.Create(s_Data.SwapChain.GetBackBuffer().GetComPtr());
+
+        const auto& backBufferDesk{ s_Data.SwapChain.GetBackBuffer().GetDesc() };
+
+        D3D11_TEXTURE2D_DESC1 depthStencilDesk{};
+        depthStencilDesk.Width = backBufferDesk.Width;
+        depthStencilDesk.Height = backBufferDesk.Height;
+        depthStencilDesk.MipLevels = 1;
+        depthStencilDesk.ArraySize = 1;
+        depthStencilDesk.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        depthStencilDesk.SampleDesc.Count = 1;
+        depthStencilDesk.SampleDesc.Quality = 0;
+        depthStencilDesk.Usage = D3D11_USAGE_DEFAULT;
+        depthStencilDesk.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+        depthStencilDesk.CPUAccessFlags = 0;
+        depthStencilDesk.MiscFlags = 0;
+        depthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
+
+        s_Data.DepthStencilTex.Create(depthStencilDesk);
+
+        s_Data.DepthStencilBufferView.Create(s_Data.DepthStencilTex.GetComPtr());
     }
 
     void Renderer::OnFrameBegin(DeltaTime dt)
@@ -69,7 +150,7 @@ namespace DLEngine
         s_Data.PerFrame.Resolution = Application::Get().GetWindow()->GetSize();
         s_Data.PerFrame.MousePos = Input::GetCursorPosition();
 
-        s_Data.PerFrameConstantBuffer->Set(s_Data.PerFrame);
+        s_Data.PerFrameCB.Set(s_Data.PerFrame);
     }
 
     void Renderer::BeginScene(const Camera& camera)
@@ -82,37 +163,25 @@ namespace DLEngine
         s_Data.PerView.InvViewProjection = Math::Mat4x4::Inverse(s_Data.PerView.ViewProjection);
         s_Data.PerView.CameraPosition = Math::Vec4{ camera.GetPosition(), 1.0f };
 
-        s_Data.PerViewConstantBuffer->Set(s_Data.PerView);
+        s_Data.PerViewCB.Set(s_Data.PerView);
     }
 
     void Renderer::EndScene()
     {
         const auto& deviceContext{ D3D::GetDeviceContext4() };
 
-        const auto& backBufferView{ Application::Get().GetWindow()->GetBackBufferView() };
-        const auto& depthStencilView{ Application::Get().GetWindow()->GetDepthStencilView() };
-
-        auto* renderTarget{ static_cast<ID3D11RenderTargetView*>(backBufferView.Get()) };
+        auto* renderTarget{ static_cast<ID3D11RenderTargetView*>(s_Data.BackBufferView.GetComPtr().Get()) };
         deviceContext->OMSetRenderTargets(
             1,
             &renderTarget,
-            depthStencilView.Get()
+            s_Data.DepthStencilBufferView.GetComPtr().Get()
         );
-
-        deviceContext->ClearRenderTargetView(backBufferView.Get(), DLEngine::Math::Vec4{ 0.1f, 0.1f, 0.1f, 1.0f }.data());
-        deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 0.0f, 0);
+        s_Data.BackBufferView.Clear(Math::Vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
+        s_Data.DepthStencilBufferView.Clear(0.0f);
         
-        s_Data.PerFrameConstantBuffer->BindVS(0u);
-        s_Data.PerFrameConstantBuffer->BindPS(0u);
+        s_Data.PerFrameCB.Bind(0u, CB_BIND_VS | CB_BIND_PS);
+        s_Data.PerViewCB.Bind(1u, CB_BIND_VS | CB_BIND_PS);
 
-        s_Data.PerViewConstantBuffer->BindVS(1u);
-        s_Data.PerViewConstantBuffer->BindPS(1u);
-
-        MeshSystem::Render();
-    }
-
-    void Renderer::Submit(const Ref<Model>& model, const std::any& material, const std::any& instance)
-    {
-        MeshSystem::AddModel(model, material, instance);
+        MeshSystem::Get().Render();
     }
 }

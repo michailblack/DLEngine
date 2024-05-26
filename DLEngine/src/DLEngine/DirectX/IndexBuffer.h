@@ -1,16 +1,14 @@
 #pragma once
-#include "DLEngine/Core/DLWin.h"
-#include <d3d11_4.h>
-#include <wrl.h>
+#include "DLEngine/DirectX/D3D.h"
 
 namespace DLEngine
 {
     class IndexBuffer
     {
     public:
-        IndexBuffer(const std::vector<uint32_t>& indices);
+        void Create(const std::vector<uint32_t>& indices);
 
-        void Bind();
+        void Bind() const;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;

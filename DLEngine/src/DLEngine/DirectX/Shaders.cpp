@@ -1,8 +1,6 @@
 ﻿#include "dlpch.h"
 #include "Shaders.h"
 
-#include "DLEngine/DirectX/D3D.h"
-
 #include <d3dcompiler.h>
 
 #pragma comment(lib, "d3dcompiler.lib")

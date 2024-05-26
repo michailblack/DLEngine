@@ -1,7 +1,5 @@
 ﻿#pragma once
-#include "DLEngine/Core/DLWin.h"
-#include <d3d11_4.h>
-#include <wrl.h>
+#include "DLEngine/DirectX/D3D.h"
 
 namespace DLEngine
 {
@@ -19,7 +17,8 @@ namespace DLEngine
 
         void Bind();
 
-        Microsoft::WRL::ComPtr<ID3DBlob> GetVertexShaderBlob() const { return m_VertexShaderBlob; }
+        Microsoft::WRL::ComPtr<ID3DBlob> GetVertexShaderBlob() const noexcept { return m_VertexShaderBlob; }
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> GetComPtr() const noexcept { return m_VertexShader; }
 
     private:
         void CompileShader();
@@ -37,6 +36,7 @@ namespace DLEngine
         PixelShader(ShaderSpecification spec);
 
         void Bind();
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> GetComPtr() const noexcept { return m_PixelShader; }
 
     private:
         void CompileShader();

@@ -49,20 +49,15 @@ namespace DLEngine
         Window& operator=(const Window&) = delete;
         Window& operator=(Window&&) = delete;
 
-        void Present() const;
-
         void OnResize(uint32_t width, uint32_t height);
 
         void SetEventCallback(const EventCallbackFn& eventCallback) noexcept { m_Data.EventCallback = eventCallback; }
 
         Math::Vec2 GetSize() const noexcept { return Math::Vec2{ static_cast<float>(m_Data.Width), static_cast<float>(m_Data.Height) }; }
         uint32_t GetWidth() const noexcept { return m_Data.Width; }
-        uint32_t GeHeight() const noexcept { return m_Data.Height; }
+        uint32_t GetHeight() const noexcept { return m_Data.Height; }
 
         HWND GetHandle() const noexcept { return m_hWnd; }
-
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> GetBackBufferView() const noexcept { return m_Data.BackBufferView; }
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> GetDepthStencilView() const noexcept { return m_Data.DepthStencilView; }
 
     private:
         static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -76,17 +71,6 @@ namespace DLEngine
         {
             uint32_t Width {}, Height {};
             const wchar_t* Title {};
-
-            Microsoft::WRL::ComPtr<IDXGISwapChain1> SwapChain {};
-            
-            Microsoft::WRL::ComPtr<ID3D11Texture2D1> BackBuffer {};
-            D3D11_TEXTURE2D_DESC1 BackBufferDesc {};
-            
-            Microsoft::WRL::ComPtr<ID3D11Texture2D1> DepthStencil {};
-            D3D11_TEXTURE2D_DESC1 DepthStencilDesk {};
-            
-            Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> BackBufferView {};
-            Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView {};
 
             EventCallbackFn EventCallback;
         } m_Data;

@@ -9,7 +9,7 @@ cbuffer PerView : register(b1)
     float4 c_CameraPosition;
 };
 
-cbuffer PerDraw : register(b2)
+cbuffer MeshInstance : register(b2)
 {
     row_major float4x4 c_MeshToModel;
     row_major float4x4 c_ModelToMesh;
@@ -38,9 +38,9 @@ struct VertexOutput
 VertexOutput main(VertexInput vsInput, InstanceInput instInput)
 {
     VertexOutput vsOutput;
-
-    float4x4 meshToWorld = mul(c_MeshToModel, instInput.a_ModelToWorld);
     
+    float4x4 meshToWorld = mul(c_MeshToModel, instInput.a_ModelToWorld);
+
     vsOutput.o_Position = mul(float4(vsInput.a_Position, 1.0), meshToWorld);
     vsOutput.o_Position = mul(vsOutput.o_Position, c_ViewProjection);
     

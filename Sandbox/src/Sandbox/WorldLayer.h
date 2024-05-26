@@ -3,11 +3,6 @@
 
 #include "DLEngine/Renderer/CameraController.h"
 
-#include "DLEngine/DirectX/ConstantBuffers.h"
-#include "DLEngine/DirectX/InputLayout.h"
-#include "DLEngine/DirectX/Shaders.h"
-#include "DLEngine/DirectX/VertexBuffer.h"
-
 class WorldLayer
     : public DLEngine::Layer
 {

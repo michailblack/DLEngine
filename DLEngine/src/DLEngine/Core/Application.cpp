@@ -35,7 +35,7 @@ namespace DLEngine
                 for (const auto& layer : m_LayerStack)
                     layer->OnUpdate(dt);
 
-                m_Window->Present();
+                Renderer::Present();
             }
 
             std::this_thread::yield();
@@ -90,6 +90,8 @@ namespace DLEngine
         s_Instance = this;
 
         m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
+        
+        Renderer::Init();
     }
 
     void Application::ProcessInputs() const
@@ -111,6 +113,7 @@ namespace DLEngine
     bool Application::OnWindowResize(WindowResizeEvent& e)
     {
         m_Window->OnResize(e.GetWidth(), e.GetHeight());
+        Renderer::OnResize(e.GetWidth(), e.GetHeight());
 
         return false;
     }

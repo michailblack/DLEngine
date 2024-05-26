@@ -97,8 +97,10 @@ namespace DLEngine
             dstMesh.UpdateOctree();
         }
 
-        m_VertexBuffer = CreateScope<PerVertexBuffer<Mesh::Vertex>>(GetCommonVertexBufferLayout(), vertices);
-        m_IndexBuffer = CreateScope<IndexBuffer>(indices);
+        m_VertexBuffer.SetBufferLayout(GetCommonVertexBufferLayout());
+        m_VertexBuffer.Create(vertices);
+        
+        m_IndexBuffer.Create(indices);
 
         std::function<void(aiNode*)> loadInstances;
         loadInstances = [&loadInstances, this](const aiNode* node)

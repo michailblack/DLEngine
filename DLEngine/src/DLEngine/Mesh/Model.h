@@ -39,8 +39,8 @@ namespace DLEngine
         const Mesh& GetMesh(uint32_t meshIndex) const noexcept;
         const MeshRange& GetMeshRange(uint32_t meshIndex) const noexcept;
 
-        const Scope<PerVertexBuffer<Mesh::Vertex>>& GetVertexBuffer() const noexcept { return m_VertexBuffer; }
-        const Scope<IndexBuffer>& GetIndexBuffer() const noexcept { return m_IndexBuffer; }
+        const VertexBuffer<Mesh::Vertex, VertexBufferUsage::Immutable>& GetVertexBuffer() const noexcept { return m_VertexBuffer; }
+        const IndexBuffer& GetIndexBuffer() const noexcept { return m_IndexBuffer; }
 
         static BufferLayout GetCommonVertexBufferLayout() noexcept;
 
@@ -50,8 +50,8 @@ namespace DLEngine
         std::vector<Mesh> m_Meshes;
         std::vector<MeshRange> m_Ranges;
 
-        Scope<PerVertexBuffer<Mesh::Vertex>> m_VertexBuffer;
-        Scope<IndexBuffer> m_IndexBuffer;
+        VertexBuffer<Mesh::Vertex, VertexBufferUsage::Immutable> m_VertexBuffer;
+        IndexBuffer m_IndexBuffer;
 
         std::string m_Name{};
     };

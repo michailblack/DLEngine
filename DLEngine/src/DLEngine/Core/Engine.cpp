@@ -6,8 +6,6 @@
 
 #include "DLEngine/Mesh/MeshSystem.h"
 
-#include "DLEngine/Renderer/Renderer.h"
-
 namespace DLEngine
 {
     namespace
@@ -32,9 +30,8 @@ namespace DLEngine
         DXGIInfoQueue::Get().Init();
 
         D3D::Init();
-        Renderer::Init();
 
-        MeshSystem::Init();
+        MeshSystem::Get().Init();
     }
 
     void Engine::Deinit()
