@@ -6,19 +6,13 @@
 #include "DLEngine/DirectX/IndexBuffer.h"
 #include "DLEngine/DirectX/VertexBuffer.h"
 
-#include "DLEngine/Mesh/Mesh.h"
+#include "DLEngine/Systems/Mesh/Mesh.h"
 
 namespace DLEngine
 {
     class Model
     {
     public:
-        struct IntersectInfo
-        {
-            Mesh::IntersectInfo MeshIntersectInfo;
-            uint32_t MeshIndex{ 0u };
-        };
-
         struct MeshRange
         {
             uint32_t VertexOffset;
@@ -30,11 +24,7 @@ namespace DLEngine
     public:
         Model(const std::string& path);
 
-        bool Intersects(const Math::Ray& ray, Model::IntersectInfo& outIntersectInfo) const noexcept;
-
         uint32_t GetMeshesCount() const noexcept { return static_cast<uint32_t>(m_Meshes.size()); }
-
-        Mesh& GetMesh(uint32_t meshIndex) noexcept;
 
         const Mesh& GetMesh(uint32_t meshIndex) const noexcept;
         const MeshRange& GetMeshRange(uint32_t meshIndex) const noexcept;

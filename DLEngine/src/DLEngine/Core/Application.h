@@ -12,9 +12,10 @@ namespace DLEngine
 {
     struct ApplicationSpecification
     {
+        const wchar_t* WndTitle{ L"New Window" };
+        const char* WorkingDir{ ".\\" };
         uint32_t WndWidth{ 800 };
         uint32_t WndHeight{ 600 };
-        const wchar_t* WndTitle{ L"New Window" };
     };
 
     class Application
@@ -34,6 +35,8 @@ namespace DLEngine
 
         Scope<Window>& GetWindow() noexcept { return m_Window; }
         static Application& Get() noexcept { return *s_Instance; }
+
+        const char* GetWorkingDir() const noexcept { return m_Specification.WorkingDir; }
 
     protected:
         explicit Application(const ApplicationSpecification& spec);
@@ -59,5 +62,5 @@ namespace DLEngine
         Timer m_Timer;
     };
 
-    extern Application* CreateApplication();
+    extern Application* CreateApplication(const char* cmdLine);
 }

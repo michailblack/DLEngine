@@ -8,12 +8,12 @@ cbuffer PerFrame : register(b0)
 
 cbuffer PerView : register(b1)
 {
-    row_major float4x4 c_Projection;
-    row_major float4x4 c_InvProjection;
-    row_major float4x4 c_View;
-    row_major float4x4 c_InvView;
-    row_major float4x4 c_ViewProjection;
-    row_major float4x4 c_InvViewProjection;
+    float4x4 c_Projection;
+    float4x4 c_InvProjection;
+    float4x4 c_View;
+    float4x4 c_InvView;
+    float4x4 c_ViewProjection;
+    float4x4 c_InvViewProjection;
     float4 c_CameraPosition;
 };
 
@@ -88,6 +88,7 @@ float noise4d(in float4 p, uniform in uint octaves)
     float tscale = 0.0;
     float value = 0.0;
 
+    [unroll(octaves)]
     for (uint octave=0.0; octave < octaves; octave++) {
         value += noise4d(p) * nscale;
         tscale += nscale;

@@ -1,12 +1,9 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
-#include "DLEngine/Core/DLException.h"
+#include "DLEngine/Core/Filesystem.h"
 
-#include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/DXGIInfoQueue.h"
-
-#include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Systems/Renderer/Renderer.h"
 
 #include "DLEngine/Utils/DeltaTime.h"
 
@@ -88,10 +85,9 @@ namespace DLEngine
         , m_Timer(s_TimeOfOneFrameMS)
     {
         s_Instance = this;
-
         m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
-        
-        Renderer::Init();
+
+        Filesystem::Init();
     }
 
     void Application::ProcessInputs() const

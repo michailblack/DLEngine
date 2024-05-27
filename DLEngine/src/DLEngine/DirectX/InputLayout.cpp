@@ -78,7 +78,7 @@ namespace DLEngine
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateInputLayout(
             m_InputElementDescs.data(), static_cast<uint32_t>(m_InputElementDescs.size()),
-            vertexShader.GetVertexShaderBlob()->GetBufferPointer(), vertexShader.GetVertexShaderBlob()->GetBufferSize(),
+            vertexShader.GetBlob()->GetBufferPointer(), vertexShader.GetBlob()->GetBufferSize(),
             &m_InputLayout
         ));
     }

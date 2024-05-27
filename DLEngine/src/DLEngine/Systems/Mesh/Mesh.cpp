@@ -3,7 +3,9 @@
 
 #include "DLEngine/Math/Intersections.h"
 
-#include "DLEngine/Mesh/Model.h"
+#include "DLEngine/Systems/Mesh/Model.h"
+
+#include "DLEngine/Systems/Transform/TransformSystem.h"
 
 namespace DLEngine
 {
@@ -23,8 +25,8 @@ namespace DLEngine
             const Math::Mat4x4& modelToMesh{ m_InvInstances[instanceIndex] };
 
             Math::Ray meshSpaceRay{
-                Math::Vec4{ Math::Vec4{ ray.Origin, 1.0f } * modelToMesh }.xyz(),
-                Math::Normalize(Math::Vec4{ Math::Vec4{ ray.Direction, 0.0f } * modelToMesh }.xyz())
+                TransformSystem::TransformPoint(ray.Origin, modelToMesh),
+                Math::Normalize(TransformSystem::TransformDirection(ray.Direction, modelToMesh))
             };
 
             uint32_t triangleIndex{ 0u };
@@ -37,15 +39,16 @@ namespace DLEngine
                     Math::Vec4{ Math::Vec4{ m_Vertices[m_Triangles[triangleIndex].Indices[2]].Position, 1.0f } * meshToModel }.xyz()
                 };
 
-                if (!Math::Intersects(ray, triangle, triangleIntersectInfo))
-                    continue;
+                DL_ASSERT_EXPR(Math::Intersects(ray, triangle, triangleIntersectInfo));
 
                 if (triangleIntersectInfo.T < outIntersectInfo.TriangleIntersectInfo.T)
                 {
-                    outIntersectInfo.TriangleIntersectInfo.T = triangleIntersectInfo.T;
+                    auto& outTriangleIntersectInfo{ outIntersectInfo.TriangleIntersectInfo };
+                    
+                    outTriangleIntersectInfo.T = triangleIntersectInfo.T;
 
-                    outIntersectInfo.TriangleIntersectInfo.IntersectionPoint = ray.Origin + ray.Direction * outIntersectInfo.TriangleIntersectInfo.T;
-                    outIntersectInfo.TriangleIntersectInfo.Normal = triangleIntersectInfo.Normal;
+                    outTriangleIntersectInfo.IntersectionPoint = ray.Origin + ray.Direction * outTriangleIntersectInfo.T;
+                    outTriangleIntersectInfo.Normal = triangleIntersectInfo.Normal;
 
                     outIntersectInfo.TriangleIndex = triangleIndex;
                     outIntersectInfo.InstanceIndex = instanceIndex;
@@ -64,22 +67,10 @@ namespace DLEngine
         return m_Vertices[vertexIndex];
     }
 
-    Math::Mat4x4& Mesh::GetInstance(uint32_t instanceIndex) noexcept
-    {
-        DL_ASSERT_NOINFO(instanceIndex < m_Instances.size());
-        return m_Instances[instanceIndex];
-    }
-
     const Math::Mat4x4& Mesh::GetInstance(uint32_t instanceIndex) const noexcept
     {
         DL_ASSERT_NOINFO(instanceIndex < m_Instances.size());
         return m_Instances[instanceIndex];
-    }
-
-    Math::Mat4x4& Mesh::GetInvInstance(uint32_t instanceIndex) noexcept
-    {
-        DL_ASSERT_NOINFO(instanceIndex < m_Instances.size());
-        return m_InvInstances[instanceIndex];
     }
 
     const Math::Mat4x4& Mesh::GetInvInstance(uint32_t instanceIndex) const noexcept

@@ -4,8 +4,6 @@ namespace DLEngine
 {
     class Model;
 
-    // TODO: Set working directory at the start of the program,
-    // so every path converts to its absolute representation, which makes it unique
     class ModelManager
     {
     public:

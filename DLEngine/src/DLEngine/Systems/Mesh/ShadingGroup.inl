@@ -1,6 +1,10 @@
 #pragma once
 #include "DLEngine/DirectX/InputLayout.h"
 
+#include "DLEngine/Systems/Mesh/Model.h"
+
+#include "DLEngine/Systems/Transform/TransformSystem.h"
+
 namespace DLEngine
 {
     template <typename TMaterial, typename TInstance>
@@ -39,8 +43,9 @@ namespace DLEngine
     void ShadingGroup<TMaterial, TInstance>::AddModel(
         const Ref<Model>& model,
         std::vector<TMaterial> meshMaterials,
-        const TInstance& instance
-    )
+        const TInstance& instance,
+        uint32_t transformIndex
+    ) noexcept
     {
         DL_ASSERT(model->GetMeshesCount() == meshMaterials.size(), "meshMaterials must be the same size as the number of meshes in this model");
 
@@ -61,7 +66,7 @@ namespace DLEngine
             {
                 PerMaterial materialInst{};
                 materialInst.Material = meshMaterials[meshIndex];
-                materialInst.Instances.push_back(instance);
+                materialInst.Instances.push_back({ instance, transformIndex });
 
                 modelInst->Meshes[meshIndex].Materials.push_back(materialInst);
             }
@@ -81,14 +86,14 @@ namespace DLEngine
             {
                 PerMaterial newMaterialInst{};
                 newMaterialInst.Material = meshMaterials[meshIndex];
-                newMaterialInst.Instances.push_back(instance);
+                newMaterialInst.Instances.push_back({ instance, transformIndex });
 
                 modelInst->Meshes[meshIndex].Materials.push_back(newMaterialInst);
                 
                 continue;
             }
 
-            materialInst->Instances.push_back(instance);
+            materialInst->Instances.push_back({ instance, transformIndex });
         }
     }
 
@@ -144,8 +149,61 @@ namespace DLEngine
         }
     }
 
+
     template <typename TMaterial, typename TInstance>
-    void ShadingGroup<TMaterial, TInstance>::UpdateInstanceBuffer()
+    bool ShadingGroup<TMaterial, TInstance>::Intersects(
+        const Math::Ray& ray,
+        IShadingGroup::IntersectInfo& outIntersectInfo
+    ) const noexcept
+    {
+        bool intersects{ false };
+        for (uint32_t modelIndex{ 0u }; modelIndex < m_Models.size(); ++modelIndex)
+        {
+            const auto& modelInst{ m_Models[modelIndex] };
+
+            for (uint32_t meshIndex{ 0u }; meshIndex < modelInst.Meshes.size(); ++meshIndex)
+            {
+                const auto& meshInst{ modelInst.Meshes[meshIndex] };
+                const auto& mesh{ modelInst.Model->GetMesh(meshIndex) };
+
+                for (const auto& materialInst : meshInst.Materials)
+                {
+                    for (const auto& meshInstance : materialInst.Instances)
+                    {
+                        const auto& modelToWorld{ TransformSystem::GetTransform(meshInstance.TransformIndex) };
+                        const auto& worldToModel{ TransformSystem::GetInvTransform(meshInstance.TransformIndex) };
+
+                        const Math::Ray transformedRay{
+                            TransformSystem::TransformPoint(ray.Origin, worldToModel),
+                            Math::Normalize(TransformSystem::TransformDirection(ray.Direction, worldToModel))
+                        };
+
+                        if (mesh.Intersects(transformedRay, outIntersectInfo.MeshIntersectInfo))
+                        {
+                            outIntersectInfo.Model = modelInst.Model;
+                            outIntersectInfo.TransformIndex = meshInstance.TransformIndex;
+
+                            // From model space to world space
+                            auto& triangleIntersectInfo{ outIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo };
+                            triangleIntersectInfo.IntersectionPoint = TransformSystem::TransformPoint(
+                                triangleIntersectInfo.IntersectionPoint, modelToWorld
+                            );
+                            triangleIntersectInfo.Normal = Math::Normalize(
+                                TransformSystem::TransformDirection(triangleIntersectInfo.Normal, modelToWorld)
+                            );
+                            triangleIntersectInfo.T = Math::Length(triangleIntersectInfo.IntersectionPoint - ray.Origin);
+
+                            intersects = true;
+                        }
+                    }
+                }
+            }
+        }
+        return intersects;
+    }
+
+    template <typename TMaterial, typename TInstance>
+    void ShadingGroup<TMaterial, TInstance>::UpdateInstanceBuffer() noexcept
     {
         uint32_t totalInstances{ 0u };
         for (const auto& modelInst : m_Models)
@@ -156,16 +214,27 @@ namespace DLEngine
         if (totalInstances == 0)
             return;
 
-        m_InstanceBuffer.Create(totalInstances);
+        m_InstanceBuffer.Resize(totalInstances);
 
         auto* instanceBufferPtr{ m_InstanceBuffer.Map() };
 
         uint32_t copiedCount{ 0u };
         for (const auto& modelInst : m_Models)
+        {
             for (const auto& meshInst : modelInst.Meshes)
+            {
                 for (const auto& materialInst : meshInst.Materials)
+                {
                     for (const auto& instance : materialInst.Instances)
-                        instanceBufferPtr[copiedCount++] = instance;
+                    {
+                        instanceBufferPtr[copiedCount++] = {
+                            .Transform = TransformSystem::GetTransform(instance.TransformIndex),
+                            .Instance = instance.Instance
+                        };
+                    }
+                }
+            }
+        }
 
         m_InstanceBuffer.Unmap();
     }    

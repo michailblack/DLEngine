@@ -12,13 +12,15 @@
 
 #include "DLEngine/Math/Math.h"
 
-#include "DLEngine/Mesh/MeshSystem.h"
+#include "DLEngine/Systems/Mesh/MeshSystem.h"
+
+#include "DLEngine/Systems/Renderer/Camera.h"
 
 namespace DLEngine
 {
     namespace
     {
-        struct RenderData
+        struct
         {
             struct PerFrameData
             {
@@ -46,7 +48,7 @@ namespace DLEngine
             Texture2D DepthStencilTex;
             RenderTargetView BackBufferView;
             DepthStencilView DepthStencilBufferView;
-        } s_Data;
+        } s_RendererData;
     }
 
     void Renderer::Init()
@@ -54,14 +56,14 @@ namespace DLEngine
         const auto& deviceContext{ D3D::GetDeviceContext4() };
         const auto& window{ Application::Get().GetWindow() };
 
-        s_Data.PerFrameCB.Create();
-        s_Data.PerViewCB.Create();
+        s_RendererData.PerFrameCB.Create();
+        s_RendererData.PerViewCB.Create();
 
-        s_Data.SwapChain.Create(Application::Get().GetWindow()->GetHandle());
+        s_RendererData.SwapChain.Create(Application::Get().GetWindow()->GetHandle());
 
-        s_Data.BackBufferView.Create(s_Data.SwapChain.GetBackBuffer().GetComPtr());
+        s_RendererData.BackBufferView.Create(s_RendererData.SwapChain.GetBackBuffer().GetComPtr());
 
-        const auto& backBufferDesk{ s_Data.SwapChain.GetBackBuffer().GetDesc() };
+        const auto& backBufferDesk{ s_RendererData.SwapChain.GetBackBuffer().GetDesc() };
 
         D3D11_TEXTURE2D_DESC1 depthStencilDesk{};
         depthStencilDesk.Width = backBufferDesk.Width;
@@ -77,9 +79,9 @@ namespace DLEngine
         depthStencilDesk.MiscFlags = 0;
         depthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
 
-        s_Data.DepthStencilTex.Create(depthStencilDesk);
+        s_RendererData.DepthStencilTex.Create(depthStencilDesk);
 
-        s_Data.DepthStencilBufferView.Create(s_Data.DepthStencilTex.GetComPtr());
+        s_RendererData.DepthStencilBufferView.Create(s_RendererData.DepthStencilTex.GetComPtr());
 
         D3D11_VIEWPORT viewport{};
         viewport.TopLeftX = 0.0f;
@@ -90,11 +92,13 @@ namespace DLEngine
         viewport.MaxDepth = 1.0f;
 
         deviceContext->RSSetViewports(1, &viewport);
+
+        DL_LOG_INFO("Renderer Initialized");
     }
 
     void Renderer::Present()
     {
-        s_Data.SwapChain.Present();
+        s_RendererData.SwapChain.Present();
     }
 
     void Renderer::OnResize(uint32_t width, uint32_t height)
@@ -113,16 +117,16 @@ namespace DLEngine
 
         deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 
-        s_Data.BackBufferView.Reset();
-        s_Data.DepthStencilBufferView.Reset();
+        s_RendererData.BackBufferView.Reset();
+        s_RendererData.DepthStencilBufferView.Reset();
 
-        s_Data.DepthStencilTex.Reset();
+        s_RendererData.DepthStencilTex.Reset();
 
-        s_Data.SwapChain.Resize(width, height);
+        s_RendererData.SwapChain.Resize(width, height);
 
-        s_Data.BackBufferView.Create(s_Data.SwapChain.GetBackBuffer().GetComPtr());
+        s_RendererData.BackBufferView.Create(s_RendererData.SwapChain.GetBackBuffer().GetComPtr());
 
-        const auto& backBufferDesk{ s_Data.SwapChain.GetBackBuffer().GetDesc() };
+        const auto& backBufferDesk{ s_RendererData.SwapChain.GetBackBuffer().GetDesc() };
 
         D3D11_TEXTURE2D_DESC1 depthStencilDesk{};
         depthStencilDesk.Width = backBufferDesk.Width;
@@ -138,49 +142,49 @@ namespace DLEngine
         depthStencilDesk.MiscFlags = 0;
         depthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
 
-        s_Data.DepthStencilTex.Create(depthStencilDesk);
+        s_RendererData.DepthStencilTex.Create(depthStencilDesk);
 
-        s_Data.DepthStencilBufferView.Create(s_Data.DepthStencilTex.GetComPtr());
+        s_RendererData.DepthStencilBufferView.Create(s_RendererData.DepthStencilTex.GetComPtr());
     }
 
     void Renderer::OnFrameBegin(DeltaTime dt)
     {
-        s_Data.PerFrame.TimeMS += dt.GetMilliseconds();
-        s_Data.PerFrame.TimeS += dt.GetSeconds();
-        s_Data.PerFrame.Resolution = Application::Get().GetWindow()->GetSize();
-        s_Data.PerFrame.MousePos = Input::GetCursorPosition();
+        s_RendererData.PerFrame.TimeMS += dt.GetMilliseconds();
+        s_RendererData.PerFrame.TimeS += dt.GetSeconds();
+        s_RendererData.PerFrame.Resolution = Application::Get().GetWindow()->GetSize();
+        s_RendererData.PerFrame.MousePos = Input::GetCursorPosition();
 
-        s_Data.PerFrameCB.Set(s_Data.PerFrame);
+        s_RendererData.PerFrameCB.Set(s_RendererData.PerFrame);
     }
 
     void Renderer::BeginScene(const Camera& camera)
     {
-        s_Data.PerView.Projection = camera.GetProjectionMatrix();
-        s_Data.PerView.InvProjection = Math::Mat4x4::Inverse(s_Data.PerView.Projection);
-        s_Data.PerView.View = camera.GetViewMatrix();
-        s_Data.PerView.InvView = Math::Mat4x4::Inverse(s_Data.PerView.View);
-        s_Data.PerView.ViewProjection = s_Data.PerView.View * s_Data.PerView.Projection;
-        s_Data.PerView.InvViewProjection = Math::Mat4x4::Inverse(s_Data.PerView.ViewProjection);
-        s_Data.PerView.CameraPosition = Math::Vec4{ camera.GetPosition(), 1.0f };
+        s_RendererData.PerView.Projection = camera.GetProjectionMatrix();
+        s_RendererData.PerView.InvProjection = Math::Mat4x4::Inverse(s_RendererData.PerView.Projection);
+        s_RendererData.PerView.View = camera.GetViewMatrix();
+        s_RendererData.PerView.InvView = Math::Mat4x4::Inverse(s_RendererData.PerView.View);
+        s_RendererData.PerView.ViewProjection = s_RendererData.PerView.View * s_RendererData.PerView.Projection;
+        s_RendererData.PerView.InvViewProjection = Math::Mat4x4::Inverse(s_RendererData.PerView.ViewProjection);
+        s_RendererData.PerView.CameraPosition = Math::Vec4{ camera.GetPosition(), 1.0f };
 
-        s_Data.PerViewCB.Set(s_Data.PerView);
+        s_RendererData.PerViewCB.Set(s_RendererData.PerView);
     }
 
     void Renderer::EndScene()
     {
         const auto& deviceContext{ D3D::GetDeviceContext4() };
 
-        auto* renderTarget{ static_cast<ID3D11RenderTargetView*>(s_Data.BackBufferView.GetComPtr().Get()) };
+        auto* renderTarget{ static_cast<ID3D11RenderTargetView*>(s_RendererData.BackBufferView.GetComPtr().Get()) };
         deviceContext->OMSetRenderTargets(
             1,
             &renderTarget,
-            s_Data.DepthStencilBufferView.GetComPtr().Get()
+            s_RendererData.DepthStencilBufferView.GetComPtr().Get()
         );
-        s_Data.BackBufferView.Clear(Math::Vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
-        s_Data.DepthStencilBufferView.Clear(0.0f);
+        s_RendererData.BackBufferView.Clear(Math::Vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
+        s_RendererData.DepthStencilBufferView.Clear(0.0f);
         
-        s_Data.PerFrameCB.Bind(0u, CB_BIND_VS | CB_BIND_PS);
-        s_Data.PerViewCB.Bind(1u, CB_BIND_VS | CB_BIND_PS);
+        s_RendererData.PerFrameCB.Bind(0u, CB_BIND_VS | CB_BIND_PS);
+        s_RendererData.PerViewCB.Bind(1u, CB_BIND_VS | CB_BIND_PS);
 
         MeshSystem::Get().Render();
     }

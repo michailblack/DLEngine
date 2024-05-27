@@ -8,6 +8,7 @@ namespace DLEngine
         inline float ToDegrees(float radians) noexcept;
 
         inline float Infinity() noexcept;
+        inline float Pi() noexcept;
 
         inline float Max(float a, float b);
         inline float Min(float a, float b);

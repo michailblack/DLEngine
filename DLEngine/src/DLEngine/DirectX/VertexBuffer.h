@@ -12,7 +12,6 @@ namespace DLEngine
         Dynamic,
     };
 
-    template <typename Vertex>
     class VertexBufferBase
     {
     public:
@@ -33,7 +32,7 @@ namespace DLEngine
         }
 
     protected:
-        VertexBufferBase() {}
+        VertexBufferBase() = default;
 
     protected:
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer{ nullptr };
@@ -42,22 +41,15 @@ namespace DLEngine
 
     template <typename Vertex, VertexBufferUsage Usage>
     class VertexBuffer
-        : public VertexBufferBase<Vertex>
+        : public VertexBufferBase
     {};
 
     template <typename Vertex>
     class VertexBuffer<Vertex, VertexBufferUsage::Immutable>
-        : public VertexBufferBase<Vertex>
+        : public VertexBufferBase
     {
-        using VertexBufferBase<Vertex>::VertexBufferBase;
-        using VertexBufferBase<Vertex>::m_BufferLayout;
-        using VertexBufferBase<Vertex>::m_VertexBuffer;
     public:
-        VertexBuffer()
-            : VertexBufferBase<Vertex>{}
-        {}
-
-        void Create(const std::vector<Vertex>& vertices)
+        void Resize(const std::vector<Vertex>& vertices)
         {
             DL_ASSERT(m_BufferLayout.GetStride() > 0u, "You must set buffer layout first");
             DL_ASSERT(!vertices.empty(), "There must be at least 1 vertex in the Vertex Buffer");
@@ -81,17 +73,10 @@ namespace DLEngine
 
     template <typename Vertex>
     class VertexBuffer<Vertex, VertexBufferUsage::Dynamic>
-        : public VertexBufferBase<Vertex>
+        : public VertexBufferBase
     {
-        using VertexBufferBase<Vertex>::VertexBufferBase;
-        using VertexBufferBase<Vertex>::m_BufferLayout;
-        using VertexBufferBase<Vertex>::m_VertexBuffer;
     public:
-        VertexBuffer()
-            : VertexBufferBase<Vertex>{}
-        {}
-
-        void Create(uint32_t vertexCount)
+        void Resize(uint32_t vertexCount)
         {
             DL_ASSERT(m_BufferLayout.GetStride() > 0u, "You must set buffer layout first");
             DL_ASSERT(vertexCount > 0, "Vertex count must be greater than 0");
@@ -131,6 +116,8 @@ namespace DLEngine
         {
             D3D::GetDeviceContext4()->Unmap(m_VertexBuffer.Get(), 0u);
         }
+
+        uint32_t GetVertexCount() const noexcept { return m_VertexCount; }
 
     private:
         uint32_t m_VertexCount{ 0u };

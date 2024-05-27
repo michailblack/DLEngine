@@ -6,7 +6,7 @@ namespace DLEngine
     struct ShaderSpecification
     {
         std::vector<D3D_SHADER_MACRO> Defines;
-        std::wstring Path;
+        std::string Path;
         std::string Name;
     };
 
@@ -17,11 +17,9 @@ namespace DLEngine
 
         void Bind();
 
-        Microsoft::WRL::ComPtr<ID3DBlob> GetVertexShaderBlob() const noexcept { return m_VertexShaderBlob; }
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> GetComPtr() const noexcept { return m_VertexShader; }
+        Microsoft::WRL::ComPtr<ID3DBlob> GetBlob() const { return m_VertexShaderBlob; }
 
-    private:
-        void CompileShader();
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> GetComPtr() const { return m_VertexShader; }
 
     private:
         ShaderSpecification m_Specification;
@@ -36,15 +34,45 @@ namespace DLEngine
         PixelShader(ShaderSpecification spec);
 
         void Bind();
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> GetComPtr() const noexcept { return m_PixelShader; }
 
-    private:
-        void CompileShader();
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> GetComPtr() const { return m_PixelShader; }
 
     private:
         ShaderSpecification m_Specification;
 
         Microsoft::WRL::ComPtr<ID3DBlob> m_PixelShaderBlob;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+    };
+
+    class HullShader
+    {
+    public:
+        HullShader(ShaderSpecification spec);
+
+        void Bind();
+
+        Microsoft::WRL::ComPtr<ID3D11HullShader> GetComPtr() const { return m_HullShader; }
+
+    private:
+        ShaderSpecification m_Specification;
+
+        Microsoft::WRL::ComPtr<ID3DBlob> m_HullShaderBlob;
+        Microsoft::WRL::ComPtr<ID3D11HullShader> m_HullShader;
+    };
+
+    class DomainShader
+    {
+    public:
+        DomainShader(ShaderSpecification spec);
+
+        void Bind();
+
+        Microsoft::WRL::ComPtr<ID3D11DomainShader> GetComPtr() const { return m_DomainShader; }
+
+    private:
+        ShaderSpecification m_Specification;
+
+        Microsoft::WRL::ComPtr<ID3DBlob> m_DomainShaderBlob;
+        Microsoft::WRL::ComPtr<ID3D11DomainShader> m_DomainShader;
     };
 }

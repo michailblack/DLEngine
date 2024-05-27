@@ -1,14 +1,15 @@
 #pragma once
 #include "DLEngine/Core/Base.h"
 
-#include "DLEngine/Mesh/Model.h"
-#include "DLEngine/Mesh/ShadingGroup.h"
+#include "DLEngine/Systems/Mesh/ShadingGroup.h"
 
 #include <map>
 #include <typeindex>
 
 namespace DLEngine
 {
+    class Model;
+
     class MeshSystem
     {
     public:
@@ -21,11 +22,13 @@ namespace DLEngine
         void Init();
         void Render();
 
+        bool Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const;
+
         template <typename TMaterial, typename TInstance>
         void CreateShadingGroup(const ShadingGroupDesc& desc);
 
         template <typename TMaterial, typename TInstance>
-        void Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance);
+        void Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformIndex);
 
     private:
         MeshSystem() = default;
@@ -58,7 +61,7 @@ namespace DLEngine
     }
 
     template <typename TMaterial, typename TInstance>
-    void MeshSystem::Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance)
+    void MeshSystem::Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformIndex)
     {
         ShadingGroupKey key{
             .MaterialType = std::type_index{ typeid(TMaterial) },
@@ -69,6 +72,6 @@ namespace DLEngine
 
         DL_ASSERT(shadingGroup != m_ShadingGroups.end(), "Shading group does not exist");
 
-        static_cast<ShadingGroup<TMaterial, TInstance>&>(*shadingGroup->second).AddModel(model, meshMaterials, instance);
+        static_cast<ShadingGroup<TMaterial, TInstance>&>(*shadingGroup->second).AddModel(model, meshMaterials, instance, transformIndex);
     }
 }

@@ -27,13 +27,4 @@ namespace DLEngine
         float InnerCutoffCos;
         float OuterCutoffCos;
     };
-
-    struct Environment
-    {
-        Math::Vec3 IndirectLightingColor;
-        DirectionalLight Sun;
-        std::vector<PointLight> PointLights;
-        std::vector<SpotLight> SpotLights;
-        float Exposure;
-    };
 }

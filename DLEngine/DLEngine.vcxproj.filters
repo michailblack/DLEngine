@@ -18,7 +18,7 @@
     <ClInclude Include="src\DLEngine\Core\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\Renderer.h">
+    <ClInclude Include="src\DLEngine\Systems\Renderer\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Math\Primitives.h">
@@ -72,10 +72,10 @@
     <ClInclude Include="src\DLEngine\Math\Mat4x4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\Camera.h">
+    <ClInclude Include="src\DLEngine\Systems\Renderer\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\CameraController.h">
+    <ClInclude Include="src\DLEngine\Systems\Renderer\CameraController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Math\Math.h">
@@ -84,10 +84,7 @@
     <ClInclude Include="src\DLEngine\Math\Intersections.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\Material.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\Light.h">
+    <ClInclude Include="src\DLEngine\Systems\Renderer\Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Core\DLWin.h">
@@ -132,22 +129,22 @@
     <ClInclude Include="src\DLEngine\Math\Distance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Mesh\TriangleOctree.h">
+    <ClInclude Include="src\DLEngine\Systems\Mesh\TriangleOctree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Mesh\Mesh.h">
+    <ClInclude Include="src\DLEngine\Systems\Mesh\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Mesh\MeshSystem.h">
+    <ClInclude Include="src\DLEngine\Systems\Mesh\MeshSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Mesh\Model.h">
+    <ClInclude Include="src\DLEngine\Systems\Mesh\Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Mesh\ModelManager.h">
+    <ClInclude Include="src\DLEngine\Systems\Mesh\ModelManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Mesh\IDragger.h">
+    <ClInclude Include="src\DLEngine\Systems\Mesh\IDragger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\DirectX\PipelineState.h">
@@ -165,7 +162,13 @@
     <ClInclude Include="src\DLEngine\DirectX\ResourceView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Mesh\ShadingGroup.h">
+    <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Core\Filesystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Systems\Transform\TransformSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -173,7 +176,7 @@
     <ClCompile Include="src\DLEngine\Core\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Renderer\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\dlpch.cpp">
@@ -188,13 +191,10 @@
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Renderer\Camera.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Renderer\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\DLEngine\Renderer\Material.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Renderer\CameraController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\Core\DLException.cpp">
@@ -221,22 +221,22 @@
     <ClCompile Include="src\DLEngine\DirectX\IndexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Mesh\Mesh.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Mesh\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Mesh\MeshSystem.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Mesh\MeshSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Mesh\Model.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Mesh\Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Mesh\TriangleOctree.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Mesh\TriangleOctree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Mesh\ModelManager.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Mesh\ModelManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Mesh\IDragger.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Mesh\IDragger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp">
@@ -255,6 +255,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Core\Filesystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Systems\Transform\TransformSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -280,7 +286,7 @@
     <None Include="src\DLEngine\Math\Distance.inl">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="src\DLEngine\Mesh\ShadingGroup.inl">
+    <None Include="src\DLEngine\Systems\Mesh\ShadingGroup.inl">
       <Filter>Header Files</Filter>
     </None>
   </ItemGroup>

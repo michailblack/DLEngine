@@ -1,18 +1,18 @@
 cbuffer PerView : register(b1)
 {
-    row_major float4x4 c_Projection;
-    row_major float4x4 c_InvProjection;
-    row_major float4x4 c_View;
-    row_major float4x4 c_InvView;
-    row_major float4x4 c_ViewProjection;
-    row_major float4x4 c_InvViewProjection;
+    float4x4 c_Projection;
+    float4x4 c_InvProjection;
+    float4x4 c_View;
+    float4x4 c_InvView;
+    float4x4 c_ViewProjection;
+    float4x4 c_InvViewProjection;
     float4 c_CameraPosition;
 };
 
 cbuffer MeshInstance : register(b2)
 {
-    row_major float4x4 c_MeshToModel;
-    row_major float4x4 c_ModelToMesh;
+    float4x4 c_MeshToModel;
+    float4x4 c_ModelToMesh;
 };
 
 struct VertexInput
@@ -26,7 +26,8 @@ struct VertexInput
 
 struct InstanceInput
 {
-    row_major float4x4 a_ModelToWorld : TRANSFORM;
+    float4x4 a_ModelToWorld : TRANSFORM;
+    float _emptyInstance    : _empty;
 };
 
 struct VertexOutput

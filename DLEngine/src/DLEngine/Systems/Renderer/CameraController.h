@@ -1,17 +1,18 @@
 ﻿#pragma once
-#include <numbers>
+#include "DLEngine/Core/Base.h"
 
 #include "DLEngine/Core/Events/ApplicationEvent.h"
 #include "DLEngine/Core/Events/Event.h"
 #include "DLEngine/Core/Events/KeyEvent.h"
 #include "DLEngine/Core/Events/MouseEvent.h"
 
+#include "DLEngine/Math/Math.h"
 #include "DLEngine/Math/Primitives.h"
 #include "DLEngine/Math/Vec2.h"
 
-#include "DLEngine/Mesh/IDragger.h"
+#include "DLEngine/Systems/Mesh/IDragger.h"
 
-#include "DLEngine/Renderer/Camera.h"
+#include "DLEngine/Systems/Renderer/Camera.h"
 
 namespace DLEngine
 {
@@ -50,14 +51,14 @@ namespace DLEngine
         float m_MaxVelocity{ 0.01f };
 
         // Radians per millisecond
-        float m_RotationVelocity{ std::numbers::pi_v<float> *1.e-3f };
+        float m_RotationVelocity{ Math::Pi() * 1.e-3f };
         float m_ForwardRotationVelocityScale{ 0.25f };
 
         bool m_IsRotating{ false };
 
         Math::Vec2 m_MouseStartPosition{ 0.0f };
 
-        Ref<IDragger> m_Dragger{};
+        Scope<IDragger> m_Dragger{};
         Math::Ray m_StartDraggingRay{};
         Math::Ray m_EndDraggingRay{};
         bool m_WantsToDrag{ false };

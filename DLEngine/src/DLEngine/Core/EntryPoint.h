@@ -3,13 +3,18 @@
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/DLException.h"
 
-int APIENTRY WinMain(HINSTANCE, HINSTANCE, PSTR, int)
+#include "DLEngine/Core/Log.h"
+
+int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 {
     try
     {
+        DLEngine::Engine::PreInit();
+
+        const Scope<DLEngine::Application> app { DLEngine::CreateApplication(lpCmdLine) };
+
         DLEngine::Engine::Init();
 
-        const Scope<DLEngine::Application> app { DLEngine::CreateApplication() };
         app->Run();
 
         DLEngine::Engine::Deinit();

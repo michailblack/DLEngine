@@ -4,7 +4,8 @@
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/DXGIInfoQueue.h"
 
-#include "DLEngine/Mesh/MeshSystem.h"
+#include "DLEngine/Systems/Mesh/MeshSystem.h"
+#include "DLEngine/Systems/Renderer/Renderer.h"
 
 namespace DLEngine
 {
@@ -19,7 +20,7 @@ namespace DLEngine
         }
     }
 
-    void Engine::Init()
+    void Engine::PreInit()
     {
         if (!DirectX::XMVerifyCPUSupport())
             throw std::runtime_error{ "DirectXMath Library does not support the given platform" };
@@ -28,9 +29,12 @@ namespace DLEngine
 
         Log::Init();
         DXGIInfoQueue::Get().Init();
-
         D3D::Init();
+    }
 
+    void Engine::Init()
+    {
+        Renderer::Init();
         MeshSystem::Get().Init();
     }
 

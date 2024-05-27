@@ -98,11 +98,11 @@ namespace DLEngine
 
     namespace
     {
-        struct DXStatesData
+        struct
         {
             std::unordered_map<D3D11_DEPTH_STENCIL_DESC, ComPtr<ID3D11DepthStencilState>> DepthStencilStates;
             std::unordered_map<D3D11_RASTERIZER_DESC2, ComPtr<ID3D11RasterizerState2>> RasterizerStates;
-        } s_Data;
+        } s_StateData;
     }
 
     void DXStates::Init()
@@ -112,15 +112,15 @@ namespace DLEngine
 
     ComPtr<ID3D11DepthStencilState> DXStates::GetDepthStencilState(const D3D11_DEPTH_STENCIL_DESC& desc)
     {
-        auto it{ s_Data.DepthStencilStates.find(desc) };
-        if (it != s_Data.DepthStencilStates.end())
+        auto it{ s_StateData.DepthStencilStates.find(desc) };
+        if (it != s_StateData.DepthStencilStates.end())
             return it->second;
 
         const auto& device{ D3D::GetDevice5() };
         ComPtr<ID3D11DepthStencilState> depthStencilState;
         DL_THROW_IF_HR(device->CreateDepthStencilState(&desc, &depthStencilState));
 
-        s_Data.DepthStencilStates[desc] = depthStencilState;
+        s_StateData.DepthStencilStates[desc] = depthStencilState;
 
         return depthStencilState;
     }
@@ -132,15 +132,15 @@ namespace DLEngine
 
     ComPtr<ID3D11RasterizerState2> DXStates::GetRasterizerState(const D3D11_RASTERIZER_DESC2& desc)
     {
-        auto it{ s_Data.RasterizerStates.find(desc) };
-        if (it != s_Data.RasterizerStates.end())
+        auto it{ s_StateData.RasterizerStates.find(desc) };
+        if (it != s_StateData.RasterizerStates.end())
             return it->second;
 
         const auto& device{ D3D::GetDevice5() };
         ComPtr<ID3D11RasterizerState2> rasterizerState;
         DL_THROW_IF_HR(device->CreateRasterizerState2(&desc, &rasterizerState))
 
-        s_Data.RasterizerStates[desc] = rasterizerState;
+        s_StateData.RasterizerStates[desc] = rasterizerState;
 
         return rasterizerState;
     }

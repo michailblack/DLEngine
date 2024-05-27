@@ -21,6 +21,7 @@ namespace DLEngine
 
         void Build();
 
+        // Ray must be in mesh space
         bool Intersects(const Math::Ray& ray, uint32_t& outTriangleIndex) const noexcept;
 
     private:

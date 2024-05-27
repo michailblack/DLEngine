@@ -1,8 +1,6 @@
 #pragma once
-#include "DLEngine/Math/Math.h"
-
-#include <algorithm>
 #include <DirectXMath.h>
+#include <numbers>
 
 namespace DLEngine
 {
@@ -21,6 +19,11 @@ namespace DLEngine
         inline float Infinity() noexcept
         {
             return std::numeric_limits<float>::infinity();
+        }
+
+        inline float Pi() noexcept
+        {
+            return std::numbers::pi_v<float>;
         }
 
         inline float Max(float a, float b)

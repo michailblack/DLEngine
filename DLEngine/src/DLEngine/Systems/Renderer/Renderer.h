@@ -1,14 +1,10 @@
 ﻿#pragma once
-#include <any>
-
-#include "DLEngine/Renderer/Camera.h"
-
-#include "DLEngine/Mesh/Model.h"
-
 #include "DLEngine/Utils/DeltaTime.h"
 
 namespace DLEngine
 {
+    class Camera;
+
     class Renderer
     {
     public:

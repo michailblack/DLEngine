@@ -22,6 +22,8 @@
 
 #define BIT(x) (1 << (x))
 
+#define STRINGIFY(x) #x
+
 #define DL_BIND_EVENT_FN(EventFn) [this]<typename EventType>(EventType&& e) { return this->EventFn(std::forward<EventType>(e)); }
 
 template <typename T>

@@ -4,9 +4,7 @@
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Input.h"
 
-#include "DLEngine/Mesh/MeshSystem.h"
-
-#include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Systems/Mesh/MeshSystem.h"
 
 namespace DLEngine
 {
@@ -17,34 +15,47 @@ namespace DLEngine
 
     void CameraController::OnUpdate(float dt)
     {
+        // For offsetting m_EndDraggingRay.Origin when camera moves
+        Math::Vec3 deltaCameraPos{ 0.0f };
+        float deltaCameraRight{ 0.0f };
+        float deltaCameraUp{ 0.0f };
+
+        static constexpr Math::Vec3 worldUp{ 0.0f, 1.0f, 0.0f };
+
         if (Input::IsKeyPressed('W'))
         {
             m_Camera.Translate(m_Camera.GetForward() * m_Velocity * dt);
+            deltaCameraPos += m_Camera.GetForward() * m_Velocity * dt;
         }
 
         if (Input::IsKeyPressed('S'))
         {
             m_Camera.Translate(-m_Camera.GetForward() * m_Velocity * dt);
+            deltaCameraPos -= m_Camera.GetForward() * m_Velocity * dt;
         }
 
         if (Input::IsKeyPressed('D'))
         {
             m_Camera.Translate(m_Camera.GetRight() * m_Velocity * dt);
+            deltaCameraPos += m_Camera.GetRight() * m_Velocity * dt;
         }
 
         if (Input::IsKeyPressed('A'))
         {
             m_Camera.Translate(-m_Camera.GetRight() * m_Velocity * dt);
+            deltaCameraPos -= m_Camera.GetRight() * m_Velocity * dt;
         }
 
         if (Input::IsKeyPressed('Q'))
         {
             m_Camera.Translate(m_Camera.GetUp() * m_Velocity * dt);
+            deltaCameraPos += m_Camera.GetUp() * m_Velocity * dt;
         }
 
         if (Input::IsKeyPressed('E'))
         {
             m_Camera.Translate(-m_Camera.GetUp() * m_Velocity * dt);
+            deltaCameraPos -= m_Camera.GetUp() * m_Velocity * dt;
         }
 
         if (m_IsRotating)
@@ -55,25 +66,41 @@ namespace DLEngine
             const auto [wndWidth, wndHeight] = Application::Get().GetWindow()->GetSize();
             const float speed = Math::Length(delta) / (wndWidth * 0.5f) * m_RotationVelocity;
 
-            static constexpr Math::Vec3 worldUp{ 0.0f, 1.0f, 0.0f };
+            deltaCameraRight = deltaDir.y * speed * dt;
+            m_Camera.RotateRight(-deltaCameraRight);
 
-            m_Camera.RotateRight(-deltaDir.y * speed * dt);
-            m_Camera.RotateAxis(worldUp, -deltaDir.x * speed * dt);
+            deltaCameraUp = deltaDir.x * speed * dt;
+            m_Camera.RotateAxis(worldUp, -deltaCameraUp);
         }
 
         if (m_WantsToDrag)
         {
-            const Math::Plane nearPlane{ m_StartDraggingRay.Origin, m_Camera.GetForward() };
-
-            /*if (!m_Dragger)
-                MeshSystem::Intersects(m_StartDraggingRay, m_Camera.GetForward(), m_Dragger);*/
+            if (!m_Dragger)
+            {
+                IShadingGroup::IntersectInfo intersectInfo{};
+                if (MeshSystem::Get().Intersects(m_StartDraggingRay, intersectInfo))
+                {
+                    m_Dragger = CreateScope<MeshDragger>(MeshDragger{
+                        intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint,
+                        intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.T,
+                        intersectInfo.TransformIndex
+                    });
+                }
+            }
 
             if (m_Dragger)
             {
                 m_EndDraggingRay = m_Camera.ConstructRay(Input::GetCursorPosition());
+                
+                m_EndDraggingRay.Origin -= deltaCameraPos;
+                m_EndDraggingRay.Direction = Math::Normalize(
+                    Math::RotateQuaternion(m_EndDraggingRay.Direction, m_Camera.GetRight(), deltaCameraRight)
+                );
+                m_EndDraggingRay.Direction = Math::Normalize(
+                    Math::RotateQuaternion(m_EndDraggingRay.Direction, worldUp, deltaCameraUp)
+                );
 
-                m_Dragger->Drag(nearPlane, m_EndDraggingRay);
-
+                m_Dragger->Drag(m_EndDraggingRay);
                 m_StartDraggingRay = m_EndDraggingRay;
             }
         }

@@ -98,7 +98,7 @@ namespace DLEngine
         }
 
         m_VertexBuffer.SetBufferLayout(GetCommonVertexBufferLayout());
-        m_VertexBuffer.Create(vertices);
+        m_VertexBuffer.Resize(vertices);
         
         m_IndexBuffer.Create(indices);
 
@@ -121,28 +121,6 @@ namespace DLEngine
             };
 
         loadInstances(assimpScene->mRootNode);
-    }
-
-    bool Model::Intersects(const Math::Ray& ray, Model::IntersectInfo& outIntersectInfo) const noexcept
-    {
-        bool intersects{ false };
-        for (uint32_t meshIndex{ 0u }; meshIndex < m_Meshes.size(); ++meshIndex)
-        {
-            const Mesh& mesh{ m_Meshes[meshIndex] };
-
-            if (mesh.Intersects(ray, outIntersectInfo.MeshIntersectInfo))
-            {
-                outIntersectInfo.MeshIndex = meshIndex;
-                intersects = true;
-            }
-        }
-        return intersects;
-    }
-
-    Mesh& Model::GetMesh(uint32_t meshIndex) noexcept
-    {
-        DL_ASSERT_NOINFO(meshIndex < static_cast<uint32_t>(m_Meshes.size()));
-        return m_Meshes[meshIndex];
     }
 
     const Mesh& Model::GetMesh(uint32_t meshIndex) const noexcept

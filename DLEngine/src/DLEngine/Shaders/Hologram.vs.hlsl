@@ -8,19 +8,19 @@ cbuffer PerFrame : register(b0)
 
 cbuffer PerView : register(b1)
 {
-    row_major float4x4 c_Projection;
-    row_major float4x4 c_InvProjection;
-    row_major float4x4 c_View;
-    row_major float4x4 c_InvView;
-    row_major float4x4 c_ViewProjection;
-    row_major float4x4 c_InvViewProjection;
+    float4x4 c_Projection;
+    float4x4 c_InvProjection;
+    float4x4 c_View;
+    float4x4 c_InvView;
+    float4x4 c_ViewProjection;
+    float4x4 c_InvViewProjection;
     float4 c_CameraPosition;
 };
 
 cbuffer PerDraw : register(b2)
 {
-    row_major float4x4 c_MeshToModel;
-    row_major float4x4 c_ModelToMesh;
+    float4x4 c_MeshToModel;
+    float4x4 c_ModelToMesh;
 };
 
 struct VertexInput
@@ -34,9 +34,9 @@ struct VertexInput
 
 struct InstanceInput
 {
-    row_major float4x4 a_ModelToWorld : TRANSFORM;
-    float3 a_BaseColor                : BASE_COLOR;
-    float3 a_AddColor                 : ADD_COLOR;
+    float4x4 a_ModelToWorld : TRANSFORM;
+    float3 a_BaseColor      : BASE_COLOR;
+    float3 a_AddColor       : ADD_COLOR;
 };
 
 struct VertexOutput
@@ -108,7 +108,7 @@ VertexOutput main(VertexInput vsInput, InstanceInput instInput)
 
     vsOutput.o_Position = mul(vertexPos, c_ViewProjection);
     
-    vsOutput.o_WorldPos = vertexPos;
+    vsOutput.o_WorldPos = float3(vertexPos.xyz);
 
     float3 axisX = normalize(meshToWorld[0].xyz);
     float3 axizY = normalize(meshToWorld[1].xyz);

@@ -6,7 +6,7 @@
 
 #include "DLEngine/Math/Intersections.h"
 
-#include "DLEngine/Mesh/Model.h"
+#include "DLEngine/Systems/Mesh/Model.h"
 
 namespace DLEngine
 {

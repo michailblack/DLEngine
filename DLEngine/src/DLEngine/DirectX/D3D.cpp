@@ -7,7 +7,7 @@ namespace DLEngine
 {
     namespace
     {
-        struct D3DData
+        struct
         {
             Microsoft::WRL::ComPtr<IDXGIFactory> Factory;
             Microsoft::WRL::ComPtr<IDXGIFactory7> Factory7;
@@ -17,7 +17,7 @@ namespace DLEngine
             Microsoft::WRL::ComPtr<ID3D11DeviceContext4> DeviceContext4;
 
             Microsoft::WRL::ComPtr<ID3D11InfoQueue> InfoQueue;
-        } s_Data;
+        } s_D3DData;
     }
 
     void D3D::Init()
@@ -35,54 +35,56 @@ namespace DLEngine
             createDeviceFlags,
             nullptr, 0,
             D3D11_SDK_VERSION,
-            &s_Data.Device,
+            &s_D3DData.Device,
             nullptr,
-            &s_Data.DeviceContext
+            &s_D3DData.DeviceContext
         ));
 
-        DL_THROW_IF_HR(CreateDXGIFactory(__uuidof(IDXGIFactory), &s_Data.Factory));
-        DL_THROW_IF_HR(s_Data.Factory.As(&s_Data.Factory7));
+        DL_THROW_IF_HR(CreateDXGIFactory(__uuidof(IDXGIFactory), &s_D3DData.Factory));
+        DL_THROW_IF_HR(s_D3DData.Factory.As(&s_D3DData.Factory7));
 
-        DL_THROW_IF_HR(s_Data.Device.As(&s_Data.Device5));
-        DL_THROW_IF_HR(s_Data.DeviceContext.As(&s_Data.DeviceContext4));
+        DL_THROW_IF_HR(s_D3DData.Device.As(&s_D3DData.Device5));
+        DL_THROW_IF_HR(s_D3DData.DeviceContext.As(&s_D3DData.DeviceContext4));
 
 #ifdef DL_DEBUG
-        DL_THROW_IF_HR(s_Data.Device5.As(&s_Data.InfoQueue));
+        DL_THROW_IF_HR(s_D3DData.Device5.As(&s_D3DData.InfoQueue));
 #endif // DL_DEBUG
+
+        DL_LOG_INFO("Direct3D 11 Initialized");
     }
 
     Microsoft::WRL::ComPtr<IDXGIFactory> D3D::GetFactory() noexcept
     {
-        return s_Data.Factory;
+        return s_D3DData.Factory;
     }
 
     Microsoft::WRL::ComPtr<IDXGIFactory7> D3D::GetFactory7() noexcept
     {
-        return s_Data.Factory7;
+        return s_D3DData.Factory7;
     }
 
     Microsoft::WRL::ComPtr<ID3D11Device> D3D::GetDevice() noexcept
     {
-        return s_Data.Device;
+        return s_D3DData.Device;
     }
 
     Microsoft::WRL::ComPtr<ID3D11Device5> D3D::GetDevice5() noexcept
     {
-        return s_Data.Device5;
+        return s_D3DData.Device5;
     }
 
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> D3D::GetDeviceContext() noexcept
     {
-        return s_Data.DeviceContext;
+        return s_D3DData.DeviceContext;
     }
 
     Microsoft::WRL::ComPtr<ID3D11DeviceContext4> D3D::GetDeviceContext4() noexcept
     {
-        return s_Data.DeviceContext4;
+        return s_D3DData.DeviceContext4;
     }
 
     Microsoft::WRL::ComPtr<ID3D11InfoQueue> D3D::GetInfoQueue() noexcept
     {
-        return s_Data.InfoQueue;
+        return s_D3DData.InfoQueue;
     }
 }
