@@ -102,9 +102,9 @@ void WorldLayer::OnDetach()
 
 void WorldLayer::OnUpdate(DeltaTime dt)
 {
-    DLEngine::Renderer::BeginScene(m_CameraController.GetCamera());
-
     m_CameraController.OnUpdate(dt);
+    
+    DLEngine::Renderer::BeginScene(m_CameraController.GetCamera());
 
     DLEngine::Renderer::EndScene();
 }

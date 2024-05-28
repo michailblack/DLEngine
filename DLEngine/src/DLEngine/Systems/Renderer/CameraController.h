@@ -31,7 +31,6 @@ namespace DLEngine
         void OnEvent(Event& e);
 
         const Camera& GetCamera() const noexcept { return m_Camera; }
-        const Math::Ray& GetDraggingRay() const noexcept { return m_StartDraggingRay; }
 
     private:
         bool OnWindowResize(WindowResizeEvent& e);
@@ -59,8 +58,5 @@ namespace DLEngine
         Math::Vec2 m_MouseStartPosition{ 0.0f };
 
         Scope<IDragger> m_Dragger{};
-        Math::Ray m_StartDraggingRay{};
-        Math::Ray m_EndDraggingRay{};
-        bool m_WantsToDrag{ false };
     };
 }

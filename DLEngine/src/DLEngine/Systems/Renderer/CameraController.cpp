@@ -11,16 +11,11 @@ namespace DLEngine
     CameraController::CameraController(const Camera& camera) noexcept
         : m_Camera(camera)
     {
+
     }
 
     void CameraController::OnUpdate(float dt)
     {
-        if (m_WantsToDrag && m_Dragger)
-        {
-            m_EndDraggingRay = m_Camera.ConstructRay(Input::GetCursorPosition());
-            m_Dragger->Drag(m_EndDraggingRay);
-        }
-
         if (Input::IsKeyPressed('W'))
         {
             m_Camera.Translate(m_Camera.GetForward() * m_Velocity * dt);
@@ -64,6 +59,9 @@ namespace DLEngine
             m_Camera.RotateRight(-deltaDir.y * speed * dt);
             m_Camera.RotateAxis(worldUp, -deltaDir.x * speed * dt);
         }
+
+        if (m_Dragger)
+            m_Dragger->Drag(m_Camera.ConstructRay(Input::GetCursorPosition()));
     }
 
     void CameraController::OnEvent(Event& e)
@@ -112,26 +110,19 @@ namespace DLEngine
         {
             m_MouseStartPosition = Input::GetCursorPosition();
             m_IsRotating = true;
-            break;
-        }
+        } break;
         case VK_RBUTTON:
         {
+            IShadingGroup::IntersectInfo intersectInfo{};
+            if (MeshSystem::Get().Intersects(m_Camera.ConstructRay(Input::GetCursorPosition()), intersectInfo))
             {
-                m_StartDraggingRay = m_Camera.ConstructRay(Input::GetCursorPosition());
-                m_EndDraggingRay = m_StartDraggingRay;
-                m_WantsToDrag = true;
-
-                IShadingGroup::IntersectInfo intersectInfo{};
-                if (MeshSystem::Get().Intersects(m_StartDraggingRay, intersectInfo))
-                {
-                    m_Dragger = CreateScope<MeshDragger>(MeshDragger{
-                        intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint,
-                        intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.T,
-                        intersectInfo.TransformIndex
-                        });
-                }
-            } break;
-        }
+                m_Dragger = CreateScope<MeshDragger>(MeshDragger{
+                    intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint,
+                    intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.T,
+                    intersectInfo.TransformIndex
+                    });
+            }
+        } break;
         }
 
         return false;
@@ -144,16 +135,11 @@ namespace DLEngine
         case VK_LBUTTON:
         {
             m_IsRotating = false;
-            break;
-        }
+        } break;
         case VK_RBUTTON:
         {
-            m_StartDraggingRay = Math::Ray{};
-            m_EndDraggingRay = Math::Ray{};
             m_Dragger.reset();
-            m_WantsToDrag = false;
-            break;
-        }
+        } break;
         }
 
         return false;
