@@ -1,19 +1,24 @@
 ﻿#pragma once
-#include "Events/Event.h"
+#include "DLEngine/Core/Events/Event.h"
 
-class Layer
+#include "DLEngine/Utils/DeltaTime.h"
+
+namespace DLEngine
 {
-public:
-    Layer() = default;
-    virtual ~Layer() = default;
+    class Layer
+    {
+    public:
+        Layer() = default;
+        virtual ~Layer() = default;
 
-    Layer(const Layer&) = delete;
-    Layer(Layer&&) = delete;
-    Layer& operator=(const Layer&) = delete;
-    Layer& operator=(Layer&&) = delete;
+        Layer(const Layer&) = delete;
+        Layer(Layer&&) = delete;
+        Layer& operator=(const Layer&) = delete;
+        Layer& operator=(Layer&&) = delete;
 
-    virtual void OnAttach() {}
-    virtual void OnDetach() {}
-    virtual void OnUpdate(float dt) {}
-    virtual void OnEvent(Event& event) {}
-};
+        virtual void OnAttach() {}
+        virtual void OnDetach() {}
+        virtual void OnUpdate(DeltaTime) {}
+        virtual void OnEvent(Event&) {}
+    };
+}

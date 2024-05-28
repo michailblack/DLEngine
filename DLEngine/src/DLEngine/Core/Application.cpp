@@ -1,128 +1,130 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
-#include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/DXGIInfoQueue.h"
+#include "DLEngine/Core/Filesystem.h"
 
-#include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Systems/Renderer/Renderer.h"
 
-Application::~Application()
+#include "DLEngine/Utils/DeltaTime.h"
+
+namespace DLEngine
 {
-    for (const auto& layer : m_LayerStack)
-        layer->OnDetach();
-}
-
-void Application::Run()
-{
-    while (m_IsRunning)
+    Application::~Application()
     {
-        const float dt = static_cast<float>(m_Timer.GetDeltaTimeMS());
+        for (const auto& layer : m_LayerStack)
+            layer->OnDetach();
+    }
 
-        ProcessInputs();
-
-        if (m_Timer.FrameElapsed(dt))
+    void Application::Run()
+    {
+        while (m_IsRunning)
         {
-            m_Timer.Reset();
+            DeltaTime dt{static_cast<float>(m_Timer.GetDeltaTimeMS())};
 
-            for (const auto& layer : m_LayerStack)
-                layer->OnUpdate(dt);
+            ProcessInputs();
 
-            m_Window->Present();
+            if (m_Timer.FrameElapsed(dt))
+            {
+                m_Timer.Reset();
+
+                Renderer::OnFrameBegin(dt);
+
+                for (const auto& layer : m_LayerStack)
+                    layer->OnUpdate(dt);
+
+                Renderer::Present();
+            }
+
+            std::this_thread::yield();
+        }
+    }
+
+    void Application::OnEvent(Event& e)
+    {
+        try
+        {
+            EventDispatcher dispatcher(e);
+            dispatcher.Dispatch<WindowCloseEvent>(DL_BIND_EVENT_FN(Application::OnWindowClose));
+            dispatcher.Dispatch<WindowResizeEvent>(DL_BIND_EVENT_FN(Application::OnWindowResize));
+            dispatcher.Dispatch<KeyPressedEvent>(DL_BIND_EVENT_FN(Application::OnKeyPressed));
+
+            for (const auto& layer : m_LayerStack | std::views::reverse)
+            {
+                if (e.Handled)
+                    break;
+
+                layer->OnEvent(e);
+            }
+        }
+        catch (const DLException& e)
+        {
+            MessageBoxExA(nullptr, e.what(), e.GetType(), MB_OK | MB_ICONEXCLAMATION, 0);
+            m_IsRunning = false;
+        }
+        catch (const std::exception& e)
+        {
+            MessageBoxExA(nullptr, e.what(), "Standard exception", MB_OK | MB_ICONEXCLAMATION, 0);
+            m_IsRunning = false;
+        }
+        catch (...)
+        {
+            MessageBoxExA(nullptr, "Unknown exception", "Unknown exception", MB_OK | MB_ICONEXCLAMATION, 0);
+            m_IsRunning = false;
+        }
+    }
+
+    void Application::PushLayer(Layer* layer)
+    {
+        m_LayerStack.PushLayer(layer);
+        layer->OnAttach();
+    }
+
+    Application::Application(const ApplicationSpecification& spec)
+        : m_Specification(spec)
+        , m_Window(CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle))
+        , m_Timer(s_TimeOfOneFrameMS)
+    {
+        s_Instance = this;
+        m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
+
+        Filesystem::Init();
+    }
+
+    void Application::ProcessInputs() const
+    {
+        MSG msg;
+        while (PeekMessageW(&msg, m_Window->GetHandle(), 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+    }
+
+    bool Application::OnWindowClose(WindowCloseEvent&)
+    {
+        m_IsRunning = false;
+        return true;
+    }
+
+    bool Application::OnWindowResize(WindowResizeEvent& e)
+    {
+        m_Window->OnResize(e.GetWidth(), e.GetHeight());
+        Renderer::OnResize(e.GetWidth(), e.GetHeight());
+
+        return false;
+    }
+
+    bool Application::OnKeyPressed(KeyPressedEvent& e)
+    {
+        switch (e.GetKeyCode())
+        {
+        case VK_ESCAPE:
+            m_IsRunning = false;
+            break;
+        default:
+            break;
         }
 
-        std::this_thread::yield();
+        return false;
     }
-}
-
-void Application::OnEvent(Event& e)
-{
-    EventDispatcher dispatcher(e);
-    dispatcher.Dispatch<WindowCloseEvent>(DL_BIND_EVENT_FN(Application::OnWindowClose));
-    dispatcher.Dispatch<WindowResizeEvent>(DL_BIND_EVENT_FN(Application::OnWindowResize));
-    dispatcher.Dispatch<KeyPressedEvent>(DL_BIND_EVENT_FN(Application::OnKeyPressed));
-
-    for (const auto& layer : m_LayerStack | std::views::reverse)
-    {
-        if (e.Handled)
-            break;
-
-        layer->OnEvent(e);
-    }
-}
-
-void Application::PushLayer(Layer* layer)
-{
-    m_LayerStack.PushLayer(layer);
-    layer->OnAttach();
-}
-
-Application::Application(const ApplicationSpecification& spec)
-    : m_Specification(spec)
-    , m_Timer(s_TimeOfOneFrameMS)
-{
-    s_Instance = this;
-
-    InitConsole();
-
-    D3D::Get().Init();
-
-#ifdef DL_DEBUG
-    DXGIInfoQueue::Get().Init();
-#endif
-
-    m_Window = CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle, DL_BIND_EVENT_FN(Application::OnEvent));
-    Renderer::Init();
-}
-
-void Application::InitConsole()
-{
-    AllocConsole();
-    FILE* dummy;
-    freopen_s(&dummy, "conout$", "w", stdout);
-    freopen_s(&dummy, "conout$", "w", stderr);
-}
-
-void Application::ProcessInputs() const
-{
-    MSG msg;
-    while (PeekMessageW(&msg, m_Window->GetHandle(), 0, 0, PM_REMOVE))
-    {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-    }
-}
-
-bool Application::OnWindowClose(WindowCloseEvent& e)
-{
-    m_IsRunning = false;
-    return true;
-}
-
-bool Application::OnWindowResize(WindowResizeEvent& e)
-{
-    D3D11_VIEWPORT viewport {};
-    viewport.TopLeftX = 0.0f;
-    viewport.TopLeftY = 0.0f;
-    viewport.Width = static_cast<float>(e.GetWidth());
-    viewport.Height = static_cast<float>(e.GetHeight());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
-
-    D3D::Get().GetDeviceContext()->RSSetViewports(1, &viewport);
-
-    return false;
-}
-
-bool Application::OnKeyPressed(KeyPressedEvent& e)
-{
-    switch (e.GetKeyCode())
-    {
-    case VK_ESCAPE:
-        m_IsRunning = false;
-        break;
-    default:
-        break;
-    }
-
-    return false;
 }

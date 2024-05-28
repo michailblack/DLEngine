@@ -1,20 +1,27 @@
 ﻿#pragma once
+#include "DLEngine/Core/Engine.h"
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/DLException.h"
 
-int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
+#include "DLEngine/Core/Log.h"
+
+int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 {
     try
     {
-        if (!DirectX::XMVerifyCPUSupport())
-            throw std::runtime_error {"DirectXMath Library does not support the given platform" };
+        DLEngine::Engine::PreInit();
 
-        const Scope<Application> app { CreateApplication() };
+        const Scope<DLEngine::Application> app { DLEngine::CreateApplication(lpCmdLine) };
+
+        DLEngine::Engine::Init();
+
         app->Run();
+
+        DLEngine::Engine::Deinit();
 
         return 0;
     }
-    catch (const DLException& e)
+    catch (const DLEngine::DLException& e)
     {
         MessageBoxExA(nullptr, e.what(), e.GetType(), MB_OK | MB_ICONEXCLAMATION, 0);
     }
@@ -26,5 +33,8 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
     {
         MessageBoxExA(nullptr, "Unknown exception", "Unknown exception", MB_OK | MB_ICONEXCLAMATION, 0);
     }
+
+    DLEngine::Engine::Deinit();
+
     return -1;
 }

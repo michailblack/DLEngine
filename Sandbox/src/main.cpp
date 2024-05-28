@@ -1,23 +1,27 @@
-#include "DLEngine/Core/EntryPoint.h"
+﻿#include "DLEngine/Core/EntryPoint.h"
 
 #include "Sandbox/WorldLayer.h"
 
-class SandboxApp
-    : public Application
+namespace DLEngine
 {
-public:
-    SandboxApp(const ApplicationSpecification& spec)
-        : Application(spec)
+    class SandboxApp
+        : public Application
     {
-        PushLayer(new WorldLayer {});
-    }
-};
+    public:
+        SandboxApp(const ApplicationSpecification& spec)
+            : Application(spec)
+        {
+            PushLayer(new WorldLayer{});
+        }
+    };
 
-Application* CreateApplication()
-{
-    ApplicationSpecification spec;
-    spec.WndTitle  = L"Sandbox";
-    spec.WndWidth  = 800;
-    spec.WndHeight = 600;
-    return new SandboxApp(spec);
+    Application* CreateApplication(const char* cmdLine)
+    {
+        ApplicationSpecification spec;
+        spec.WndTitle = L"Sandbox";
+        spec.WorkingDir = cmdLine;
+        spec.WndWidth = 800;
+        spec.WndHeight = 600;
+        return new SandboxApp(spec);
+    }
 }

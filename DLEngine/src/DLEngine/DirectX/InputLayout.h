@@ -1,17 +1,22 @@
 ﻿#pragma once
-#include "DLEngine/DirectX/IBindable.h"
-#include "DLEngine/DirectX/Shaders.h"
-#include "DLEngine/DirectX/VertexLayout.h"
+#include "DLEngine/DirectX/D3D.h"
+#include "DLEngine/DirectX/BufferLayout.h"
 
-class InputLayout
-    : public IBindable
+namespace DLEngine
 {
-public:
-    InputLayout(const VertexLayout& vertexLayout, const Ref<VertexShader>& vertexShader);
-    ~InputLayout() override = default;
+    class VertexShader;
 
-    void Bind() override;
+    class InputLayout
+    {
+    public:
+        void AppendVertexBuffer(const BufferLayout& bufferLayout, D3D11_INPUT_CLASSIFICATION inputSlotClass) noexcept;
+        void Create(const VertexShader& vertexShader);
 
-private:
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
-};
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> GetComPtr() const noexcept { return m_InputLayout; }
+
+    private:
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
+        std::vector<D3D11_INPUT_ELEMENT_DESC> m_InputElementDescs;
+        uint32_t m_Slot{ 0u };
+    };
+}

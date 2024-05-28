@@ -88,23 +88,33 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>DL_ENABLE_ASSERTS;DL_DEBUG;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)dependency\lib\Debug;</AdditionalLibraryDirectories>
+    </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -113,7 +123,8 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -121,26 +132,45 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)dependency\lib\Release;</AdditionalLibraryDirectories>
+    </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>DL_ENABLE_ASSERTS;DL_DEBUG;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)dependency\lib\Debug;</AdditionalLibraryDirectories>
+    </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -149,7 +179,8 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,11 +188,35 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)dependency\lib\Release;</AdditionalLibraryDirectories>
+    </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\DLEngine\DirectX\ConstantBuffers.h" />
+    <ClInclude Include="src\DLEngine\Core\Filesystem.h" />
+    <ClInclude Include="src\DLEngine\DirectX\ResourceView.h" />
+    <ClInclude Include="src\DLEngine\DirectX\DXStates.h" />
+    <ClInclude Include="src\DLEngine\DirectX\PipelineState.h" />
+    <ClInclude Include="src\DLEngine\Math\Distance.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\IDragger.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\Mesh.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\MeshSystem.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\Model.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\ModelManager.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroup.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\TriangleOctree.h" />
+    <ClInclude Include="src\DLEngine\DirectX\BufferLayout.h" />
+    <ClInclude Include="src\DLEngine\DirectX\IndexBuffer.h" />
+    <ClInclude Include="src\DLEngine\Core\Engine.h" />
+    <ClInclude Include="src\DLEngine\Core\Log.h" />
+    <ClInclude Include="src\DLEngine\DirectX\ConstantBuffer.h" />
     <ClInclude Include="src\DLEngine\DirectX\DXGIInfoQueue.h" />
-    <ClInclude Include="src\DLEngine\DirectX\IBindable.h" />
     <ClInclude Include="src\DLEngine\Core\Application.h" />
     <ClInclude Include="src\DLEngine\Core\Base.h" />
     <ClInclude Include="src\DLEngine\DirectX\D3D.h" />
@@ -178,7 +233,6 @@
     <ClInclude Include="src\DLEngine\DirectX\InputLayout.h" />
     <ClInclude Include="src\DLEngine\DirectX\Shaders.h" />
     <ClInclude Include="src\DLEngine\DirectX\VertexBuffer.h" />
-    <ClInclude Include="src\DLEngine\DirectX\VertexLayout.h" />
     <ClInclude Include="src\DLEngine\Math\Primitives.h" />
     <ClInclude Include="src\DLEngine\Math\Intersections.h" />
     <ClInclude Include="src\DLEngine\Math\Math.h" />
@@ -186,21 +240,33 @@
     <ClInclude Include="src\DLEngine\Math\Vec2.h" />
     <ClInclude Include="src\DLEngine\Math\Vec3.h" />
     <ClInclude Include="src\DLEngine\Math\Vec4.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
-    <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Entity.h" />
-    <ClInclude Include="src\DLEngine\Renderer\IDragger.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Light.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Material.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Mesh.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
+    <ClInclude Include="src\DLEngine\Systems\Renderer\Camera.h" />
+    <ClInclude Include="src\DLEngine\Systems\Renderer\CameraController.h" />
+    <ClInclude Include="src\DLEngine\Systems\Renderer\Light.h" />
+    <ClInclude Include="src\DLEngine\Systems\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
-    <ClInclude Include="src\DLEngine\Utils\ThreadPool.h" />
-    <ClInclude Include="src\DLEngine\Renderer\TriangleOctree.h" />
+    <ClInclude Include="src\DLEngine\Systems\Transform\TransformSystem.h" />
+    <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
+    <ClInclude Include="src\DLEngine\DirectX\Texture2D.h" />
+    <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\Core\Filesystem.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\ResourceView.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\DXStates.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Mesh\IDragger.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Mesh\Mesh.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Mesh\MeshSystem.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Mesh\Model.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Mesh\ModelManager.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Mesh\TriangleOctree.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\IndexBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\Core\Engine.cpp" />
+    <ClCompile Include="src\DLEngine\Core\Log.cpp" />
     <ClCompile Include="src\DLEngine\Core\Application.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\D3D.cpp" />
     <ClCompile Include="src\DLEngine\Core\DLException.cpp" />
@@ -209,60 +275,62 @@
     <ClCompile Include="src\DLEngine\DirectX\DXGIInfoQueue.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\InputLayout.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\VertexLayout.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\IDragger.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Material.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Mesh.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Renderer\Camera.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Renderer\CameraController.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
-    <ClCompile Include="src\DLEngine\Utils\ThreadPool.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\TriangleOctree.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Transform\TransformSystem.cpp" />
     <ClCompile Include="src\dlpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\DLEngine\DirectX\Texture2D.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\DLEngine\Math\Distance.inl" />
     <None Include="src\DLEngine\Math\Intersections.inl" />
     <None Include="src\DLEngine\Math\Mat4x4.inl" />
     <None Include="src\DLEngine\Math\Math.inl" />
     <None Include="src\DLEngine\Math\Vec2.inl" />
     <None Include="src\DLEngine\Math\Vec3.inl" />
     <None Include="src\DLEngine\Math\Vec4.inl" />
+    <None Include="src\DLEngine\Systems\Mesh\ShadingGroup.inl" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\HelloTrianglePS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    <FxCompile Include="src\DLEngine\Shaders\Hologram.ps.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="src\DLEngine\Shaders\HelloTriangleVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    <FxCompile Include="src\DLEngine\Shaders\Hologram.vs.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\NormalVis.ps.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\NormalVis.vs.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

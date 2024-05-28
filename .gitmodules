@@ -1,0 +1,6 @@
+[submodule "DLEngine/vendor/assimp"]
+	path = DLEngine/vendor/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "DLEngine/vendor/spdlog"]
+	path = DLEngine/vendor/spdlog
+	url = https://github.com/gabime/spdlog.git

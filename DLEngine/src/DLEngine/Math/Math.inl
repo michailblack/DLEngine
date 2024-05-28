@@ -1,53 +1,59 @@
 #pragma once
-#include "DLEngine/Math/Math.h"
-
-#include <algorithm>
 #include <DirectXMath.h>
+#include <numbers>
 
-namespace Math
+namespace DLEngine
 {
-    inline float ToRadians(float degrees) noexcept
+    namespace Math
     {
-        return DirectX::XMConvertToRadians(degrees);
-    }
+        inline float ToRadians(float degrees) noexcept
+        {
+            return DirectX::XMConvertToRadians(degrees);
+        }
 
-    inline float ToDegrees(float radians) noexcept
-    {
-        return DirectX::XMConvertToDegrees(radians);
-    }
+        inline float ToDegrees(float radians) noexcept
+        {
+            return DirectX::XMConvertToDegrees(radians);
+        }
 
-    inline float Infinity() noexcept
-    {
-        return std::numeric_limits<float>::infinity();
-    }
+        inline float Infinity() noexcept
+        {
+            return std::numeric_limits<float>::infinity();
+        }
 
-    inline float Max(float a, float b)
-    {
-        return std::max(a, b);
-    }
+        inline float Pi() noexcept
+        {
+            return std::numbers::pi_v<float>;
+        }
 
-    inline float Min(float a, float b)
-    {
-        return std::min(a, b);
-    }
+        inline float Max(float a, float b)
+        {
+            return std::max(a, b);
+        }
 
-    inline float Pow(float base, float exponent) noexcept
-    {
-        return std::pow(base, exponent);
-    }
+        inline float Min(float a, float b)
+        {
+            return std::min(a, b);
+        }
 
-    inline float Clamp(float value, float min, float max)
-    {
-        return std::clamp(value, min, max);
-    }
+        inline float Pow(float base, float exponent) noexcept
+        {
+            return std::pow(base, exponent);
+        }
 
-    inline float Cos(float angle) noexcept
-    {
-        return std::cos(angle);
-    }
+        inline float Clamp(float value, float min, float max)
+        {
+            return std::clamp(value, min, max);
+        }
 
-    inline float Sin(float angle) noexcept
-    {
-        return std::sin(angle);
+        inline float Cos(float angle) noexcept
+        {
+            return std::cos(angle);
+        }
+
+        inline float Sin(float angle) noexcept
+        {
+            return std::sin(angle);
+        }
     }
 }
