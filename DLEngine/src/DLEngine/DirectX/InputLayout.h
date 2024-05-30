@@ -12,11 +12,11 @@ namespace DLEngine
         void AppendVertexBuffer(const BufferLayout& bufferLayout, D3D11_INPUT_CLASSIFICATION inputSlotClass) noexcept;
         void Create(const VertexShader& vertexShader);
 
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> GetComPtr() const noexcept { return m_InputLayout; }
+        void Bind() const noexcept;
 
     private:
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
-        std::vector<D3D11_INPUT_ELEMENT_DESC> m_InputElementDescs;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout{ nullptr };
+        std::vector<D3D11_INPUT_ELEMENT_DESC> m_InputElementDescs{};
         uint32_t m_Slot{ 0u };
     };
 }

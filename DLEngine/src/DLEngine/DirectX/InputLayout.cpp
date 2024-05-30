@@ -82,4 +82,9 @@ namespace DLEngine
             &m_InputLayout
         ));
     }
+
+    void InputLayout::Bind() const noexcept
+    {
+        D3D::GetDeviceContext4()->IASetInputLayout(m_InputLayout.Get());
+    }
 }

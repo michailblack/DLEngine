@@ -87,6 +87,7 @@ namespace DLEngine
         s_Instance = this;
         m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
 
+        // TODO: Move this to Engine::PreInit()
         Filesystem::Init();
     }
 

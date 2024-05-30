@@ -36,4 +36,7 @@ robocopy ".\include\spdlog" "%DEPENDENCY_DIR%\include\spdlog" /e /mir /np /mt /z
 robocopy ".\build\Release" "%DEPENDENCY_DIR%\bin\Debug" *.dll /np /mt /z
 robocopy ".\build\Release" "%DEPENDENCY_DIR%\lib\Debug" *.lib /np /mt /z
 
+robocopy ".\build\Release" "%DEPENDENCY_DIR%\bin\Release" *.dll /np /mt /z
+robocopy ".\build\Release" "%DEPENDENCY_DIR%\lib\Release" *.lib /np /mt /z
+
 endlocal

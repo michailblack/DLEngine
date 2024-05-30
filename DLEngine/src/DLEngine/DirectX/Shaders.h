@@ -5,74 +5,105 @@ namespace DLEngine
 {
     struct ShaderSpecification
     {
-        std::vector<D3D_SHADER_MACRO> Defines;
-        std::string Path;
-        std::string Name;
+        std::vector<D3D_SHADER_MACRO> Defines{};
+        std::string Name{};
+        std::string Path{};
     };
 
     class VertexShader
     {
     public:
-        VertexShader(ShaderSpecification spec);
+        void Create(const ShaderSpecification& spec);
 
-        void Bind();
+        void Bind() const noexcept;
 
         Microsoft::WRL::ComPtr<ID3DBlob> GetBlob() const { return m_VertexShaderBlob; }
 
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> GetComPtr() const { return m_VertexShader; }
-
     private:
-        ShaderSpecification m_Specification;
+        ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_VertexShaderBlob;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
+        Microsoft::WRL::ComPtr<ID3DBlob> m_VertexShaderBlob{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader{ nullptr };
     };
 
     class PixelShader
     {
     public:
-        PixelShader(ShaderSpecification spec);
+        void Create(const ShaderSpecification& spec);
 
-        void Bind();
-
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> GetComPtr() const { return m_PixelShader; }
+        void Bind() const noexcept;
 
     private:
-        ShaderSpecification m_Specification;
+        ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_PixelShaderBlob;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+        Microsoft::WRL::ComPtr<ID3DBlob> m_PixelShaderBlob{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader{ nullptr };
     };
 
     class HullShader
     {
     public:
-        HullShader(ShaderSpecification spec);
+        void Create(const ShaderSpecification& spec);
 
-        void Bind();
-
-        Microsoft::WRL::ComPtr<ID3D11HullShader> GetComPtr() const { return m_HullShader; }
+        void Bind() const noexcept;
 
     private:
-        ShaderSpecification m_Specification;
+        ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_HullShaderBlob;
-        Microsoft::WRL::ComPtr<ID3D11HullShader> m_HullShader;
+        Microsoft::WRL::ComPtr<ID3DBlob> m_HullShaderBlob{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11HullShader> m_HullShader{ nullptr };
     };
 
     class DomainShader
     {
     public:
-        DomainShader(ShaderSpecification spec);
+        void Create(const ShaderSpecification& spec);
 
-        void Bind();
-
-        Microsoft::WRL::ComPtr<ID3D11DomainShader> GetComPtr() const { return m_DomainShader; }
+        void Bind() const noexcept;
 
     private:
-        ShaderSpecification m_Specification;
+        ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_DomainShaderBlob;
-        Microsoft::WRL::ComPtr<ID3D11DomainShader> m_DomainShader;
+        Microsoft::WRL::ComPtr<ID3DBlob> m_DomainShaderBlob{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11DomainShader> m_DomainShader{ nullptr };
+    };
+
+    class GeometryShader
+    {
+    public:
+        void Create(const ShaderSpecification& spec);
+
+        void Bind() const noexcept;
+
+    private:
+        ShaderSpecification m_Specification{};
+
+        Microsoft::WRL::ComPtr<ID3DBlob> m_GeometryShaderBlob{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11GeometryShader> m_GeometryShader{ nullptr };
+    };
+
+    class ShaderIncludeHandler
+        : public ID3DInclude
+    {
+    public:
+        ~ShaderIncludeHandler();
+        
+        STDOVERRIDEMETHODIMP Open(THIS_ D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override;
+
+        STDOVERRIDEMETHODIMP Close(THIS_ LPCVOID pData) override;
+
+        static void Init() noexcept;
+        static ShaderIncludeHandler* Get() noexcept { return s_Instance; }
+
+    private:
+        ShaderIncludeHandler() = default;
+
+        inline static ShaderIncludeHandler* s_Instance{ nullptr };
+
+    private:
+        void AddIncludeDir(const std::string& dir) noexcept { m_IncludeDirs.push_back(dir); }
+
+    private:
+        std::vector<std::string> m_IncludeDirs{};
     };
 }

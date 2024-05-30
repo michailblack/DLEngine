@@ -183,8 +183,8 @@ namespace DLEngine
         s_RendererData.BackBufferView.Clear(Math::Vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
         s_RendererData.DepthStencilBufferView.Clear(0.0f);
         
-        s_RendererData.PerFrameCB.Bind(0u, CB_BIND_VS | CB_BIND_PS);
-        s_RendererData.PerViewCB.Bind(1u, CB_BIND_VS | CB_BIND_PS);
+        s_RendererData.PerFrameCB.Bind(0u, CB_BIND_VS | CB_BIND_PS | CB_BIND_GS);
+        s_RendererData.PerViewCB.Bind(1u, CB_BIND_VS | CB_BIND_PS | CB_BIND_GS);
 
         MeshSystem::Get().Render();
     }

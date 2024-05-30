@@ -3,6 +3,7 @@
 
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/DXGIInfoQueue.h"
+#include "DLEngine/DirectX/Shaders.h"
 
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
 #include "DLEngine/Systems/Renderer/Renderer.h"

@@ -5,20 +5,15 @@
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
+#define TYPE_NAME(x) STRINGIFY(x)
+
 namespace DLEngine
 {
     template <typename TMaterial, typename TInstance>
     ShadingGroup<TMaterial, TInstance>::ShadingGroup(const ShadingGroupDesc& desc)
     {
         PipelineStateDesc pipelineStateSpec{};
-
-        pipelineStateSpec.Topology = desc.Topology;
-
-        VertexShader vs{ desc.VertexShaderSpec };
-        pipelineStateSpec.VS = vs.GetComPtr();
-
-        PixelShader ps{ desc.PixelShaderSpec };
-        pipelineStateSpec.PS = ps.GetComPtr();
+        pipelineStateSpec = desc.PipelineDesc;
 
         InputLayout inputLayout;
 
@@ -26,12 +21,9 @@ namespace DLEngine
         
         const auto vertexBufferLayout{ Model::GetCommonVertexBufferLayout() };
         inputLayout.AppendVertexBuffer(vertexBufferLayout, D3D11_INPUT_PER_VERTEX_DATA);
-        inputLayout.Create(vs);
+        inputLayout.Create(desc.PipelineDesc.VS);
 
-        pipelineStateSpec.Layout = inputLayout.GetComPtr();
-
-        pipelineStateSpec.DepthStencilState = desc.DepthStencilState;
-        pipelineStateSpec.RasterizerState = desc.RasterizerState;
+        pipelineStateSpec.Layout = inputLayout;
 
         m_PipelineState.Create(pipelineStateSpec);
 

@@ -3,6 +3,8 @@
 
 #include "DLEngine/Core/Application.h"
 
+#include "DLEngine/DirectX/Shaders.h"
+
 #include <filesystem>
 
 namespace DLEngine
@@ -24,6 +26,9 @@ namespace DLEngine
 
         DL_LOG_INFO("Shader directory: {0}", GetShaderDir());
         DL_LOG_INFO("Model directory: {0}", GetModelDir());
+
+        // TODO: Move this to Engine::PreInit()
+        ShaderIncludeHandler::Init();
     }
 
     std::string Filesystem::GetShaderDir() noexcept

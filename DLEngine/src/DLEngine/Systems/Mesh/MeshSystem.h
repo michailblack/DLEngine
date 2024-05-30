@@ -58,6 +58,8 @@ namespace DLEngine
         DL_ASSERT(m_ShadingGroups.find(key) == m_ShadingGroups.end(), "Shading group already exists");
 
         m_ShadingGroups[key] = CreateScope<ShadingGroup<TMaterial, TInstance>>(desc);
+
+        DL_LOG_INFO("Created shading group: {}", desc.Name);
     }
 
     template <typename TMaterial, typename TInstance>
