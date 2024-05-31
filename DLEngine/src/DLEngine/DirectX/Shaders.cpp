@@ -228,6 +228,8 @@ namespace DLEngine
         s_Instance = new ShaderIncludeHandler();
 
         s_Instance->AddIncludeDir(Filesystem::GetShaderDir());
+
+        DL_LOG_INFO("ShaderIncludeHandler initialized");
     }
 
     STDOVERRIDEMETHODIMP ShaderIncludeHandler::Open(THIS_ D3D_INCLUDE_TYPE, LPCSTR pFileName, LPCVOID, LPCVOID* ppData, UINT* pBytes)

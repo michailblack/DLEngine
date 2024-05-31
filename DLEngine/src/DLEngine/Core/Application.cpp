@@ -1,8 +1,9 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
-#include "DLEngine/Core/Filesystem.h"
+#include "DLEngine/Core/Engine.h"
 
+#include "DLEngine/Systems/Mesh/MeshSystem.h"
 #include "DLEngine/Systems/Renderer/Renderer.h"
 
 #include "DLEngine/Utils/DeltaTime.h"
@@ -13,6 +14,8 @@ namespace DLEngine
     {
         for (const auto& layer : m_LayerStack)
             layer->OnDetach();
+
+        Engine::Deinit();
     }
 
     void Application::Run()
@@ -87,8 +90,7 @@ namespace DLEngine
         s_Instance = this;
         m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
 
-        // TODO: Move this to Engine::PreInit()
-        Filesystem::Init();
+        Engine::Init();
     }
 
     void Application::ProcessInputs() const
@@ -121,6 +123,9 @@ namespace DLEngine
         {
         case VK_ESCAPE:
             m_IsRunning = false;
+            break;
+        case 'N':
+            MeshSystem::Get().ToggleGroupRender();
             break;
         default:
             break;

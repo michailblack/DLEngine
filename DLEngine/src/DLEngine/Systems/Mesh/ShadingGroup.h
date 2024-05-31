@@ -28,6 +28,11 @@ namespace DLEngine
 
         virtual void Render() = 0;
         virtual bool Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const noexcept = 0;
+
+        void ToggleRender() noexcept { m_Render = !m_Render; }
+
+    protected:
+        bool m_Render;
     };
 
     struct ShadingGroupDesc
@@ -39,6 +44,8 @@ namespace DLEngine
 
         // First entry must be model-to-world matrix with the appropriate semantics
         BufferLayout InstanceBufferLayout;
+
+        bool Render{ true };
     };
 
     template <typename TMaterial, typename TInstance>

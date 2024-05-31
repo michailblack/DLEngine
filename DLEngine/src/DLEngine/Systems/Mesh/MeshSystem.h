@@ -10,6 +10,19 @@ namespace DLEngine
 {
     class Model;
 
+    struct NullMaterial
+    {
+        bool operator==(const NullMaterial&) const { return true; }
+    };
+
+    struct NormalVisGroupInstance
+    {
+        /// Empty struct has a size of 1 byte, which ShadingGroup can't handle
+        /// right now when building its instance buffer, so we need to add an empty data flag here,
+        /// in the shader, and in the buffer layout as well
+        float _EmptyInstance;
+    };
+
     class MeshSystem
     {
     public:
@@ -22,7 +35,7 @@ namespace DLEngine
         void Init();
         void Render();
 
-        bool Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const;
+        bool Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const noexcept;
 
         template <typename TMaterial, typename TInstance>
         void CreateShadingGroup(const ShadingGroupDesc& desc);
@@ -30,8 +43,13 @@ namespace DLEngine
         template <typename TMaterial, typename TInstance>
         void Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformIndex);
 
+        void ToggleGroupRender() noexcept;
+
     private:
         MeshSystem() = default;
+
+    private:
+        void InitNormalVisGroup();
 
     private:
         struct ShadingGroupKey
@@ -75,5 +93,19 @@ namespace DLEngine
         DL_ASSERT(shadingGroup != m_ShadingGroups.end(), "Shading group does not exist");
 
         static_cast<ShadingGroup<TMaterial, TInstance>&>(*shadingGroup->second).AddModel(model, meshMaterials, instance, transformIndex);
+
+        ShadingGroupKey normalVisKey{
+            .MaterialType = std::type_index{ typeid(NullMaterial) },
+            .InstanceType = std::type_index{ typeid(NormalVisGroupInstance) }
+        };
+
+        auto normalVisShadingGroup{ m_ShadingGroups.find(normalVisKey) };
+
+        DL_ASSERT(normalVisShadingGroup != m_ShadingGroups.end(), "NormalVis shading group does not exist");
+
+        std::vector<NullMaterial> nullMaterials{};
+        nullMaterials.resize(model->GetMeshesCount());
+        
+        static_cast<ShadingGroup<NullMaterial, NormalVisGroupInstance>&>(*normalVisShadingGroup->second).AddModel(model, nullMaterials, NormalVisGroupInstance{}, transformIndex);
     }
 }

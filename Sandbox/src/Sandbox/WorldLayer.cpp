@@ -12,19 +12,6 @@
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
-struct NullMaterial
-{
-    bool operator==(const NullMaterial&) const { return true; }
-};
-
-struct NormalVisGroupInstance
-{
-    /// Empty struct has a size of 1 byte, which ShadingGroup can't handle
-    /// right now when building its instance buffer, so we need to add an empty data flag here,
-    /// in the shader, and in the buffer layout as well
-    float _emptyInstance;
-};
-
 struct HologramGroupInstance
 {
     DLEngine::Math::Vec3 BaseColor;
@@ -45,28 +32,8 @@ void WorldLayer::OnAttach()
     const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + "cube\\cube.obj") };
     const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + "samurai\\samurai.fbx") };
 
-    std::vector<NullMaterial> nullMaterials{};
+    std::vector<DLEngine::NullMaterial> nullMaterials{};
     uint32_t transformIndex{ 0u };
-
-    InitNormalVisGroup();
-
-    nullMaterials.resize(cube->GetMeshesCount());
-    NormalVisGroupInstance normalVisGroupInstance{};
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 2.0f, 0.0f, 3.0f })
-    );
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, normalVisGroupInstance, transformIndex);
-
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -2.0f, 5.0f, 3.0f })
-    );
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, normalVisGroupInstance, transformIndex);
-
-    nullMaterials.resize(samurai->GetMeshesCount());
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 0.0f, 6.0f })
-    );
-    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, normalVisGroupInstance, transformIndex);
 
     InitHologramGroup();
 
@@ -112,40 +79,6 @@ void WorldLayer::OnUpdate(DeltaTime dt)
 void WorldLayer::OnEvent(DLEngine::Event& e)
 {
     m_CameraController.OnEvent(e);
-}
-
-void WorldLayer::InitNormalVisGroup() const
-{
-    DLEngine::ShadingGroupDesc normalVisGroupDesc{};
-
-    normalVisGroupDesc.Name = "NormalVis";
-
-    normalVisGroupDesc.InstanceBufferLayout = DLEngine::BufferLayout{
-        { "TRANSFORM" , DLEngine::BufferLayout::ShaderDataType::Mat4  },
-        { "_empty"    , DLEngine::BufferLayout::ShaderDataType::Float }
-    };
-
-    DLEngine::ShaderSpecification shaderSpec{};
-    
-    shaderSpec.Name = "NormalVis.vs";
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "NormalVis.vs.hlsl";
-    DLEngine::VertexShader vs{};
-    vs.Create(shaderSpec);
-
-    normalVisGroupDesc.PipelineDesc.VS = vs;
-
-    shaderSpec.Name = "NormalVis.vs";
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "NormalVis.ps.hlsl";
-    DLEngine::PixelShader ps{};
-    ps.Create(shaderSpec);
-
-    normalVisGroupDesc.PipelineDesc.PS = ps;
-
-    normalVisGroupDesc.PipelineDesc.DepthStencilState = DLEngine::DXStates::GetDepthStencilState(DLEngine::DepthStencilStates::Default);
-
-    normalVisGroupDesc.PipelineDesc.RasterizerState = DLEngine::DXStates::GetRasterizerState(DLEngine::RasterizerStates::Default);
-
-    DLEngine::MeshSystem::Get().CreateShadingGroup<NullMaterial, NormalVisGroupInstance>(normalVisGroupDesc);
 }
 
 void WorldLayer::InitHologramGroup() const
@@ -202,5 +135,5 @@ void WorldLayer::InitHologramGroup() const
     hologramGroupDesc.PipelineDesc.DepthStencilState = DLEngine::DXStates::GetDepthStencilState(DLEngine::DepthStencilStates::Default);
     hologramGroupDesc.PipelineDesc.RasterizerState = DLEngine::DXStates::GetRasterizerState(DLEngine::RasterizerStates::Default);
 
-    DLEngine::MeshSystem::Get().CreateShadingGroup<NullMaterial, HologramGroupInstance>(hologramGroupDesc);
+    DLEngine::MeshSystem::Get().CreateShadingGroup<DLEngine::NullMaterial, HologramGroupInstance>(hologramGroupDesc);
 }

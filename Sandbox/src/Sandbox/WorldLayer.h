@@ -16,7 +16,6 @@ public:
     void OnEvent(DLEngine::Event& e) override;
 
 private:
-    void InitNormalVisGroup() const;
     void InitHologramGroup() const;
 
 private:

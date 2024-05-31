@@ -29,6 +29,8 @@ namespace DLEngine
 
         m_InstanceBuffer.SetBufferLayout(desc.InstanceBufferLayout);
         m_MeshInstanceCB.Create();
+
+        m_Render = desc.Render;
     }
 
     template <typename TMaterial, typename TInstance>
@@ -92,6 +94,9 @@ namespace DLEngine
     template <typename TMaterial, typename TInstance>
     void ShadingGroup<TMaterial, TInstance>::Render()
     {
+        if (!m_Render)
+            return;
+
         UpdateInstanceBuffer();
 
         m_PipelineState.Bind();
