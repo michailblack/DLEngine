@@ -43,7 +43,7 @@ namespace DLEngine
         template <typename TMaterial, typename TInstance>
         void Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformIndex);
 
-        void ToggleGroupRender() noexcept;
+        void ToggleNormalVis() noexcept;
 
     private:
         MeshSystem() = default;

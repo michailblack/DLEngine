@@ -36,15 +36,25 @@ namespace DLEngine
         return intersects;
     }
 
-    void MeshSystem::ToggleGroupRender() noexcept
+    void MeshSystem::ToggleNormalVis() noexcept
     {
-        for (const auto& [key, shadingGroup] : m_ShadingGroups)
-            shadingGroup->ToggleRender();
+        ShadingGroupKey normalVisKey{
+            .MaterialType = std::type_index{ typeid(NullMaterial) },
+            .InstanceType = std::type_index{ typeid(NormalVisGroupInstance) }
+        };
+
+        auto normalVisShadingGroup{ m_ShadingGroups.find(normalVisKey) };
+
+        DL_ASSERT(normalVisShadingGroup != m_ShadingGroups.end(), "NormalVis shading group does not exist");
+
+        normalVisShadingGroup->second->ToggleRender();
     }
 
     void MeshSystem::InitNormalVisGroup()
     {
         ShadingGroupDesc normalVisGroupDesc{};
+
+        normalVisGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
 
         normalVisGroupDesc.Name = "NormalVis";
 
@@ -62,7 +72,28 @@ namespace DLEngine
 
         normalVisGroupDesc.PipelineDesc.VS = vs;
 
-        shaderSpec.Name = "NormalVis.vs";
+        shaderSpec.Name = "NormalVis.hs";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.hs.hlsl";
+        HullShader hs{};
+        hs.Create(shaderSpec);
+        
+        normalVisGroupDesc.PipelineDesc.HS = hs;
+
+        shaderSpec.Name = "NormalVis.ds";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.ds.hlsl";
+        DomainShader ds{};
+        ds.Create(shaderSpec);
+
+        normalVisGroupDesc.PipelineDesc.DS = ds;
+
+        shaderSpec.Name = "NormalVis.gs";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.gs.hlsl";
+        GeometryShader gs{};
+        gs.Create(shaderSpec);
+
+        normalVisGroupDesc.PipelineDesc.GS = gs;
+
+        shaderSpec.Name = "NormalVis.ps";
         shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.ps.hlsl";
         PixelShader ps{};
         ps.Create(shaderSpec);

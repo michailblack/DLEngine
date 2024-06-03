@@ -290,13 +290,14 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="src\DLEngine\Shaders\Hologram.gs.hlsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\NormalVis.vs.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\NormalVis.ps.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\Hologram.vs.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\Hologram.ps.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\Hologram.ds.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\Hologram.hs.hlsl" />
+    <None Include="src\DLEngine\Shaders\Hologram.ds.hlsl" />
+    <None Include="src\DLEngine\Shaders\Hologram.hs.hlsl" />
+    <None Include="src\DLEngine\Shaders\Hologram.ps.hlsl" />
+    <None Include="src\DLEngine\Shaders\Hologram.vs.hlsl" />
+    <None Include="src\DLEngine\Shaders\NormalVis.gs.hlsl" />
+    <None Include="src\DLEngine\Shaders\NormalVis.ps.hlsl" />
+    <None Include="src\DLEngine\Shaders\NormalVis.vs.hlsl" />
+    <None Include="src\DLEngine\Shaders\NormalVis.hs.hlsl" />
+    <None Include="src\DLEngine\Shaders\NormalVis.ds.hlsl" />
   </ItemGroup>
 </Project>

@@ -55,8 +55,8 @@ VertexOutput main(VertexInput vsInput, InstanceInput instInput)
     float4x4 meshToWorld = mul(c_MeshToModel, instInput.a_ModelToWorld);
     float4 vertexPos = mul(float4(vsInput.a_Position, 1.0), meshToWorld);
 
+    vsOutput.o_WorldPos = vertexPos.xyz;
     vsOutput.o_Position = mul(vertexPos, c_ViewProjection);
-    vsOutput.o_WorldPos = float3(vertexPos.xyz);
 
     float3 axisX = normalize(meshToWorld[0].xyz);
     float3 axizY = normalize(meshToWorld[1].xyz);

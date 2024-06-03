@@ -125,7 +125,7 @@ namespace DLEngine
             m_IsRunning = false;
             break;
         case 'N':
-            MeshSystem::Get().ToggleGroupRender();
+            MeshSystem::Get().ToggleNormalVis();
             break;
         default:
             break;

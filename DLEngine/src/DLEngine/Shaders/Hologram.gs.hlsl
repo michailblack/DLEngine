@@ -58,12 +58,14 @@ void main(triangle GeometryInput input[3], inout TriangleStream<GeometryOutput> 
 	for (uint i = 0; i < 3; i++)
 	{
 		GeometryOutput gsOutput;
-		gsOutput = input[i];
 		
         gsOutput.o_WorldPos = input[i].v_WorldPos + offset;
+        gsOutput.o_Position = mul(float4(gsOutput.o_WorldPos, 1.0), c_ViewProjection);
 		
-		gsOutput.o_Position = mul(float4(gsOutput.o_WorldPos, 1.0), c_ViewProjection);
-        
+        gsOutput.o_Normal    = input[i].v_Normal;
+        gsOutput.o_BaseColor = input[i].v_BaseColor;
+        gsOutput.o_AddColor  = input[i].v_AddColor;
+		        
 		output.Append(gsOutput);
 	}
 }

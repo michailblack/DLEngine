@@ -2,18 +2,12 @@ struct HullInput
 {
 	float4 v_Position  : SV_POSITION;
     float3 v_WorldPos  : WORLD_POS;
-    float3 v_Normal    : NORMAL;
-    float3 v_BaseColor : BASE_COLOR;
-    float3 v_AddColor  : ADD_COLOR;
 };
 
 struct HullOutput
 {
 	float4 o_Position  : SV_POSITION;
     float3 o_WorldPos  : WORLD_POS;
-    float3 o_Normal    : NORMAL;
-    float3 o_BaseColor : BASE_COLOR;
-    float3 o_AddColor  : ADD_COLOR;
 };
 
 struct HullPatchOutput
@@ -45,14 +39,14 @@ HullPatchOutput CalcHSPatchConstants(InputPatch<HullInput, NUM_CONTROL_POINTS> i
 	patchOutput.EdgeTessFactor[1] = CalcTessFactor(BC);
     patchOutput.EdgeTessFactor[2] = CalcTessFactor(CA);
     patchOutput.InsideTessFactor  = CalcTessFactor(maxEdgeLength);
-    
+
 	return patchOutput;
 }
 
 [domain("tri")]
 [partitioning("fractional_odd")]
 [outputtopology("triangle_cw")]
-[outputcontrolpoints(NUM_CONTROL_POINTS)]
+[outputcontrolpoints(3)]
 [patchconstantfunc("CalcHSPatchConstants")]
 [maxtessfactor(MAX_TESS_FACTOR)]
 HullOutput main(InputPatch<HullInput, NUM_CONTROL_POINTS> inputPatch, uint pointID : SV_OutputControlPointID, uint patchID : SV_PrimitiveID)
@@ -61,9 +55,6 @@ HullOutput main(InputPatch<HullInput, NUM_CONTROL_POINTS> inputPatch, uint point
 
 	hsOutput.o_Position  = inputPatch[pointID].v_Position;
     hsOutput.o_WorldPos  = inputPatch[pointID].v_WorldPos;
-    hsOutput.o_Normal    = inputPatch[pointID].v_Normal;
-    hsOutput.o_BaseColor = inputPatch[pointID].v_BaseColor;
-    hsOutput.o_AddColor  = inputPatch[pointID].v_AddColor;
 
 	return hsOutput;
 }

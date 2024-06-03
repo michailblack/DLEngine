@@ -91,7 +91,7 @@ float noise4d(in float4 p, uniform in uint octaves)
     float value = 0.0;
 
     [unroll(octaves)]
-    for (uint octave=0.0; octave < octaves; octave++) {
+    for (uint octave=0; octave < octaves; octave++) {
         value += noise4d(p) * nscale;
         tscale += nscale;
         nscale *= 0.5;

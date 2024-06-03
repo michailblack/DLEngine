@@ -33,23 +33,18 @@ struct InstanceInput
 struct VertexOutput
 {
     float4 o_Position : SV_POSITION;
-    float3 o_Normal   : NORMAL;
+    float3 o_WorldPos : WORLD_POS;
 };
 
 VertexOutput main(VertexInput vsInput, InstanceInput instInput)
 {
     VertexOutput vsOutput;
-    
-    float4x4 meshToWorld = mul(c_MeshToModel, instInput.a_ModelToWorld);
 
-    vsOutput.o_Position = mul(float4(vsInput.a_Position, 1.0), meshToWorld);
-    vsOutput.o_Position = mul(vsOutput.o_Position, c_ViewProjection);
-    
-    float3 axisX = normalize(meshToWorld[0].xyz);
-    float3 axizY = normalize(meshToWorld[1].xyz);
-    float3 axizZ = normalize(meshToWorld[2].xyz);
+    float4 worldPos = mul(float4(vsInput.a_Position, 1.0), c_MeshToModel);
+    worldPos = mul(worldPos, instInput.a_ModelToWorld);
 
-    vsOutput.o_Normal = vsInput.a_Normal.x * axisX + vsInput.a_Normal.y * axizY + vsInput.a_Normal.z * axizZ;
+    vsOutput.o_WorldPos = worldPos.xyz;
+    vsOutput.o_Position = mul(worldPos, c_ViewProjection);
 
     return vsOutput;
 }
