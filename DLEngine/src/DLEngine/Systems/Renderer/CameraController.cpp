@@ -36,12 +36,12 @@ namespace DLEngine
             m_Camera.Translate(-m_Camera.GetRight() * m_Velocity * dt);
         }
 
-        if (Input::IsKeyPressed('Q'))
+        if (Input::IsKeyPressed('E'))
         {
             m_Camera.Translate(m_Camera.GetUp() * m_Velocity * dt);
         }
 
-        if (Input::IsKeyPressed('E'))
+        if (Input::IsKeyPressed('Q'))
         {
             m_Camera.Translate(-m_Camera.GetUp() * m_Velocity * dt);
         }

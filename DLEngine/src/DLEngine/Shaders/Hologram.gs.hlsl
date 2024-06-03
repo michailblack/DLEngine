@@ -51,14 +51,17 @@ void main(triangle GeometryInput input[3], inout TriangleStream<GeometryOutput> 
 	float3 edge1 = input[1].v_WorldPos - input[0].v_WorldPos;
 	float3 edge2 = input[2].v_WorldPos - input[0].v_WorldPos;
 	float3 triangleNormal = normalize(cross(edge1, edge2));
+	
+    float3 triangleCenter = (input[0].v_WorldPos + input[1].v_WorldPos + input[2].v_WorldPos) / 3.0;
+    float3 offset = vertexDistortion(triangleCenter, triangleNormal);
     
 	for (uint i = 0; i < 3; i++)
 	{
 		GeometryOutput gsOutput;
 		gsOutput = input[i];
 		
-		gsOutput.o_WorldPos += vertexDistortion(input[i].v_WorldPos.xyz, triangleNormal);
-
+        gsOutput.o_WorldPos = input[i].v_WorldPos + offset;
+		
 		gsOutput.o_Position = mul(float4(gsOutput.o_WorldPos, 1.0), c_ViewProjection);
         
 		output.Append(gsOutput);

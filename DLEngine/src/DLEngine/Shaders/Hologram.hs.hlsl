@@ -23,7 +23,14 @@ struct HullPatchOutput
 };
 
 static const uint NUM_CONTROL_POINTS = 3;
-static const float MAX_TESS_FACTOR = 16.0;
+static const float MAX_TESS_FACTOR = 24.0;
+static const float MIN_TESS_FACTOR = 1.0;
+static const float SCALING_CONSTANT = 2;
+
+float CalcTessFactor(float edgeLength)
+{
+    return min(MAX_TESS_FACTOR, MIN_TESS_FACTOR + SCALING_CONSTANT * edgeLength);
+}
 
 HullPatchOutput CalcHSPatchConstants(
 	InputPatch<HullInput, NUM_CONTROL_POINTS> inputPatch,
@@ -36,13 +43,10 @@ HullPatchOutput CalcHSPatchConstants(
     float CA = length(inputPatch[0].v_WorldPos - inputPatch[2].v_WorldPos);
     float maxEdgeLength = max(AB, max(BC, CA));
 
-	patchOutput.EdgeTessFactor[0] = AB / maxEdgeLength * MAX_TESS_FACTOR;
-	patchOutput.EdgeTessFactor[1] = BC / maxEdgeLength * MAX_TESS_FACTOR;
-	patchOutput.EdgeTessFactor[2] = CA / maxEdgeLength * MAX_TESS_FACTOR;
-	patchOutput.InsideTessFactor  = min(
-		(patchOutput.EdgeTessFactor[0] + patchOutput.EdgeTessFactor[1] + patchOutput.EdgeTessFactor[2]) / 3.0,
-        MAX_TESS_FACTOR
-	);
+	patchOutput.EdgeTessFactor[0] = CalcTessFactor(AB);
+	patchOutput.EdgeTessFactor[1] = CalcTessFactor(BC);
+    patchOutput.EdgeTessFactor[2] = CalcTessFactor(CA);
+    patchOutput.InsideTessFactor = CalcTessFactor(maxEdgeLength);
 
 	return patchOutput;
 }

@@ -74,8 +74,8 @@ namespace DLEngine
                 {
                     D3D11_RASTERIZER_DESC2 rasterizerDesc{};
                     rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-                    rasterizerDesc.CullMode = D3D11_CULL_BACK;
-                    rasterizerDesc.FrontCounterClockwise = FALSE;
+                    rasterizerDesc.CullMode = D3D11_CULL_NONE;
+                    rasterizerDesc.FrontCounterClockwise = TRUE;
                     rasterizerDesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
                     rasterizerDesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
                     rasterizerDesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;

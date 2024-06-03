@@ -19,7 +19,7 @@ struct HologramGroupInstance
 };
 
 WorldLayer::WorldLayer()
-    : m_CameraController(DLEngine::Camera { DLEngine::Math::ToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f })
+    : m_CameraController(DLEngine::Camera { DLEngine::Math::ToRadians(45.0f), 800.0f / 600.0f, 0.001f, 100.0f })
 {
 }
 
@@ -47,10 +47,20 @@ void WorldLayer::OnAttach()
     DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
 
     transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(45.0f)) *
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -3.0f, 0.0f, 0.0f })
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 0.0f };
+    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
+
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.5f, 1.0f, 1.5f }) *
+        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(45.0f)) *
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -5.0f, 5.0f })
+    );
+    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 0.0f, 0.0f };
+    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
     DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
 
     nullMaterials.resize(samurai->GetMeshesCount());
@@ -59,6 +69,23 @@ void WorldLayer::OnAttach()
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 0.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 0.0f };
+    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
+
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(-30.0f)) *
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 3.0f, 2.0f, 4.0f })
+    );
+    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 0.0f };
+    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
+    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
+
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 1.5f, 0.5f, 0.75f }) *
+        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(-30.0f)) *
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 3.0f, 5.0f })
+    );
+    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.1f, 0.3f, 0.7f };
+    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f };
     DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
 }
 

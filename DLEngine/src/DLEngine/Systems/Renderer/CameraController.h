@@ -46,7 +46,7 @@ namespace DLEngine
         float m_Velocity{ 0.003f };
         float m_VelocityScale{ 5.0f };
         float m_DeltaVelocityPercents{ 5.0f };
-        float m_MinVelocity{ 0.001f };
+        float m_MinVelocity{ 0.0001f };
         float m_MaxVelocity{ 0.01f };
 
         // Radians per millisecond
