@@ -22,7 +22,7 @@ namespace DLEngine
         };
 
     public:
-        Model(const std::string& path);
+        Model(const std::wstring& path);
 
         uint32_t GetMeshesCount() const noexcept { return static_cast<uint32_t>(m_Meshes.size()); }
 
@@ -43,6 +43,6 @@ namespace DLEngine
         VertexBuffer<Mesh::Vertex, VertexBufferUsage::Immutable> m_VertexBuffer;
         IndexBuffer m_IndexBuffer;
 
-        std::string m_Name{};
+        std::wstring m_Name{};
     };
 }

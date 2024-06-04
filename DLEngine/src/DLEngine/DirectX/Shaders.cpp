@@ -13,10 +13,10 @@ namespace DLEngine
     {
         namespace
         {
-            std::string ReadFile(const char* path)
+            std::vector<char> ReadFile(const wchar_t* path)
             {
                 std::ifstream shaderFile(path, std::ios::in | std::ios::binary | std::ios::ate);
-                std::string shaderSrc{};
+                std::vector<char> shaderSrc{};
 
                 if (shaderFile.is_open())
                 {
@@ -47,10 +47,14 @@ namespace DLEngine
                 const auto shaderSrc{ Utils::ReadFile(spec.Path.data()) };
                 
                 uint32_t shaderSrcNameStart{ static_cast<uint32_t>(spec.Path.find_last_of('\\')) };
-                std::string_view shaderSrcName{
+                std::wstring_view shaderSrcName{
                     spec.Path.data() + shaderSrcNameStart + 1u,
                     spec.Path.size() - shaderSrcNameStart
                 };
+
+                size_t shaderSrcNameCharSize{ shaderSrcName.size() };
+                Scope<char[]> shaderSrcNameChar{ new char[shaderSrcNameCharSize] };
+                wcstombs_s(nullptr, shaderSrcNameChar.get(), shaderSrcNameCharSize, shaderSrcName.data(), shaderSrcName.size());
 
                 std::vector defines{ spec.Defines };
                 defines.push_back({ nullptr, nullptr });
@@ -67,7 +71,7 @@ namespace DLEngine
                 compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-                const char* target{};
+                const char* target{ "" };
                 switch (type)
                 {
                 case ShaderType::Vertex:
@@ -89,7 +93,7 @@ namespace DLEngine
 
                 if (FAILED(D3DCompile2(
                     shaderSrc.data(), shaderSrc.size(),
-                    shaderSrcName.data(),
+                    shaderSrcNameChar.get(),
                     defines.data(),
                     ShaderIncludeHandler::Get(),
                     spec.EntryPoint.c_str(),
@@ -236,8 +240,8 @@ namespace DLEngine
     {
         for (const auto& dir : m_IncludeDirs)
         {
-            std::string path{ dir };
-            path += pFileName;
+            std::wstring path{ dir };
+            path += std::wstring{ pFileName, pFileName + strlen(pFileName) };
 
             std::ifstream file{ path, std::ios::in | std::ios::binary | std::ios::ate };
 

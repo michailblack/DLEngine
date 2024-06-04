@@ -24,17 +24,17 @@ namespace DLEngine
         s_FilesystemData.ShaderDir = workingDir / "DLEngine" / "src" / "DLEngine" / "Shaders\\";
         s_FilesystemData.ModelDir = workingDir / "models\\";
 
-        DL_LOG_INFO("Shader directory: {0}", GetShaderDir());
-        DL_LOG_INFO("Model directory: {0}", GetModelDir());
+        DL_LOG_INFO(L"Shader directory: {0}", GetShaderDir());
+        DL_LOG_INFO(L"Model directory: {0}", GetModelDir());
     }
 
-    std::string Filesystem::GetShaderDir() noexcept
+    std::wstring Filesystem::GetShaderDir() noexcept
     {
-        return s_FilesystemData.ShaderDir.string();
+        return s_FilesystemData.ShaderDir.wstring();
     }
 
-    std::string Filesystem::GetModelDir() noexcept
+    std::wstring Filesystem::GetModelDir() noexcept
     {
-        return s_FilesystemData.ModelDir.string();
+        return s_FilesystemData.ModelDir.wstring();
     }
 }

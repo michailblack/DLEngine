@@ -13,7 +13,7 @@
 
 namespace DLEngine
 {
-    Model::Model(const std::string& path)
+    Model::Model(const std::wstring& path)
         : m_Name(path)
     {
         static Assimp::Importer s_Importer;
@@ -25,11 +25,15 @@ namespace DLEngine
             aiProcess_CalcTangentSpace
         };
 
-        const aiScene* assimpScene{ s_Importer.ReadFile(path, importFlags) };
+        size_t pathCharSize{ path.size() + 1u };
+        Scope<char[]> pathChar{ new char[pathCharSize] };
+        wcstombs_s(nullptr, pathChar.get(), pathCharSize, path.data(), path.size());
 
-        DL_ASSERT(assimpScene, "Failed to load model '{}'", path);
-        DL_ASSERT(assimpScene->mRootNode, "Failed to load model '{}'", path);
-        DL_ASSERT(!(assimpScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE), "Failed to complete scene flags for model '{}'", path);
+        const aiScene* assimpScene{ s_Importer.ReadFile(pathChar.get(), importFlags) };
+
+        DL_ASSERT(assimpScene, "Failed to load model '{}'", pathChar.get());
+        DL_ASSERT(assimpScene->mRootNode, "Failed to load model '{}'", pathChar.get());
+        DL_ASSERT(!(assimpScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE), "Failed to complete scene flags for model '{}'", pathChar.get());
 
         static_assert(sizeof(Math::Vec3) == sizeof(aiVector3D));
         static_assert(sizeof(Math::Vec2) == sizeof(aiVector2D));

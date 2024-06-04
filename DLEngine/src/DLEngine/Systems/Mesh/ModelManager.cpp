@@ -9,11 +9,11 @@ namespace DLEngine
     {
         struct
         {
-            std::unordered_map<std::string, Ref<Model>> Models;
+            std::unordered_map<std::wstring, Ref<Model>> Models;
         } s_ModelManagerData;
     }
 
-    Ref<Model> ModelManager::Load(const std::string& path)
+    Ref<Model> ModelManager::Load(const std::wstring& path)
     {
         if (Exists(path))
             return s_ModelManagerData.Models[path];
@@ -23,14 +23,14 @@ namespace DLEngine
         return it->second;
     }
 
-    Ref<Model> ModelManager::Get(const std::string& path)
+    Ref<Model> ModelManager::Get(const std::wstring& path)
     {
         DL_ASSERT_NOINFO(Exists(path));
 
         return s_ModelManagerData.Models[path];
     }
 
-    bool ModelManager::Exists(const std::string& path)
+    bool ModelManager::Exists(const std::wstring& path)
     {
         return s_ModelManagerData.Models.contains(path);
     }

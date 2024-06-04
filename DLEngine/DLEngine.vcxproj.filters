@@ -291,7 +291,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\GlobalCB.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GlobalCB.hlsli" />
     <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl" />
   </ItemGroup>

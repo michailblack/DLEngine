@@ -15,11 +15,11 @@ namespace DLEngine
         }
     };
 
-    Application* CreateApplication(const char* cmdLine)
+    Application* CreateApplication(std::wstring_view cmdLine)
     {
         ApplicationSpecification spec;
         spec.WndTitle = L"Sandbox";
-        spec.WorkingDir = cmdLine;
+        spec.WorkingDir = cmdLine.data();
         spec.WndWidth = 800;
         spec.WndHeight = 600;
         return new SandboxApp(spec);
