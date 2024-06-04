@@ -65,36 +65,36 @@ namespace DLEngine
 
         ShaderSpecification shaderSpec{};
 
-        shaderSpec.Name = "NormalVis.vs";
-        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.vs.hlsl";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.hlsl";
+        shaderSpec.EntryPoint = "mainVS";
         VertexShader vs{};
         vs.Create(shaderSpec);
 
         normalVisGroupDesc.PipelineDesc.VS = vs;
 
-        shaderSpec.Name = "NormalVis.hs";
-        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.hs.hlsl";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.hlsl";
+        shaderSpec.EntryPoint = "mainHS";
         HullShader hs{};
         hs.Create(shaderSpec);
         
         normalVisGroupDesc.PipelineDesc.HS = hs;
 
-        shaderSpec.Name = "NormalVis.ds";
-        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.ds.hlsl";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.hlsl";
+        shaderSpec.EntryPoint = "mainDS";
         DomainShader ds{};
         ds.Create(shaderSpec);
 
         normalVisGroupDesc.PipelineDesc.DS = ds;
 
-        shaderSpec.Name = "NormalVis.gs";
-        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.gs.hlsl";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.hlsl";
+        shaderSpec.EntryPoint = "mainGS";
         GeometryShader gs{};
         gs.Create(shaderSpec);
 
         normalVisGroupDesc.PipelineDesc.GS = gs;
 
-        shaderSpec.Name = "NormalVis.ps";
-        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.ps.hlsl";
+        shaderSpec.Path = Filesystem::GetShaderDir() + "NormalVis.hlsl";
+        shaderSpec.EntryPoint = "mainPS";
         PixelShader ps{};
         ps.Create(shaderSpec);
 

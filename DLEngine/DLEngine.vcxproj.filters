@@ -289,15 +289,10 @@
     <None Include="src\DLEngine\Systems\Mesh\ShadingGroup.inl">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="src\DLEngine\Shaders\Hologram.gs.hlsl" />
-    <None Include="src\DLEngine\Shaders\Hologram.ds.hlsl" />
-    <None Include="src\DLEngine\Shaders\Hologram.hs.hlsl" />
-    <None Include="src\DLEngine\Shaders\Hologram.ps.hlsl" />
-    <None Include="src\DLEngine\Shaders\Hologram.vs.hlsl" />
-    <None Include="src\DLEngine\Shaders\NormalVis.gs.hlsl" />
-    <None Include="src\DLEngine\Shaders\NormalVis.ps.hlsl" />
-    <None Include="src\DLEngine\Shaders\NormalVis.vs.hlsl" />
-    <None Include="src\DLEngine\Shaders\NormalVis.hs.hlsl" />
-    <None Include="src\DLEngine\Shaders\NormalVis.ds.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="src\DLEngine\Shaders\GlobalCB.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl" />
   </ItemGroup>
 </Project>

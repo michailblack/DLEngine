@@ -6,8 +6,8 @@ namespace DLEngine
     struct ShaderSpecification
     {
         std::vector<D3D_SHADER_MACRO> Defines{};
-        std::string Name{};
         std::string Path{};
+        std::string EntryPoint{ "main" };
     };
 
     class VertexShader

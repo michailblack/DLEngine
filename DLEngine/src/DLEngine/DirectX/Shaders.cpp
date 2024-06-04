@@ -92,7 +92,7 @@ namespace DLEngine
                     shaderSrcName.data(),
                     defines.data(),
                     ShaderIncludeHandler::Get(),
-                    "main",
+                    spec.EntryPoint.c_str(),
                     target,
                     compileFlags, 0u,
                     0u, nullptr, 0u,

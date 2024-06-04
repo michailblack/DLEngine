@@ -124,36 +124,36 @@ void WorldLayer::InitHologramGroup() const
 
     DLEngine::ShaderSpecification shaderSpec{};
 
-    shaderSpec.Name = "Hologram.vs";
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.vs.hlsl";
+    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.EntryPoint = "mainVS";
     DLEngine::VertexShader vs{};
     vs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.VS = vs;
 
-    shaderSpec.Name = "Hologram.ps";
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.ps.hlsl";
+    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.EntryPoint = "mainPS";
     DLEngine::PixelShader ps{};
     ps.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.PS = ps;
 
-    shaderSpec.Name = "Hologram.hs";
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hs.hlsl";
+    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.EntryPoint = "mainHS";
     DLEngine::HullShader hs{};
     hs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.HS = hs;
 
-    shaderSpec.Name = "Hologram.ds";
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.ds.hlsl";
+    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.EntryPoint = "mainDS";
     DLEngine::DomainShader ds{};
     ds.Create(shaderSpec);
     
     hologramGroupDesc.PipelineDesc.DS = ds;
     
-    shaderSpec.Name = "Hologram.gs";
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.gs.hlsl";
+    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.EntryPoint = "mainGS";
     DLEngine::GeometryShader gs{};
     gs.Create(shaderSpec);
 
