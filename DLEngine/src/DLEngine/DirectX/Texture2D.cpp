@@ -1,22 +1,24 @@
 #include "dlpch.h"
 #include "Texture2D.h"
 
+#include "DLEngine/DirectX/SwapChain.h"
+
 namespace DLEngine
 {
-    void Texture2D::Create(D3D11_TEXTURE2D_DESC1 desc)
+    void Texture2D::Create(const D3D11_TEXTURE2D_DESC1& desc)
     {
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateTexture2D1(&desc, nullptr, &m_Texture));
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateTexture2D1(&desc, nullptr, &Handle));
     }
 
-    void Texture2D::Create(const Microsoft::WRL::ComPtr<IDXGISwapChain1>& swapChain)
+    void Texture2D::Create(const D3D11_TEXTURE2D_DESC1& desc, const std::vector<D3D11_SUBRESOURCE_DATA>& data)
     {
-        DL_THROW_IF_HR(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), &m_Texture));
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateTexture2D1(&desc, data.data(), &Handle));
     }
 
     D3D11_TEXTURE2D_DESC1 Texture2D::GetDesc() const
     {
         D3D11_TEXTURE2D_DESC1 desc;
-        m_Texture->GetDesc1(&desc);
+        Handle->GetDesc1(&desc);
         return desc;
     }
 

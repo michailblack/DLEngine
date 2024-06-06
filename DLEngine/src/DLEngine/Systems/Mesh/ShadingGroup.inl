@@ -101,7 +101,7 @@ namespace DLEngine
 
         m_PipelineState.Bind();
         m_InstanceBuffer.Bind(0u);
-        m_MeshInstanceCB.Bind(2u, CB_BIND_VS);
+        m_MeshInstanceCB.Bind(2u, BIND_VS);
 
         uint32_t renderedInstances{ 0u };
         for (uint32_t modelIndex{ 0u }; modelIndex < m_Models.size(); ++modelIndex)

@@ -3,7 +3,7 @@
 
 #include "DLEngine/Core/Filesystem.h"
 
-#include "DLEngine/DirectX/DXStates.h"
+#include "DLEngine/DirectX/D3DStates.h"
 
 #include <typeindex>
 
@@ -100,9 +100,9 @@ namespace DLEngine
 
         normalVisGroupDesc.PipelineDesc.PS = ps;
 
-        normalVisGroupDesc.PipelineDesc.DepthStencilState = DXStates::GetDepthStencilState(DepthStencilStates::Default);
+        normalVisGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
 
-        normalVisGroupDesc.PipelineDesc.RasterizerState = DXStates::GetRasterizerState(RasterizerStates::Default);
+        normalVisGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEFAULT);
 
         normalVisGroupDesc.Render = false;
 

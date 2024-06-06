@@ -200,8 +200,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\DLEngine\Core\Filesystem.h" />
-    <ClInclude Include="src\DLEngine\DirectX\ResourceView.h" />
-    <ClInclude Include="src\DLEngine\DirectX\DXStates.h" />
+    <ClInclude Include="src\DLEngine\DirectX\Binder.h" />
+    <ClInclude Include="src\DLEngine\DirectX\View.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3DStates.h" />
     <ClInclude Include="src\DLEngine\DirectX\PipelineState.h" />
     <ClInclude Include="src\DLEngine\Math\Distance.h" />
     <ClInclude Include="src\DLEngine\Systems\Mesh\IDragger.h" />
@@ -251,12 +252,13 @@
     <ClInclude Include="src\dlpch.h" />
     <ClInclude Include="src\DLEngine\DirectX\Texture2D.h" />
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
+    <ClInclude Include="src\DLEngine\Systems\Renderer\TextureManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Filesystem.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\ResourceView.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\DXStates.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\View.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3DStates.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\IDragger.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\Mesh.cpp" />
@@ -288,6 +290,7 @@
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\Texture2D.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Renderer\TextureManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\DLEngine\Math\Distance.inl" />
@@ -314,7 +317,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\GlobalCB.hlsli">
+    <FxCompile Include="src\DLEngine\Shaders\Global.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

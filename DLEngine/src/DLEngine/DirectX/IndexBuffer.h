@@ -8,7 +8,7 @@ namespace DLEngine
     public:
         void Create(const std::vector<uint32_t>& indices);
 
-        void Bind() const;
+        void Bind() const noexcept;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;

@@ -1,4 +1,4 @@
-#include "GlobalCB.hlsli"
+#include "Global.hlsli"
 
 cbuffer MeshInstance : register(b2)
 {

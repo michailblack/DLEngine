@@ -8,7 +8,9 @@
 #include "DLEngine/DirectX/Shaders.h"
 
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
+
 #include "DLEngine/Systems/Renderer/Renderer.h"
+#include "DLEngine/Systems/Renderer/TextureManager.h"
 
 namespace DLEngine
 {
@@ -37,6 +39,7 @@ namespace DLEngine
         ShaderIncludeHandler::Get()->Init();
         Renderer::Init();
         MeshSystem::Get().Init();
+        TextureManager::Init();
     }
 
     void Engine::Deinit()

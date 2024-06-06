@@ -10,6 +10,7 @@ namespace DLEngine
 
         static std::wstring GetShaderDir() noexcept;
         static std::wstring GetModelDir() noexcept;
+        static std::wstring GetTextureDir() noexcept;
     };
 }
 

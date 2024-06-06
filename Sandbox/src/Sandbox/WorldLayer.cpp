@@ -3,12 +3,13 @@
 #include "DLEngine/Core/Filesystem.h"
 
 #include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/DXStates.h"
+#include "DLEngine/DirectX/D3DStates.h"
 
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
 #include "DLEngine/Systems/Mesh/ModelManager.h"
 
 #include "DLEngine/Systems/Renderer/Renderer.h"
+#include "DLEngine/Systems/Renderer/TextureManager.h"
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
@@ -110,57 +111,58 @@ void WorldLayer::OnEvent(DLEngine::Event& e)
 
 void WorldLayer::InitHologramGroup() const
 {
-    DLEngine::ShadingGroupDesc hologramGroupDesc{};
+    using namespace DLEngine;
+    ShadingGroupDesc hologramGroupDesc{};
 
     hologramGroupDesc.Name = "Hologram";
 
     hologramGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
 
-    hologramGroupDesc.InstanceBufferLayout = DLEngine::BufferLayout{
-        { "TRANSFORM" , DLEngine::BufferLayout::ShaderDataType::Mat4   },
-        { "BASE_COLOR", DLEngine::BufferLayout::ShaderDataType::Float3 },
-        { "ADD_COLOR" , DLEngine::BufferLayout::ShaderDataType::Float3 }
+    hologramGroupDesc.InstanceBufferLayout = BufferLayout{
+        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4   },
+        { "BASE_COLOR", BufferLayout::ShaderDataType::Float3 },
+        { "ADD_COLOR" , BufferLayout::ShaderDataType::Float3 }
     };
 
-    DLEngine::ShaderSpecification shaderSpec{};
+    ShaderSpecification shaderSpec{};
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + L"Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainVS";
-    DLEngine::VertexShader vs{};
+    VertexShader vs{};
     vs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.VS = vs;
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + L"Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainPS";
-    DLEngine::PixelShader ps{};
+    PixelShader ps{};
     ps.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.PS = ps;
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + L"Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainHS";
-    DLEngine::HullShader hs{};
+    HullShader hs{};
     hs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.HS = hs;
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + L"Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainDS";
-    DLEngine::DomainShader ds{};
+    DomainShader ds{};
     ds.Create(shaderSpec);
     
     hologramGroupDesc.PipelineDesc.DS = ds;
     
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + L"Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainGS";
-    DLEngine::GeometryShader gs{};
+    GeometryShader gs{};
     gs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.GS = gs;
 
-    hologramGroupDesc.PipelineDesc.DepthStencilState = DLEngine::DXStates::GetDepthStencilState(DLEngine::DepthStencilStates::Default);
-    hologramGroupDesc.PipelineDesc.RasterizerState = DLEngine::DXStates::GetRasterizerState(DLEngine::RasterizerStates::Default);
+    hologramGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
+    hologramGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
 
-    DLEngine::MeshSystem::Get().CreateShadingGroup<DLEngine::NullMaterial, HologramGroupInstance>(hologramGroupDesc);
+    MeshSystem::Get().CreateShadingGroup<NullMaterial, HologramGroupInstance>(hologramGroupDesc);
 }
