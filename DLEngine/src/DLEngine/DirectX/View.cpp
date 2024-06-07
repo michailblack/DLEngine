@@ -36,7 +36,7 @@ namespace DLEngine
         D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc{};
         srvDesc.Format = desc.Format;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MostDetailedMip = desc.MipLevels - 1u;
+        srvDesc.Texture2D.MostDetailedMip = 0u;
         srvDesc.Texture2D.MipLevels = static_cast<UINT>(-1);
         srvDesc.Texture2D.PlaneSlice = 0u;
 

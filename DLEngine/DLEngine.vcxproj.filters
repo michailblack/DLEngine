@@ -303,5 +303,6 @@
     <FxCompile Include="src\DLEngine\Shaders\Global.hlsli" />
     <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\TextureOnly.hlsl" />
   </ItemGroup>
 </Project>

@@ -17,6 +17,7 @@ public:
 
 private:
     void InitHologramGroup() const;
+    void InitTextureOnlyGroup() const;
 
 private:
     DLEngine::CameraController m_CameraController;

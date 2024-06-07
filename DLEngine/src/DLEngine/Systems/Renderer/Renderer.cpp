@@ -160,6 +160,18 @@ namespace DLEngine
         s_Data.PerFrame.MousePos = Input::GetCursorPosition();
 
         s_Data.PerFrameCB.Set(s_Data.PerFrame);
+
+        s_Data.PerFrameCB.Bind(0u, BIND_ALL);
+        s_Data.PerViewCB.Bind(1u, BIND_ALL);
+
+        D3DStates::GetSamplerState(SamplerStates::POINT_WRAP).Bind(0u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::POINT_CLAMP).Bind(1u, BIND_ALL);
+
+        D3DStates::GetSamplerState(SamplerStates::TRILINEAR_WRAP).Bind(2u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::TRILINEAR_CLAMP).Bind(3u, BIND_ALL);
+
+        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP).Bind(4u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_CLAMP).Bind(5u, BIND_ALL);
     }
 
     void Renderer::BeginScene(const Camera& camera)
@@ -187,9 +199,6 @@ namespace DLEngine
         );
         s_Data.BackBufferView.Clear(Math::Vec4{ 0.5f, 0.5f, 0.5f, 1.0f });
         s_Data.DepthStencilBufferView.Clear(0.0f);
-        
-        s_Data.PerFrameCB.Bind(0u, BIND_ALL);
-        s_Data.PerViewCB.Bind(1u, BIND_ALL);
 
         MeshSystem::Get().Render();
     }

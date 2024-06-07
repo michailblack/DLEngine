@@ -9,10 +9,10 @@ namespace DLEngine
 {
     namespace
     {
-        struct
+        struct TextureManagerData
         {
             std::unordered_map<std::wstring, Texture2D> Textures;
-        } s_TextureManagerData;
+        } s_Data;
     }
 
     void TextureManager::Init()
@@ -25,11 +25,11 @@ namespace DLEngine
     Texture2D TextureManager::Load(const std::wstring& path)
     {
         if (Exists(path))
-            return s_TextureManagerData.Textures[path];
+            return s_Data.Textures[path];
 
         Texture2D texture{ LoadFromFile(path) };
 
-        const auto& [it, hasConstructed]{ s_TextureManagerData.Textures.emplace(std::make_pair(path, texture)) };
+        const auto& [it, hasConstructed]{ s_Data.Textures.emplace(std::make_pair(path, texture)) };
 
         return it->second;
     }
@@ -38,12 +38,12 @@ namespace DLEngine
     {
         DL_ASSERT_NOINFO(Exists(path));
 
-        return s_TextureManagerData.Textures[path];
+        return s_Data.Textures[path];
     }
 
     bool TextureManager::Exists(const std::wstring& path)
     {
-        return s_TextureManagerData.Textures.contains(path);
+        return s_Data.Textures.contains(path);
     }
 
     Texture2D TextureManager::LoadFromFile(const std::wstring& path)

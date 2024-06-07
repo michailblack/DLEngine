@@ -4,6 +4,7 @@
 
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/D3DStates.h"
+#include "DLEngine/DirectX/View.h"
 
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
 #include "DLEngine/Systems/Mesh/ModelManager.h"
@@ -15,8 +16,23 @@
 
 struct HologramGroupInstance
 {
-    DLEngine::Math::Vec3 BaseColor;
-    DLEngine::Math::Vec3 AdditionalColor;
+    DLEngine::Math::Vec3 BaseColor{};
+    DLEngine::Math::Vec3 AdditionalColor{};
+};
+
+struct TextureOnlyGroupMaterial
+{
+    DLEngine::ShaderResourceView Texture{};
+
+    static void Set(const TextureOnlyGroupMaterial& material) noexcept
+    {
+        material.Texture.Bind(0u, DLEngine::BIND_PS);
+    }
+
+    bool operator==(const TextureOnlyGroupMaterial& other) const
+    {
+        return Texture.Handle == other.Texture.Handle;
+    }
 };
 
 WorldLayer::WorldLayer()
@@ -88,6 +104,61 @@ void WorldLayer::OnAttach()
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.1f, 0.3f, 0.7f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f };
     DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
+
+    InitTextureOnlyGroup();
+    std::vector<TextureOnlyGroupMaterial> textureOnlyMaterials{};
+    textureOnlyMaterials.resize(samurai->GetMeshesCount());
+
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.5f })
+    );
+    textureOnlyMaterials[0].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_BaseColor.dds"
+    ));
+    textureOnlyMaterials[1].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_BaseColor.dds"
+    ));
+    textureOnlyMaterials[2].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_BaseColor.dds"
+    ));
+    textureOnlyMaterials[3].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_BaseColor.dds"
+    ));
+    textureOnlyMaterials[4].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_BaseColor.dds"
+    ));
+    textureOnlyMaterials[5].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_BaseColor.dds"
+    ));
+    textureOnlyMaterials[6].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_BaseColor.dds"
+    ));
+    textureOnlyMaterials[7].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
+    ));
+
+    DLEngine::MeshSystem::Get().Add<>(samurai, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+
+    textureOnlyMaterials.resize(cube->GetMeshesCount());
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -1.5f, 3.0f })
+    );
+
+    textureOnlyMaterials[0].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"texture_test.dds"
+    ));
+
+    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 1.5f, 3.0f })
+    );
+
+    textureOnlyMaterials[0].Texture.Create(DLEngine::TextureManager::Load(
+        DLEngine::Filesystem::GetTextureDir() + L"cube\\stone.dds"
+    ));
+
+    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
 }
 
 void WorldLayer::OnDetach()
@@ -165,4 +236,40 @@ void WorldLayer::InitHologramGroup() const
     hologramGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
 
     MeshSystem::Get().CreateShadingGroup<NullMaterial, HologramGroupInstance>(hologramGroupDesc);
+}
+
+void WorldLayer::InitTextureOnlyGroup() const
+{
+    using namespace DLEngine;
+    ShadingGroupDesc textureOnlyGroupDesc{};
+
+    textureOnlyGroupDesc.Name = "TextureOnly";
+
+    textureOnlyGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    textureOnlyGroupDesc.InstanceBufferLayout = BufferLayout{
+        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4  },
+        { "_empty"    , BufferLayout::ShaderDataType::Float }
+    };
+
+    ShaderSpecification shaderSpec{};
+
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"TextureOnly.hlsl";
+    shaderSpec.EntryPoint = "mainVS";
+    VertexShader vs{};
+    vs.Create(shaderSpec);
+
+    textureOnlyGroupDesc.PipelineDesc.VS = vs;
+
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"TextureOnly.hlsl";
+    shaderSpec.EntryPoint = "mainPS";
+    PixelShader ps{};
+    ps.Create(shaderSpec);
+
+    textureOnlyGroupDesc.PipelineDesc.PS = ps;
+
+    textureOnlyGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
+    textureOnlyGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
+
+    MeshSystem::Get().CreateShadingGroup<TextureOnlyGroupMaterial, NullInstance>(textureOnlyGroupDesc);
 }

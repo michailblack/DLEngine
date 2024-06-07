@@ -9,7 +9,7 @@
 
 namespace DLEngine
 {
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     ShadingGroup<TMaterial, TInstance>::ShadingGroup(const ShadingGroupDesc& desc)
     {
         PipelineStateDesc pipelineStateSpec{};
@@ -33,7 +33,7 @@ namespace DLEngine
         m_Render = desc.Render;
     }
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     void ShadingGroup<TMaterial, TInstance>::AddModel(
         const Ref<Model>& model,
         std::vector<TMaterial> meshMaterials,
@@ -91,7 +91,7 @@ namespace DLEngine
         }
     }
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     void ShadingGroup<TMaterial, TInstance>::Render()
     {
         if (!m_Render)
@@ -118,8 +118,7 @@ namespace DLEngine
 
                 for (const auto& materialInst : modelInst.Meshes[meshIndex].Materials)
                 {
-                    //const auto& material{ materialInst.Material };
-                    // Set materials here. Not used for now
+                    TMaterial::Set(materialInst.Material);
 
                     uint32_t instanceCount{ static_cast<uint32_t>(materialInst.Instances.size()) };
 
@@ -147,7 +146,7 @@ namespace DLEngine
     }
 
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     bool ShadingGroup<TMaterial, TInstance>::Intersects(
         const Math::Ray& ray,
         IShadingGroup::IntersectInfo& outIntersectInfo
@@ -199,7 +198,7 @@ namespace DLEngine
         return intersects;
     }
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     void ShadingGroup<TMaterial, TInstance>::UpdateInstanceBuffer() noexcept
     {
         uint32_t totalInstances{ 0u };

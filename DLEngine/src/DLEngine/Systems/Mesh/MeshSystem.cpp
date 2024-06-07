@@ -40,7 +40,7 @@ namespace DLEngine
     {
         ShadingGroupKey normalVisKey{
             .MaterialType = std::type_index{ typeid(NullMaterial) },
-            .InstanceType = std::type_index{ typeid(NormalVisGroupInstance) }
+            .InstanceType = std::type_index{ typeid(NullInstance) }
         };
 
         auto normalVisShadingGroup{ m_ShadingGroups.find(normalVisKey) };
@@ -106,7 +106,7 @@ namespace DLEngine
 
         normalVisGroupDesc.Render = false;
 
-        CreateShadingGroup<NullMaterial, NormalVisGroupInstance>(normalVisGroupDesc);
+        CreateShadingGroup<NullMaterial, NullInstance>(normalVisGroupDesc);
     }
 
 }
