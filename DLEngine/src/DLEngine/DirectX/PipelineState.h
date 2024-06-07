@@ -26,7 +26,7 @@ namespace DLEngine
         void Bind() const noexcept;
 
     private:
-        PipelineStateDesc m_Specification;
+        PipelineStateDesc m_Specification{};
     };
 }
 

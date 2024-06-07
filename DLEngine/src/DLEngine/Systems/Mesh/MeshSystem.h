@@ -12,7 +12,7 @@ namespace DLEngine
 
     struct NullMaterial
     {
-        static void Set(const NullMaterial&) noexcept {}
+        void Set() const noexcept {}
         bool operator==(const NullMaterial&) const { return true; }
     };
 

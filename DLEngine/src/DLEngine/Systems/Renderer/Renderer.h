@@ -4,6 +4,7 @@
 namespace DLEngine
 {
     class Camera;
+    class ShaderResourceView;
 
     class Renderer
     {
@@ -18,5 +19,7 @@ namespace DLEngine
 
         static void BeginScene(const Camera& camera);
         static void EndScene();
+
+        static void SetSkybox(const ShaderResourceView& skyboxSRV);
     };
 }

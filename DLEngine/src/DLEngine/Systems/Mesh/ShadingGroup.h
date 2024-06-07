@@ -59,7 +59,7 @@ namespace DLEngine
     template <typename TMaterial>
     concept Settable = requires(const TMaterial& material)
     {
-        { TMaterial::Set(material) } -> std::same_as<void>;
+        { material.Set() } -> std::same_as<void>;
     };
 
     template <typename TMaterial>

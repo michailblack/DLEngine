@@ -250,7 +250,7 @@
     <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
     <ClInclude Include="src\dlpch.h" />
-    <ClInclude Include="src\DLEngine\DirectX\Texture2D.h" />
+    <ClInclude Include="src\DLEngine\DirectX\Texture.h" />
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
     <ClInclude Include="src\DLEngine\Systems\Renderer\TextureManager.h" />
   </ItemGroup>
@@ -288,7 +288,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\DirectX\Texture2D.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\Texture.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Renderer\TextureManager.cpp" />
   </ItemGroup>
@@ -310,6 +310,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\Skybox.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

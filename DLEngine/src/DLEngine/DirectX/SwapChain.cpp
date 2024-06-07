@@ -1,7 +1,7 @@
 #include "dlpch.h"
 #include "SwapChain.h"
 
-#include "DLEngine/DirectX/Texture2D.h"
+#include "DLEngine/DirectX/Texture.h"
 
 namespace DLEngine
 {    

@@ -39,6 +39,7 @@ namespace DLEngine
     enum class DepthStencilStates
     {
         DEFAULT,
+        READ_ONLY_DEPTH,
     };
 
     enum class RasterizerStates

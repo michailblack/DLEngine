@@ -118,7 +118,7 @@ namespace DLEngine
 
                 for (const auto& materialInst : modelInst.Meshes[meshIndex].Materials)
                 {
-                    TMaterial::Set(materialInst.Material);
+                    materialInst.Material.Set();
 
                     uint32_t instanceCount{ static_cast<uint32_t>(materialInst.Instances.size()) };
 

@@ -1,7 +1,7 @@
 #include "dlpch.h"
 #include "View.h"
 
-#include "DLEngine/DirectX/Texture2D.h"
+#include "DLEngine/DirectX/Texture.h"
 
 namespace DLEngine
 {
@@ -35,7 +35,9 @@ namespace DLEngine
 
         D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc{};
         srvDesc.Format = desc.Format;
-        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.ViewDimension = (desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE) ? 
+            D3D11_SRV_DIMENSION_TEXTURECUBE :
+            D3D11_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MostDetailedMip = 0u;
         srvDesc.Texture2D.MipLevels = static_cast<UINT>(-1);
         srvDesc.Texture2D.PlaneSlice = 0u;

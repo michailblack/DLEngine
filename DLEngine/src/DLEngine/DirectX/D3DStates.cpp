@@ -63,11 +63,12 @@ namespace DLEngine
         {
             D3D11_DEPTH_STENCIL_DESC DepthStencilDescFromEnum(DepthStencilStates state)
             {
+                D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
+                
                 switch (state)
                 {
                 case DepthStencilStates::DEFAULT:
                 {
-                    D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
                     depthStencilDesc.DepthEnable = TRUE;
                     depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
                     depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER;
@@ -75,19 +76,29 @@ namespace DLEngine
 
                     return depthStencilDesc;
                 }
+                case DepthStencilStates::READ_ONLY_DEPTH:
+                {
+                    depthStencilDesc.DepthEnable = TRUE;
+                    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+                    depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+                    depthStencilDesc.StencilEnable = FALSE;
+
+                    return depthStencilDesc;
+                }
                 default:
                     DL_ASSERT(false, "Unknown DepthStencilState");
-                    return {};
+                    return depthStencilDesc;
                 }
             }
 
             D3D11_RASTERIZER_DESC2 RasterizerDescFromEnum(RasterizerStates state)
             {
+                D3D11_RASTERIZER_DESC2 rasterizerDesc{};
+                
                 switch (state)
                 {
                 case RasterizerStates::DEFAULT:
                 {
-                    D3D11_RASTERIZER_DESC2 rasterizerDesc{};
                     rasterizerDesc.FillMode = D3D11_FILL_SOLID;
                     rasterizerDesc.CullMode = D3D11_CULL_BACK;
                     rasterizerDesc.FrontCounterClockwise = FALSE;
@@ -105,7 +116,7 @@ namespace DLEngine
                 }
                 default:
                     DL_ASSERT(false, "Unknown RasterizerState");
-                    return {};
+                    return rasterizerDesc;
                 }
             }
 

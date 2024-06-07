@@ -1,5 +1,5 @@
 #include "dlpch.h"
-#include "Texture2D.h"
+#include "Texture.h"
 
 #include "DLEngine/DirectX/SwapChain.h"
 
@@ -21,5 +21,4 @@ namespace DLEngine
         Handle->GetDesc1(&desc);
         return desc;
     }
-
 }

@@ -3,11 +3,12 @@
 
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Input.h"
+#include "DLEngine/Core/Filesystem.h"
 
 #include "DLEngine/DirectX/ConstantBuffer.h"
 #include "DLEngine/DirectX/D3DStates.h"
 #include "DLEngine/DirectX/SwapChain.h"
-#include "DLEngine/DirectX/Texture2D.h"
+#include "DLEngine/DirectX/Texture.h"
 #include "DLEngine/DirectX/View.h"
 
 #include "DLEngine/Math/Math.h"
@@ -47,6 +48,9 @@ namespace DLEngine
 
             PerViewData PerView;
             ConstantBuffer<PerViewData> PerViewCB;
+
+            PipelineState SkyboxPipelineState;
+            ShaderResourceView SkyboxSRV;
 
             SwapChain SwapChain;
             Texture2D BackBufferTex;
@@ -96,6 +100,27 @@ namespace DLEngine
         viewport.MaxDepth = 1.0f;
 
         deviceContext->RSSetViewports(1, &viewport);
+
+        PipelineStateDesc skyboxPipelineState{};
+        skyboxPipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        
+        ShaderSpecification shaderSpec{};
+        shaderSpec.Path = Filesystem::GetShaderDir() + L"Skybox.hlsl";
+        
+        shaderSpec.EntryPoint = "mainVS";
+        VertexShader vs{};
+        vs.Create(shaderSpec);
+        skyboxPipelineState.VS = vs;
+
+        shaderSpec.EntryPoint = "mainPS";
+        PixelShader ps{};
+        ps.Create(shaderSpec);
+        skyboxPipelineState.PS = ps;
+
+        skyboxPipelineState.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
+        skyboxPipelineState.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::READ_ONLY_DEPTH);
+
+        s_Data.SkyboxPipelineState.Create(skyboxPipelineState);
 
         DL_LOG_INFO("Renderer Initialized");
     }
@@ -197,9 +222,20 @@ namespace DLEngine
             &renderTarget,
             s_Data.DepthStencilBufferView.Handle.Get()
         );
-        s_Data.BackBufferView.Clear(Math::Vec4{ 0.5f, 0.5f, 0.5f, 1.0f });
+        s_Data.BackBufferView.Clear(Math::Vec4{ 1.0f, 0.0f, 1.0f, 1.0f });
         s_Data.DepthStencilBufferView.Clear(0.0f);
 
         MeshSystem::Get().Render();
+
+        // Drawing skybox
+        s_Data.SkyboxPipelineState.Bind();
+        s_Data.SkyboxSRV.Bind(0u, BIND_PS);
+
+        DL_THROW_IF_D3D11(D3D::GetDeviceContext4()->Draw(3u, 0u));
+    }
+
+    void Renderer::SetSkybox(const ShaderResourceView& skyboxSRV)
+    {
+        s_Data.SkyboxSRV = skyboxSRV;
     }
 }

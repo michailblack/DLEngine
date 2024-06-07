@@ -22,16 +22,16 @@ struct HologramGroupInstance
 
 struct TextureOnlyGroupMaterial
 {
-    DLEngine::ShaderResourceView Texture{};
+    DLEngine::ShaderResourceView TextureSRV{};
 
-    static void Set(const TextureOnlyGroupMaterial& material) noexcept
+    void Set() const noexcept
     {
-        material.Texture.Bind(0u, DLEngine::BIND_PS);
+        TextureSRV.Bind(0u, DLEngine::BIND_PS);
     }
 
     bool operator==(const TextureOnlyGroupMaterial& other) const
     {
-        return Texture.Handle == other.Texture.Handle;
+        return TextureSRV.Handle == other.TextureSRV.Handle;
     }
 };
 
@@ -48,6 +48,9 @@ void WorldLayer::OnAttach()
 {
     const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"cube\\cube.obj") };
     const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
+    
+    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\space.dds") };
+    DLEngine::Renderer::SetSkybox(skybox.SRV);
 
     std::vector<DLEngine::NullMaterial> nullMaterials{};
     uint32_t transformIndex{ 0u };
@@ -112,30 +115,30 @@ void WorldLayer::OnAttach()
     transformIndex = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.5f })
     );
-    textureOnlyMaterials[0].Texture.Create(DLEngine::TextureManager::Load(
+    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_BaseColor.dds"
-    ));
-    textureOnlyMaterials[1].Texture.Create(DLEngine::TextureManager::Load(
+    ).SRV;
+    textureOnlyMaterials[1].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_BaseColor.dds"
-    ));
-    textureOnlyMaterials[2].Texture.Create(DLEngine::TextureManager::Load(
+    ).SRV;
+    textureOnlyMaterials[2].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_BaseColor.dds"
-    ));
-    textureOnlyMaterials[3].Texture.Create(DLEngine::TextureManager::Load(
+    ).SRV;
+    textureOnlyMaterials[3].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_BaseColor.dds"
-    ));
-    textureOnlyMaterials[4].Texture.Create(DLEngine::TextureManager::Load(
+    ).SRV;
+    textureOnlyMaterials[4].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_BaseColor.dds"
-    ));
-    textureOnlyMaterials[5].Texture.Create(DLEngine::TextureManager::Load(
+    ).SRV;
+    textureOnlyMaterials[5].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_BaseColor.dds"
-    ));
-    textureOnlyMaterials[6].Texture.Create(DLEngine::TextureManager::Load(
+    ).SRV;
+    textureOnlyMaterials[6].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_BaseColor.dds"
-    ));
-    textureOnlyMaterials[7].Texture.Create(DLEngine::TextureManager::Load(
+    ).SRV;
+    textureOnlyMaterials[7].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
-    ));
+    ).SRV;
 
     DLEngine::MeshSystem::Get().Add<>(samurai, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
 
@@ -144,9 +147,9 @@ void WorldLayer::OnAttach()
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -1.5f, 3.0f })
     );
 
-    textureOnlyMaterials[0].Texture.Create(DLEngine::TextureManager::Load(
+    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"texture_test.dds"
-    ));
+    ).SRV;
 
     DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
 
@@ -154,9 +157,9 @@ void WorldLayer::OnAttach()
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 1.5f, 3.0f })
     );
 
-    textureOnlyMaterials[0].Texture.Create(DLEngine::TextureManager::Load(
+    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"cube\\stone.dds"
-    ));
+    ).SRV;
 
     DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
 }
