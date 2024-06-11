@@ -1,6 +1,8 @@
 ﻿#include "dlpch.h"
 #include "Shaders.h"
 
+#include "DLEngine/Core/Filesystem.h"
+
 #include <d3dcompiler.h>
 
 #pragma comment(lib, "d3dcompiler.lib")
@@ -13,12 +15,11 @@ namespace DLEngine
         {
             std::string ReadFile(const char* path)
             {
-                std::ifstream shaderFile(path, std::ios::in | std::ios::binary);
+                std::ifstream shaderFile(path, std::ios::in | std::ios::binary | std::ios::ate);
                 std::string shaderSrc{};
 
                 if (shaderFile.is_open())
                 {
-                    shaderFile.seekg(0, std::ios::end);
                     const auto size{ shaderFile.tellg() };
 
                     if (size != -1)
@@ -38,11 +39,18 @@ namespace DLEngine
                 Pixel,
                 Hull,
                 Domain,
+                Geometry
             };
 
             void CompileShader(const ShaderSpecification& spec, ShaderType type, Microsoft::WRL::ComPtr<ID3DBlob>& shaderBlob)
             {
                 const auto shaderSrc{ Utils::ReadFile(spec.Path.data()) };
+                
+                uint32_t shaderSrcNameStart{ static_cast<uint32_t>(spec.Path.find_last_of('\\')) };
+                std::string_view shaderSrcName{
+                    spec.Path.data() + shaderSrcNameStart + 1u,
+                    spec.Path.size() - shaderSrcNameStart
+                };
 
                 std::vector defines{ spec.Defines };
                 defines.push_back({ nullptr, nullptr });
@@ -74,30 +82,37 @@ namespace DLEngine
                 case ShaderType::Domain:
                     target = "ds_5_0";
                     break;
+                case ShaderType::Geometry:
+                    target = "gs_5_0";
+                    break;
                 }
 
-                if (FAILED(D3DCompile(
+                if (FAILED(D3DCompile2(
                     shaderSrc.data(), shaderSrc.size(),
-                    nullptr, defines.data(), nullptr, "main", target,
-                    compileFlags, 0,
-                    &shaderBlob, &errorBlob
+                    shaderSrcName.data(),
+                    defines.data(),
+                    ShaderIncludeHandler::Get(),
+                    spec.EntryPoint.c_str(),
+                    target,
+                    compileFlags, 0u,
+                    0u, nullptr, 0u,
+                    &shaderBlob,
+                    &errorBlob
                 )))
                 {
-                    std::ostringstream oss;
-                    oss << "Failed to compile shader: " << spec.Name << '\n';
-                    oss << "Error: " << static_cast<const char*>(errorBlob->GetBufferPointer()) << '\n';
-                    throw std::runtime_error{ oss.str() };
+                    throw std::runtime_error{ static_cast<const char*>(errorBlob->GetBufferPointer()) };
                 }
-
-                DL_LOG_INFO("Successfully compiled shader: {}", spec.Name);
-                DL_LOG_INFO("\t[FILE]: {}", spec.Path);
             }
         }
     }
 
-    VertexShader::VertexShader(ShaderSpecification spec)
-        : m_Specification(std::move(spec))
+    void VertexShader::Create(const ShaderSpecification& spec)
     {
+        m_VertexShaderBlob.Reset();
+        m_VertexShader.Reset();
+
+        m_Specification = spec;
+
         Utils::CompileShader(m_Specification, Utils::ShaderType::Vertex, m_VertexShaderBlob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateVertexShader(
@@ -108,14 +123,18 @@ namespace DLEngine
         ));
     }
 
-    void VertexShader::Bind()
+    void VertexShader::Bind() const noexcept
     {
         D3D::GetDeviceContext4()->VSSetShader(m_VertexShader.Get(), nullptr, 0u);
     }
 
-    PixelShader::PixelShader(ShaderSpecification spec)
-        : m_Specification(std::move(spec))
+    void PixelShader::Create(const ShaderSpecification& spec)
     {
+        m_PixelShaderBlob.Reset();
+        m_PixelShader.Reset();
+
+        m_Specification = spec;
+
         Utils::CompileShader(m_Specification, Utils::ShaderType::Pixel, m_PixelShaderBlob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreatePixelShader(
@@ -126,14 +145,18 @@ namespace DLEngine
         ));
     }
 
-    void PixelShader::Bind()
+    void PixelShader::Bind() const noexcept
     {
         D3D::GetDeviceContext4()->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
     }
 
-    HullShader::HullShader(ShaderSpecification spec)
-        : m_Specification(std::move(spec))
+    void HullShader::Create(const ShaderSpecification& spec)
     {
+        m_HullShaderBlob.Reset();
+        m_HullShader.Reset();
+
+        m_Specification = spec;
+
         Utils::CompileShader(m_Specification, Utils::ShaderType::Hull, m_HullShaderBlob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateHullShader(
@@ -144,14 +167,18 @@ namespace DLEngine
         ));
     }
 
-    void HullShader::Bind()
+    void HullShader::Bind() const noexcept
     {
         D3D::GetDeviceContext4()->HSSetShader(m_HullShader.Get(), nullptr, 0u);
     }
 
-    DomainShader::DomainShader(ShaderSpecification spec)
-        : m_Specification(std::move(spec))
+    void DomainShader::Create(const ShaderSpecification& spec)
     {
+        m_DomainShaderBlob.Reset();
+        m_DomainShader.Reset();
+
+        m_Specification = spec;
+
         Utils::CompileShader(m_Specification, Utils::ShaderType::Domain, m_DomainShaderBlob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateDomainShader(
@@ -162,8 +189,80 @@ namespace DLEngine
         ));
     }
 
-    void DomainShader::Bind()
+    void DomainShader::Bind() const noexcept
     {
         D3D::GetDeviceContext4()->DSSetShader(m_DomainShader.Get(), nullptr, 0u);
     }
+
+    void GeometryShader::Create(const ShaderSpecification& spec)
+    {
+        m_GeometryShaderBlob.Reset();
+        m_GeometryShader.Reset();
+
+        m_Specification = spec;
+
+        Utils::CompileShader(m_Specification, Utils::ShaderType::Geometry, m_GeometryShaderBlob);
+
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateGeometryShader(
+            m_GeometryShaderBlob->GetBufferPointer(),
+            m_GeometryShaderBlob->GetBufferSize(),
+            nullptr,
+            &m_GeometryShader
+        ));
+    }
+
+    void GeometryShader::Bind() const noexcept
+    {
+        D3D::GetDeviceContext4()->GSSetShader(m_GeometryShader.Get(), nullptr, 0u);
+    }
+
+    ShaderIncludeHandler::~ShaderIncludeHandler()
+    {
+        delete this;
+    }
+
+    void ShaderIncludeHandler::Init() noexcept
+    {
+        DL_ASSERT(s_Instance == nullptr, "ShaderIncludeHandler already initialized");
+
+        s_Instance = new ShaderIncludeHandler();
+
+        s_Instance->AddIncludeDir(Filesystem::GetShaderDir());
+
+        DL_LOG_INFO("ShaderIncludeHandler initialized");
+    }
+
+    STDOVERRIDEMETHODIMP ShaderIncludeHandler::Open(THIS_ D3D_INCLUDE_TYPE, LPCSTR pFileName, LPCVOID, LPCVOID* ppData, UINT* pBytes)
+    {
+        for (const auto& dir : m_IncludeDirs)
+        {
+            std::string path{ dir };
+            path += pFileName;
+
+            std::ifstream file{ path, std::ios::in | std::ios::binary | std::ios::ate };
+
+            if (file.is_open())
+            {
+                const auto size{ file.tellg() };
+                file.seekg(0, std::ios::beg);
+
+                auto* data{ new char[size] };
+                file.read(data, size);
+
+                *ppData = data;
+                *pBytes = static_cast<UINT>(size);
+
+                return S_OK;
+            }
+        }
+
+        return E_FAIL;
+    }
+
+    STDOVERRIDEMETHODIMP ShaderIncludeHandler::Close(THIS_ LPCVOID pData)
+    {
+        delete[] pData;
+        return S_OK;
+    }
+
 }

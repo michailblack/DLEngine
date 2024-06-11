@@ -3,6 +3,8 @@
 
 #include "DLEngine/Core/Application.h"
 
+#include "DLEngine/DirectX/Shaders.h"
+
 #include <filesystem>
 
 namespace DLEngine

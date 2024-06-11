@@ -180,11 +180,11 @@ namespace DLEngine
             &renderTarget,
             s_RendererData.DepthStencilBufferView.GetComPtr().Get()
         );
-        s_RendererData.BackBufferView.Clear(Math::Vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
+        s_RendererData.BackBufferView.Clear(Math::Vec4{ 0.5f, 0.5f, 0.5f, 1.0f });
         s_RendererData.DepthStencilBufferView.Clear(0.0f);
         
-        s_RendererData.PerFrameCB.Bind(0u, CB_BIND_VS | CB_BIND_PS);
-        s_RendererData.PerViewCB.Bind(1u, CB_BIND_VS | CB_BIND_PS);
+        s_RendererData.PerFrameCB.Bind(0u, CB_BIND_ALL);
+        s_RendererData.PerViewCB.Bind(1u, CB_BIND_ALL);
 
         MeshSystem::Get().Render();
     }

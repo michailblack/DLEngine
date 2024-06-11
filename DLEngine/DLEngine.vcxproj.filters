@@ -291,9 +291,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\NormalVis.vs.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\NormalVis.ps.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\Hologram.vs.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\Hologram.ps.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GlobalCB.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl" />
   </ItemGroup>
 </Project>

@@ -28,22 +28,24 @@ namespace DLEngine
 
         virtual void Render() = 0;
         virtual bool Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const noexcept = 0;
+
+        void ToggleRender() noexcept { m_Render = !m_Render; }
+
+    protected:
+        bool m_Render;
     };
 
     struct ShadingGroupDesc
     {
-        D3D_PRIMITIVE_TOPOLOGY Topology{ D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
+        std::string Name;
 
-        // First data entry must be model-to-world matrix with the appropriate semantics
+        // PipelineStateDesc::Layout is ignored as it is create in the ShadingGroup constructor
+        PipelineStateDesc PipelineDesc;
+
+        // First entry must be model-to-world matrix with the appropriate semantics
         BufferLayout InstanceBufferLayout;
-        
-        ShaderSpecification VertexShaderSpec;
-        ShaderSpecification PixelShaderSpec;
-        ShaderSpecification DomainShaderSpec;
-        ShaderSpecification HullShaderSpec;
-        ShaderSpecification GeometryShaderSpec;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthStencilState;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState2> RasterizerState;
+
+        bool Render{ true };
     };
 
     template <typename TMaterial, typename TInstance>

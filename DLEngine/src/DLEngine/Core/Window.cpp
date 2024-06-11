@@ -1,10 +1,7 @@
 #include "dlpch.h"
 #include "Window.h"
 
-#include "DLEngine/Core/DLException.h"
 #include "DLEngine/Core/Input.h"
-
-#include "DLEngine/DirectX/D3D.h"
 
 #include "DLEngine/Core/Events/ApplicationEvent.h"
 #include "DLEngine/Core/Events/KeyEvent.h"
@@ -70,8 +67,6 @@ namespace DLEngine
         }
 
         ShowWindow(m_hWnd, SW_SHOW);
-
-        DL_LOG_INFO("Created window ({:d}, {:d})", width, height);
     }
 
     Window::~Window()

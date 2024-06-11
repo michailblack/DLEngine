@@ -79,10 +79,10 @@ namespace DLEngine
                     rasterizerDesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
                     rasterizerDesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
                     rasterizerDesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-                    rasterizerDesc.DepthClipEnable = true;
-                    rasterizerDesc.ScissorEnable = false;
-                    rasterizerDesc.MultisampleEnable = false;
-                    rasterizerDesc.AntialiasedLineEnable = false;
+                    rasterizerDesc.DepthClipEnable = TRUE;
+                    rasterizerDesc.ScissorEnable = FALSE;
+                    rasterizerDesc.MultisampleEnable = FALSE;
+                    rasterizerDesc.AntialiasedLineEnable = FALSE;
                     rasterizerDesc.ForcedSampleCount = 0u;
                     rasterizerDesc.ConservativeRaster = D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
