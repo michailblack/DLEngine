@@ -26,9 +26,9 @@ namespace DLEngine
         s_FilesystemData.ModelDir = workingDir / "assets" / "models\\";
         s_FilesystemData.TextureDir = workingDir / "assets" / "textures\\";
 
-        DL_LOG_INFO(L"Shader directory: {0}", GetShaderDir());
-        DL_LOG_INFO(L"Model directory: {0}", GetModelDir());
-        DL_LOG_INFO(L"Texture directory: {0}", GetTextureDir());
+        DL_LOG_INFO("Shader directory: {}", Utils::WideStrToMultiByteStr(GetShaderDir()));
+        DL_LOG_INFO("Model directory: {}", Utils::WideStrToMultiByteStr(GetModelDir()));
+        DL_LOG_INFO("Texture directory: {}", Utils::WideStrToMultiByteStr(GetTextureDir()));
     }
 
     std::wstring Filesystem::GetShaderDir() noexcept

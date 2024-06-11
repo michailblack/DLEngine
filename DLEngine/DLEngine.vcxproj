@@ -248,7 +248,9 @@
     <ClInclude Include="src\DLEngine\Core\Window.h" />
     <ClInclude Include="src\DLEngine\Systems\Transform\TransformSystem.h" />
     <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
+    <ClInclude Include="src\DLEngine\Utils\RandomGenerator.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
+    <ClInclude Include="src\DLEngine\Utils\Utils.h" />
     <ClInclude Include="src\dlpch.h" />
     <ClInclude Include="src\DLEngine\DirectX\Texture.h" />
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
@@ -282,6 +284,7 @@
     <ClCompile Include="src\DLEngine\Systems\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Transform\TransformSystem.cpp" />
+    <ClCompile Include="src\DLEngine\Utils\Utils.cpp" />
     <ClCompile Include="src\dlpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

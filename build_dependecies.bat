@@ -26,7 +26,7 @@ robocopy ".\build\lib\Release" "%DEPENDENCY_DIR%\lib\Release" *.lib /np /mt /z
 
 REM Build spdlog
 cd "%VENDOR_DIR%\spdlog"
-cmake -S . -B .\build -A x64 -DCMAKE_BUILD_TYPE=Release -DSPDLOG_BUILD_EXAMPLE=OFF -DSPDLOG_BUILD_SHARED=ON -DSPDLOG_USE_STD_FORMAT=ON -DSPDLOG_WCHAR_SUPPORT=ON -DSPDLOG_WCHAR_FILENAMES=ON
+cmake -S . -B .\build -A x64 -DSPDLOG_BUILD_EXAMPLE=OFF -DSPDLOG_BUILD_SHARED=ON -DSPDLOG_USE_STD_FORMAT=ON
 cmake --build .\build --config Release
 
 robocopy ".\include\spdlog" "%DEPENDENCY_DIR%\include\spdlog" /e /mir /np /mt /z
