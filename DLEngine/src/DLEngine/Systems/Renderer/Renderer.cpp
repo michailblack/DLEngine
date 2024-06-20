@@ -11,11 +11,11 @@
 #include "DLEngine/DirectX/Texture.h"
 #include "DLEngine/DirectX/View.h"
 
-#include "DLEngine/Math/Math.h"
-
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
 
 #include "DLEngine/Systems/Renderer/Camera.h"
+
+#include "DLEngine/Systems/Transform/TransformSystem.h"
 
 namespace DLEngine
 {
@@ -125,8 +125,6 @@ namespace DLEngine
 
         s_Data.SkyboxPipelineState.Create(skyboxPipelineState);
 
-        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP).Bind(6u, BIND_ALL);
-
         DL_LOG_INFO("Renderer Initialized");
     }
 
@@ -189,7 +187,7 @@ namespace DLEngine
         s_Data.PerFrame.Resolution = Application::Get().GetWindow()->GetSize();
         s_Data.PerFrame.MousePos = Input::GetCursorPosition();
 
-        s_Data.PerFrameCB.Set(s_Data.PerFrame);
+        s_Data.PerFrameCB.Set(&s_Data.PerFrame, 1u);
 
         s_Data.PerFrameCB.Bind(0u, BIND_ALL);
         s_Data.PerViewCB.Bind(1u, BIND_ALL);
@@ -219,7 +217,7 @@ namespace DLEngine
         s_Data.PerView.BL2TL = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ 0.0f, 0.0f }), 1.0f } - s_Data.PerView.BL;
         s_Data.PerView.BL2BR = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ windowSize.x, windowSize.y }), 1.0f } - s_Data.PerView.BL;
 
-        s_Data.PerViewCB.Set(s_Data.PerView);
+        s_Data.PerViewCB.Set(&s_Data.PerView, 1u);
     }
 
     void Renderer::EndScene()
@@ -235,6 +233,7 @@ namespace DLEngine
         s_Data.BackBufferView.Clear(Math::Vec4{ 1.0f, 0.0f, 1.0f, 1.0f });
         s_Data.DepthStencilBufferView.Clear(0.0f);
 
+        TransformSystem::UploadDataToGPU();
         MeshSystem::Get().Render();
 
         // Drawing skybox

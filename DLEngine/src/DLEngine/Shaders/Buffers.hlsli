@@ -20,13 +20,20 @@ cbuffer PerView : register(b1)
     float4 c_BL2BR;
 };
 
-SamplerState g_PointWrap : register(s0);
-SamplerState g_PointClamp : register(s1);
+static const uint MAX_CONSTANT_BUFFER_FLOAT4_ELEMENTS_COUNT = 4096u;
 
-SamplerState g_TrilinearWrap : register(s2);
-SamplerState g_TrilinearClamp : register(s3);
+cbuffer Transforms : register(b2)
+{
+    float4x4 c_ModelToWorld[MAX_CONSTANT_BUFFER_FLOAT4_ELEMENTS_COUNT / 4u];
+};
 
-SamplerState g_AnisotropicWrap : register(s4);
-SamplerState g_AnisotropicClamp : register(s5);
+cbuffer InvTransforms : register(b3)
+{
+    float4x4 c_WorldToModel[MAX_CONSTANT_BUFFER_FLOAT4_ELEMENTS_COUNT / 4u];
+};
 
-SamplerState g_ActiveSampler : register(s6);
+cbuffer MeshInstance : register(b4)
+{
+    float4x4 c_MeshToModel;
+    float4x4 c_ModelToMesh;
+};

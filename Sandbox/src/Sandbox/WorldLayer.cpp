@@ -49,70 +49,70 @@ void WorldLayer::OnAttach()
     const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"cube\\cube.obj") };
     const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
     
-    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\sky.dds") };
+    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\space.dds") };
     DLEngine::Renderer::SetSkybox(skybox.SRV);
 
     std::vector<DLEngine::NullMaterial> nullMaterials{};
-    uint32_t transformIndex{ 0u };
+    uint32_t transformID{ 0u };
 
     InitHologramGroup();
 
     nullMaterials.resize(cube->GetMeshesCount());
     HologramGroupInstance hologramGroupInstance{};
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 5.0f, 8.0f })
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 0.0f, 1.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformID);
 
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(45.0f)) *
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -3.0f, 0.0f, 0.0f })
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 0.0f };
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformID);
 
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.5f, 1.0f, 1.5f }) *
         DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(45.0f)) *
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -5.0f, 5.0f })
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 0.0f, 0.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformID);
 
     nullMaterials.resize(samurai->GetMeshesCount());
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -3.0f, -2.0f, 4.0f })
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 0.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 0.0f };
-    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformID);
 
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(-30.0f)) *
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 3.0f, 2.0f, 4.0f })
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 0.0f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformID);
 
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 1.5f, 0.5f, 0.75f }) *
         DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(-30.0f)) *
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 3.0f, 5.0f })
     );
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.1f, 0.3f, 0.7f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformID);
 
     InitTextureOnlyGroup();
     std::vector<TextureOnlyGroupMaterial> textureOnlyMaterials{};
     textureOnlyMaterials.resize(samurai->GetMeshesCount());
 
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.5f })
     );
     textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
@@ -140,10 +140,10 @@ void WorldLayer::OnAttach()
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
     ).SRV;
 
-    DLEngine::MeshSystem::Get().Add<>(samurai, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(samurai, textureOnlyMaterials, DLEngine::NullInstance{}, transformID);
 
     textureOnlyMaterials.resize(cube->GetMeshesCount());
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -1.5f, 3.0f })
     );
 
@@ -151,9 +151,9 @@ void WorldLayer::OnAttach()
         DLEngine::Filesystem::GetTextureDir() + L"texture_test.dds"
     ).SRV;
 
-    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformID);
 
-    transformIndex = DLEngine::TransformSystem::AddTransform(
+    transformID = DLEngine::TransformSystem::AddTransform(
         DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 10.0f, 10.0f, 1.0f }) *
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 1.5f, 10.0f })
     );
@@ -162,7 +162,7 @@ void WorldLayer::OnAttach()
         DLEngine::Filesystem::GetTextureDir() + L"cube\\stone.dds"
     ).SRV;
 
-    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformID);
 }
 
 void WorldLayer::OnDetach()
@@ -182,9 +182,6 @@ void WorldLayer::OnUpdate(DeltaTime dt)
 void WorldLayer::OnEvent(DLEngine::Event& e)
 {
     m_CameraController.OnEvent(e);
-
-    DLEngine::EventDispatcher dispatcher{ e };
-    dispatcher.Dispatch<DLEngine::KeyPressedEvent>(DL_BIND_EVENT_FN(WorldLayer::OnKeyPressed));
 }
 
 void WorldLayer::InitHologramGroup() const
@@ -197,7 +194,6 @@ void WorldLayer::InitHologramGroup() const
     hologramGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
 
     hologramGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4   },
         { "BASE_COLOR", BufferLayout::ShaderDataType::Float3 },
         { "ADD_COLOR" , BufferLayout::ShaderDataType::Float3 }
     };
@@ -255,7 +251,6 @@ void WorldLayer::InitTextureOnlyGroup() const
     textureOnlyGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     textureOnlyGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4  },
         { "_empty"    , BufferLayout::ShaderDataType::Float }
     };
 
@@ -279,25 +274,4 @@ void WorldLayer::InitTextureOnlyGroup() const
     textureOnlyGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
 
     MeshSystem::Get().CreateShadingGroup<TextureOnlyGroupMaterial, NullInstance>(textureOnlyGroupDesc);
-}
-
-bool WorldLayer::OnKeyPressed(DLEngine::KeyPressedEvent& e)
-{
-    switch (e.GetKeyCode())
-    {
-    case '1':
-        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::POINT_WRAP).Bind(6u, DLEngine::BIND_ALL);
-        DL_LOG_INFO("Active sampler: POINT_WRAP");
-        break;
-    case '2':
-        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::TRILINEAR_WRAP).Bind(6u, DLEngine::BIND_ALL);
-        DL_LOG_INFO("Active sampler: TRILINEAR_WRAP");
-        break;
-    case '3':
-        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::ANISOTROPIC_8_WRAP).Bind(6u, DLEngine::BIND_ALL);
-        DL_LOG_INFO("Active sampler: ANISOTROPIC_8_WRAP");
-        break;
-    }
-
-    return false;
 }

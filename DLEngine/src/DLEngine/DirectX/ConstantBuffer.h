@@ -10,10 +10,12 @@ namespace DLEngine
     class ConstantBuffer
     {
     public:
-        void Create()
+        void Create(uint32_t count = 1u)
         {
+            DL_ASSERT_NOINFO(count > 0u);
+
             D3D11_BUFFER_DESC constantBufferDesc{};
-            constantBufferDesc.ByteWidth = sizeof(Data);
+            constantBufferDesc.ByteWidth = sizeof(Data) * count;
             constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -23,10 +25,12 @@ namespace DLEngine
             DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&constantBufferDesc, nullptr, &m_ConstantBuffer));
         }
 
-        void Create(const Data& data)
+        void Create(const Data* data, uint32_t count)
         {
+            DL_ASSERT_NOINFO(count > 0u && data != nullptr);
+
             D3D11_BUFFER_DESC constantBufferDesc{};
-            constantBufferDesc.ByteWidth = sizeof(Data);
+            constantBufferDesc.ByteWidth = sizeof(Data) * count;
             constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -34,7 +38,7 @@ namespace DLEngine
             constantBufferDesc.StructureByteStride = 0u;
 
             D3D11_SUBRESOURCE_DATA constantBufferData{};
-            constantBufferData.pSysMem = &data;
+            constantBufferData.pSysMem = data;
             constantBufferData.SysMemPitch = 0u;
             constantBufferData.SysMemSlicePitch = 0u;
 
@@ -61,8 +65,10 @@ namespace DLEngine
                 deviceContext->GSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
         }
 
-        void Set(const Data& data)
+        void Set(const Data* data, uint32_t count)
         {
+            DL_ASSERT_NOINFO(count > 0u && data != nullptr);
+
             D3D11_MAPPED_SUBRESOURCE mappedSubresource{};
             DL_THROW_IF_HR(D3D::GetDeviceContext4()->Map(
                 m_ConstantBuffer.Get(),
@@ -71,7 +77,7 @@ namespace DLEngine
                 0u,
                 &mappedSubresource
             ));
-            memcpy_s(mappedSubresource.pData, sizeof(Data), &data, sizeof(data));
+            memcpy_s(mappedSubresource.pData, sizeof(Data) * count, data, sizeof(Data) * count);
             D3D::GetDeviceContext4()->Unmap(m_ConstantBuffer.Get(), 0u);
         }
 

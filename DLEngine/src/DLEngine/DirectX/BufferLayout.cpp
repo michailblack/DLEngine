@@ -28,8 +28,15 @@ namespace DLEngine
         CalculateStride();
     }
 
+    void BufferLayout::AppendElement(const Element& element) noexcept
+    {
+        m_Elements.push_back(element);
+        CalculateStride();
+    }
+
     void BufferLayout::CalculateStride() noexcept
     {
+        m_Stride = 0u;
         for (const auto& bufferElement : m_Elements)
             m_Stride += Utils::ShaderDataTypeSize(bufferElement.DataType);
     }

@@ -1,4 +1,5 @@
-#include "Global.hlsli"
+#include "Buffers.hlsli"
+#include "Samplers.hlsli"
 
 struct VertexOutput
 {

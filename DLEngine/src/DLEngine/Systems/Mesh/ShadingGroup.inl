@@ -17,7 +17,11 @@ namespace DLEngine
 
         InputLayout inputLayout;
 
-        inputLayout.AppendVertexBuffer(desc.InstanceBufferLayout, D3D11_INPUT_PER_INSTANCE_DATA);
+        BufferLayout instanceBufferLayout{ desc.InstanceBufferLayout };
+        instanceBufferLayout.AppendElement(
+            BufferLayout::Element{ "TRANSFORM_INDEX", BufferLayout::ShaderDataType::Float
+        });
+        inputLayout.AppendVertexBuffer(instanceBufferLayout, D3D11_INPUT_PER_INSTANCE_DATA);
         
         const auto vertexBufferLayout{ Model::GetCommonVertexBufferLayout() };
         inputLayout.AppendVertexBuffer(vertexBufferLayout, D3D11_INPUT_PER_VERTEX_DATA);
@@ -27,7 +31,7 @@ namespace DLEngine
 
         m_PipelineState.Create(pipelineStateSpec);
 
-        m_InstanceBuffer.SetBufferLayout(desc.InstanceBufferLayout);
+        m_InstanceBuffer.SetBufferLayout(instanceBufferLayout);
         m_MeshInstanceCB.Create();
 
         m_Render = desc.Render;
@@ -38,7 +42,7 @@ namespace DLEngine
         const Ref<Model>& model,
         std::vector<TMaterial> meshMaterials,
         const TInstance& instance,
-        uint32_t transformIndex
+        uint32_t transformID
     ) noexcept
     {
         DL_ASSERT(model->GetMeshesCount() == meshMaterials.size(), "meshMaterials must be the same size as the number of meshes in this model");
@@ -60,7 +64,7 @@ namespace DLEngine
             {
                 PerMaterial materialInst{};
                 materialInst.Material = meshMaterials[meshIndex];
-                materialInst.Instances.push_back({ instance, transformIndex });
+                materialInst.Instances.push_back({ instance, transformID });
 
                 modelInst->Meshes[meshIndex].Materials.push_back(materialInst);
             }
@@ -80,14 +84,14 @@ namespace DLEngine
             {
                 PerMaterial newMaterialInst{};
                 newMaterialInst.Material = meshMaterials[meshIndex];
-                newMaterialInst.Instances.push_back({ instance, transformIndex });
+                newMaterialInst.Instances.push_back({ instance, transformID });
 
                 modelInst->Meshes[meshIndex].Materials.push_back(newMaterialInst);
                 
                 continue;
             }
 
-            materialInst->Instances.push_back({ instance, transformIndex });
+            materialInst->Instances.push_back({ instance, transformID });
         }
     }
 
@@ -101,7 +105,7 @@ namespace DLEngine
 
         m_PipelineState.Bind();
         m_InstanceBuffer.Bind(0u);
-        m_MeshInstanceCB.Bind(2u, BIND_VS);
+        m_MeshInstanceCB.Bind(4u, BIND_VS);
 
         uint32_t renderedInstances{ 0u };
         for (uint32_t modelIndex{ 0u }; modelIndex < m_Models.size(); ++modelIndex)
@@ -129,7 +133,7 @@ namespace DLEngine
                         meshInstance.MeshToModel = mesh.GetInstance(meshInstanceIndex);
                         meshInstance.ModelToMesh = mesh.GetInvInstance(meshInstanceIndex);
 
-                        m_MeshInstanceCB.Set(meshInstance);
+                        m_MeshInstanceCB.Set(&meshInstance, 1u);
 
                         DL_THROW_IF_D3D11(D3D::GetDeviceContext4()->DrawIndexedInstanced(
                             meshRange.IndexCount,
@@ -166,8 +170,8 @@ namespace DLEngine
                 {
                     for (const auto& meshInstance : materialInst.Instances)
                     {
-                        const auto& modelToWorld{ TransformSystem::GetTransform(meshInstance.TransformIndex) };
-                        const auto& worldToModel{ TransformSystem::GetInvTransform(meshInstance.TransformIndex) };
+                        const auto& modelToWorld{ TransformSystem::GetTransform(meshInstance.TransformID) };
+                        const auto& worldToModel{ TransformSystem::GetInvTransform(meshInstance.TransformID) };
 
                         const Math::Ray transformedRay{
                             TransformSystem::TransformPoint(ray.Origin, worldToModel),
@@ -177,7 +181,7 @@ namespace DLEngine
                         if (mesh.Intersects(transformedRay, outIntersectInfo.MeshIntersectInfo))
                         {
                             outIntersectInfo.Model = modelInst.Model;
-                            outIntersectInfo.TransformIndex = meshInstance.TransformIndex;
+                            outIntersectInfo.TransformIndex = meshInstance.TransformID;
 
                             // From model space to world space
                             auto& triangleIntersectInfo{ outIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo };
@@ -224,8 +228,8 @@ namespace DLEngine
                     for (const auto& instance : materialInst.Instances)
                     {
                         instanceBufferPtr[copiedCount++] = {
-                            .Transform = TransformSystem::GetTransform(instance.TransformIndex),
-                            .Instance = instance.Instance
+                            .Instance = instance.Instance,
+                            .TransformIndex = static_cast<float>(TransformSystem::GetArrayIndex(instance.TransformID))
                         };
                     }
                 }

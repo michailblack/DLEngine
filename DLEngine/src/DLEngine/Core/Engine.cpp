@@ -12,6 +12,8 @@
 #include "DLEngine/Systems/Renderer/Renderer.h"
 #include "DLEngine/Systems/Renderer/TextureManager.h"
 
+#include "DLEngine/Systems/Transform/TransformSystem.h"
+
 namespace DLEngine
 {
     namespace
@@ -38,8 +40,9 @@ namespace DLEngine
         Filesystem::Init();
         ShaderIncludeHandler::Get()->Init();
         Renderer::Init();
-        MeshSystem::Get().Init();
         TextureManager::Init();
+        MeshSystem::Get().Init();
+        TransformSystem::Init();
     }
 
     void Engine::Deinit()

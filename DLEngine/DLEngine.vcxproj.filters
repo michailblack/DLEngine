@@ -183,6 +183,9 @@
     <ClInclude Include="src\DLEngine\Utils\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\DLEngine\Core\SolidVector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Window.cpp">
@@ -307,9 +310,11 @@
     <None Include="src\DLEngine\Systems\Mesh\ShadingGroup.inl">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="src\DLEngine\Shaders\Input.hlsli" />
+    <None Include="src\DLEngine\Shaders\Buffers.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\Global.hlsli" />
+    <FxCompile Include="src\DLEngine\Shaders\Samplers.hlsli" />
     <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\TextureOnly.hlsl" />

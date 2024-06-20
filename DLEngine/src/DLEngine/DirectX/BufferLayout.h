@@ -21,6 +21,8 @@ namespace DLEngine
     public:
         BufferLayout(const std::initializer_list<Element>& elements);
 
+        void AppendElement(const Element& element) noexcept;
+
         const std::vector<Element>& GetElements() const noexcept { return m_Elements; }
         uint32_t GetStride() const noexcept { return m_Stride; }
 
