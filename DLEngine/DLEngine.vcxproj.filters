@@ -18,9 +18,6 @@
     <ClInclude Include="src\DLEngine\Core\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Systems\Renderer\Renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\Math\Primitives.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -72,19 +69,10 @@
     <ClInclude Include="src\DLEngine\Math\Mat4x4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Systems\Renderer\Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\DLEngine\Systems\Renderer\CameraController.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\Math\Math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Math\Intersections.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\DLEngine\Systems\Renderer\Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Core\DLWin.h">
@@ -171,9 +159,6 @@
     <ClInclude Include="src\DLEngine\Systems\Transform\TransformSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Systems\Renderer\TextureManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\DirectX\Binder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -186,12 +171,30 @@
     <ClInclude Include="src\DLEngine\Core\SolidVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\DLEngine\Systems\Light\LightSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\CameraController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\LightCasters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\Renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\TextureManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\PostProcess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\DLEngine\Systems\Renderer\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\dlpch.cpp">
@@ -204,12 +207,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\DLEngine\Systems\Renderer\Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\DLEngine\Systems\Renderer\CameraController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\Core\DLException.cpp">
@@ -278,10 +275,25 @@
     <ClCompile Include="src\DLEngine\Systems\Transform\TransformSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Systems\Renderer\TextureManager.cpp">
+    <ClCompile Include="src\DLEngine\Utils\Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\Utils\Utils.cpp">
+    <ClCompile Include="src\DLEngine\Systems\Light\LightSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\TextureManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\PostProcess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -312,6 +324,7 @@
     </None>
     <None Include="src\DLEngine\Shaders\Input.hlsli" />
     <None Include="src\DLEngine\Shaders\Buffers.hlsli" />
+    <None Include="src\DLEngine\Shaders\LightCasters.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\DLEngine\Shaders\Samplers.hlsli" />
@@ -319,5 +332,8 @@
     <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\TextureOnly.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\Skybox.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\PostProcess.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Emission.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Lit.hlsl" />
   </ItemGroup>
 </Project>

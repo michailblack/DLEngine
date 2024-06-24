@@ -3,8 +3,8 @@
 
 struct InstanceInput
 {
-    float _emptyInstance   : _empty;
-    float a_TransformIndex : TRANSFORM_INDEX;
+    float _emptyInstance  : _empty;
+    uint a_TransformIndex : TRANSFORM_INDEX;
 };
 
 struct VertexOutput
@@ -18,7 +18,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     VertexOutput vsOutput;
 
     float4 worldPos = mul(float4(vsInput.a_Position, 1.0), c_MeshToModel);
-    worldPos = mul(worldPos, c_ModelToWorld[uint(instInput.a_TransformIndex)]);
+    worldPos = mul(worldPos, c_ModelToWorld[instInput.a_TransformIndex]);
 
     vsOutput.v_WorldPos = worldPos.xyz;
     vsOutput.v_Position = mul(worldPos, c_ViewProjection);

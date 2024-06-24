@@ -3,8 +3,9 @@
 
 #include "DLEngine/Core/Engine.h"
 
+#include "DLEngine/Renderer/Renderer.h"
+
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
-#include "DLEngine/Systems/Renderer/Renderer.h"
 
 #include "DLEngine/Utils/DeltaTime.h"
 
@@ -30,12 +31,12 @@ namespace DLEngine
             {
                 m_Timer.Reset();
 
-                Renderer::OnFrameBegin(dt);
+                Renderer::BeginFrame(dt);
 
                 for (const auto& layer : m_LayerStack)
                     layer->OnUpdate(dt);
 
-                Renderer::Present();
+                Renderer::EndFrame();
             }
 
             std::this_thread::yield();

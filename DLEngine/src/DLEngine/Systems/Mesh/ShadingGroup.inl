@@ -19,7 +19,7 @@ namespace DLEngine
 
         BufferLayout instanceBufferLayout{ desc.InstanceBufferLayout };
         instanceBufferLayout.AppendElement(
-            BufferLayout::Element{ "TRANSFORM_INDEX", BufferLayout::ShaderDataType::Float
+            BufferLayout::Element{ "TRANSFORM_INDEX", BufferLayout::ShaderDataType::Uint
         });
         inputLayout.AppendVertexBuffer(instanceBufferLayout, D3D11_INPUT_PER_INSTANCE_DATA);
         
@@ -181,7 +181,7 @@ namespace DLEngine
                         if (mesh.Intersects(transformedRay, outIntersectInfo.MeshIntersectInfo))
                         {
                             outIntersectInfo.Model = modelInst.Model;
-                            outIntersectInfo.TransformIndex = meshInstance.TransformID;
+                            outIntersectInfo.TransformID = meshInstance.TransformID;
 
                             // From model space to world space
                             auto& triangleIntersectInfo{ outIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo };
@@ -229,7 +229,7 @@ namespace DLEngine
                     {
                         instanceBufferPtr[copiedCount++] = {
                             .Instance = instance.Instance,
-                            .TransformIndex = static_cast<float>(TransformSystem::GetArrayIndex(instance.TransformID))
+                            .TransformIndex = TransformSystem::GetArrayIndex(instance.TransformID)
                         };
                     }
                 }

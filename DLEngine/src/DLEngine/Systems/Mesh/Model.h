@@ -1,8 +1,4 @@
 #pragma once
-#include "DLEngine/Core/Base.h"
-
-#include "DLEngine/Math/Vec3.h"
-
 #include "DLEngine/DirectX/IndexBuffer.h"
 #include "DLEngine/DirectX/VertexBuffer.h"
 
@@ -12,6 +8,7 @@ namespace DLEngine
 {
     class Model
     {
+        friend class ModelManager;
     public:
         struct MeshRange
         {
@@ -22,6 +19,7 @@ namespace DLEngine
         };
 
     public:
+        Model() = default;
         Model(const std::wstring& path);
 
         uint32_t GetMeshesCount() const noexcept { return static_cast<uint32_t>(m_Meshes.size()); }

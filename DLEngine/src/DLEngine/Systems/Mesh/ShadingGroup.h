@@ -22,7 +22,7 @@ namespace DLEngine
         {
             Mesh::IntersectInfo MeshIntersectInfo;
             Ref<Model> Model;
-            uint32_t TransformIndex{ 0u };
+            uint32_t TransformID{ 0u };
         };
 
     public:
@@ -105,7 +105,7 @@ namespace DLEngine
         struct InstanceBufferData
         {
             TInstance Instance{};
-            float TransformIndex{ 0.0f };
+            uint32_t TransformIndex{ 0u };
         };
 
     private:

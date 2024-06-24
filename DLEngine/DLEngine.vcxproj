@@ -108,6 +108,13 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
+    <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
+    <ClInclude Include="src\DLEngine\Renderer\LightCasters.h" />
+    <ClInclude Include="src\DLEngine\Renderer\PostProcess.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
+    <ClInclude Include="src\DLEngine\Renderer\TextureManager.h" />
+    <ClInclude Include="src\DLEngine\Systems\Light\LightSystem.h" />
     <ClInclude Include="src\DLEngine\Core\Filesystem.h" />
     <ClInclude Include="src\DLEngine\Core\SolidVector.h" />
     <ClInclude Include="src\DLEngine\DirectX\Binder.h" />
@@ -151,10 +158,6 @@
     <ClInclude Include="src\DLEngine\Math\Vec2.h" />
     <ClInclude Include="src\DLEngine\Math\Vec3.h" />
     <ClInclude Include="src\DLEngine\Math\Vec4.h" />
-    <ClInclude Include="src\DLEngine\Systems\Renderer\Camera.h" />
-    <ClInclude Include="src\DLEngine\Systems\Renderer\CameraController.h" />
-    <ClInclude Include="src\DLEngine\Systems\Renderer\Light.h" />
-    <ClInclude Include="src\DLEngine\Systems\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
     <ClInclude Include="src\DLEngine\Systems\Transform\TransformSystem.h" />
     <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
@@ -164,9 +167,14 @@
     <ClInclude Include="src\dlpch.h" />
     <ClInclude Include="src\DLEngine\DirectX\Texture.h" />
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
-    <ClInclude Include="src\DLEngine\Systems\Renderer\TextureManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\PostProcess.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\TextureManager.cpp" />
+    <ClCompile Include="src\DLEngine\Systems\Light\LightSystem.cpp" />
     <ClCompile Include="src\DLEngine\Core\Filesystem.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\View.cpp" />
@@ -189,9 +197,6 @@
     <ClCompile Include="src\DLEngine\DirectX\DXGIInfoQueue.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\InputLayout.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Renderer\Camera.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Renderer\CameraController.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Transform\TransformSystem.cpp" />
     <ClCompile Include="src\DLEngine\Utils\Utils.cpp" />
@@ -201,7 +206,6 @@
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\Texture.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Renderer\TextureManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\DLEngine\Math\Distance.inl" />
@@ -219,14 +223,36 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
+    <None Include="src\DLEngine\Shaders\LightCasters.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="src\DLEngine\Systems\Mesh\ShadingGroup.inl" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="src\DLEngine\Shaders\Emission.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\Lit.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\PostProcess.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

@@ -42,12 +42,18 @@ namespace DLEngine
         return id;
     }
 
+    void TransformSystem::ReplaceTransform(uint32_t id, const Math::Mat4x4& transform) noexcept
+    {
+        s_Data.Transforms[id] = transform;
+        s_Data.InvTransforms[id] = Math::Mat4x4::Inverse(transform);
+    }
+
     uint32_t TransformSystem::GetArrayIndex(uint32_t id) noexcept
     {
         return s_Data.Transforms.getIndex(id);
     }
 
-    void TransformSystem::UploadDataToGPU() noexcept
+    void TransformSystem::Update()
     {
         s_Data.TransformCB.Set(s_Data.Transforms.data(), s_Data.Transforms.size());
         s_Data.TransformCB.Bind(2u, BIND_ALL);
@@ -76,7 +82,7 @@ namespace DLEngine
     Math::Vec3 TransformSystem::TransformDirection(const Math::Vec3& direction, const Math::Mat4x4& transform) noexcept
     {
         return Math::Vec4{
-            Math::Vec4{ direction, 0.0f } *transform
+            Math::Vec4{ direction, 0.0f } * transform
         }.xyz();
     }
 

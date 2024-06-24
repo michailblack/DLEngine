@@ -9,7 +9,8 @@ namespace DLEngine
         {
             None = 0,
             Float, Float2, Float3, Float4,
-            Mat4
+            Mat4,
+            Int, Uint
         };
 
         struct Element

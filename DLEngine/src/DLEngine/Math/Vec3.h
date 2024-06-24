@@ -35,6 +35,8 @@ namespace DLEngine
 
             explicit operator DirectX::XMVECTOR() const noexcept { return DirectX::XMLoadFloat3(this); }
 
+            float& operator[](size_t i) noexcept { return reinterpret_cast<float*>(this)[i]; }
+
             void operator+=(const Vec3& v) noexcept;
             void operator-=(const Vec3& v) noexcept;
             void operator*=(float s) noexcept;

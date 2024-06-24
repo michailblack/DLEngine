@@ -12,6 +12,7 @@ namespace DLEngine
 
     class Mesh
     {
+        friend class ModelManager;
         friend class Model;
     public:
         struct IntersectInfo

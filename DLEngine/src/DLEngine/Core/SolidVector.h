@@ -88,6 +88,12 @@ public:
         m_Occupied.reserve(capacity);
     }
 
+    typename std::vector<T>::iterator begin() noexcept { return m_Data.begin(); }
+    typename std::vector<T>::iterator end() noexcept { return m_Data.end(); }
+
+    typename std::vector<T>::const_iterator begin() const noexcept { return m_Data.begin(); }
+    typename std::vector<T>::const_iterator end() const noexcept { return m_Data.end(); }
+
 public:
     std::vector<T> m_Data;
     std::vector<Index> m_ForwardMap;
