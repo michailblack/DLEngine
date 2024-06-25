@@ -20,7 +20,8 @@ namespace DLEngine
         void RotateUp(float angle) noexcept;
         void RotateAxis(Math::Vec3 normalizedAxis, float angle) noexcept;
 
-        Math::Ray ConstructRay(Math::Vec2 cursorPos) const noexcept;
+        Math::Vec3 ConstructFrustumPos(Math::Vec2 cursorPos) const noexcept;
+        Math::Vec3 ConstructFrustumDir(Math::Vec2 cursorPos) const noexcept;
 
         Math::Vec3 GetPosition() const noexcept { return m_Position; }
 

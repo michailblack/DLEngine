@@ -61,7 +61,12 @@ namespace DLEngine
         }
 
         if (m_Dragger)
-            m_Dragger->Drag(m_Camera.ConstructRay(Input::GetCursorPosition()));
+        {
+            Math::Ray ray{};
+            ray.Origin = m_Camera.ConstructFrustumPos(Input::GetCursorPosition());
+            ray.Direction = m_Camera.ConstructFrustumDir(Input::GetCursorPosition());
+            m_Dragger->Drag(ray);
+        }
     }
 
     void CameraController::OnEvent(Event& e)
@@ -114,7 +119,12 @@ namespace DLEngine
         case VK_RBUTTON:
         {
             IShadingGroup::IntersectInfo intersectInfo{};
-            if (MeshSystem::Get().Intersects(m_Camera.ConstructRay(Input::GetCursorPosition()), intersectInfo))
+            
+            Math::Ray ray{};
+            ray.Origin = m_Camera.ConstructFrustumPos(Input::GetCursorPosition());
+            ray.Direction = m_Camera.ConstructFrustumDir(Input::GetCursorPosition());
+
+            if (MeshSystem::Get().Intersects(ray, intersectInfo))
             {
                 m_Dragger = CreateScope<MeshDragger>(MeshDragger{
                     intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint,

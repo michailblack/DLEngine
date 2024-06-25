@@ -44,6 +44,6 @@ Texture2D<float3> g_Texture : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    float3 color = g_Texture.Sample(g_AnisotropicClamp, psInput.v_TexCoords).xyz;
+    float3 color = g_Texture.Sample(g_ActiveSampler, psInput.v_TexCoords).xyz;
     return float4(color, 1.0);
 }

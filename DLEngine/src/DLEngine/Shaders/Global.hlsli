@@ -15,6 +15,10 @@ cbuffer PerView : register(b1)
     float4x4 c_ViewProjection;
     float4x4 c_InvViewProjection;
     float4 c_CameraPosition;
+    float4 c_FrustumTopRightDir;
+    float4 c_FrustumTopLeftDir;
+    float4 c_FrustumBottomLeftDir;
+    float4 c_FrustumBottomRightDir;
 };
 
 SamplerState g_PointWrap : register(s0);
@@ -25,3 +29,5 @@ SamplerState g_TrilinearClamp : register(s3);
 
 SamplerState g_AnisotropicWrap : register(s4);
 SamplerState g_AnisotropicClamp : register(s5);
+
+SamplerState g_ActiveSampler : register(s6);

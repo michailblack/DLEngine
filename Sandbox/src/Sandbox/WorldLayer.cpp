@@ -49,7 +49,7 @@ void WorldLayer::OnAttach()
     const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"cube\\cube.obj") };
     const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
     
-    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\space.dds") };
+    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\sky.dds") };
     DLEngine::Renderer::SetSkybox(skybox.SRV);
 
     std::vector<DLEngine::NullMaterial> nullMaterials{};
@@ -154,7 +154,8 @@ void WorldLayer::OnAttach()
     DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
 
     transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 1.5f, 3.0f })
+        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 10.0f, 10.0f, 1.0f }) *
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 1.5f, 10.0f })
     );
 
     textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
@@ -181,6 +182,9 @@ void WorldLayer::OnUpdate(DeltaTime dt)
 void WorldLayer::OnEvent(DLEngine::Event& e)
 {
     m_CameraController.OnEvent(e);
+
+    DLEngine::EventDispatcher dispatcher{ e };
+    dispatcher.Dispatch<DLEngine::KeyPressedEvent>(DL_BIND_EVENT_FN(WorldLayer::OnKeyPressed));
 }
 
 void WorldLayer::InitHologramGroup() const
@@ -275,4 +279,25 @@ void WorldLayer::InitTextureOnlyGroup() const
     textureOnlyGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
 
     MeshSystem::Get().CreateShadingGroup<TextureOnlyGroupMaterial, NullInstance>(textureOnlyGroupDesc);
+}
+
+bool WorldLayer::OnKeyPressed(DLEngine::KeyPressedEvent& e)
+{
+    switch (e.GetKeyCode())
+    {
+    case '1':
+        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::POINT_WRAP).Bind(6u, DLEngine::BIND_ALL);
+        DL_LOG_INFO("Active sampler: POINT_WRAP");
+        break;
+    case '2':
+        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::TRILINEAR_WRAP).Bind(6u, DLEngine::BIND_ALL);
+        DL_LOG_INFO("Active sampler: TRILINEAR_WRAP");
+        break;
+    case '3':
+        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::ANISOTROPIC_8_WRAP).Bind(6u, DLEngine::BIND_ALL);
+        DL_LOG_INFO("Active sampler: ANISOTROPIC_8_WRAP");
+        break;
+    }
+
+    return false;
 }

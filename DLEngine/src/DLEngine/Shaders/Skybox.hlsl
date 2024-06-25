@@ -6,30 +6,24 @@ struct VertexOutput
     float3 v_CornerDir : CORNER_DIR;
 };
 
-static const float4 VERTICES_POS[3] = 
-{
-    float4(-1.0, -1.0, 0, 1.0),
-    float4(-1.0, 3.0, 0, 1.0),
-    float4(3.0, -1.0, 0, 1.0)
-};
-
 VertexOutput mainVS(uint vertexID : SV_VertexID)
 {
     VertexOutput vsOutput;
     
-    vsOutput.v_Position = VERTICES_POS[vertexID];
-    
-    float4 vertexWorldPos = mul(vsOutput.v_Position, c_InvViewProjection);
-    vertexWorldPos /= vertexWorldPos.w;
+    float2 uv = float2((vertexID << 1) & 2, vertexID & 2);
+    vsOutput.v_Position = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
 
-    vsOutput.v_CornerDir = normalize(vertexWorldPos.xyz - c_CameraPosition.xyz);
+    float3 top = lerp(c_FrustumTopLeftDir.xyz, c_FrustumTopRightDir.xyz, float3(uv.x, uv.x, uv.x));
+    float3 bottom = lerp(c_FrustumBottomLeftDir.xyz, c_FrustumBottomRightDir.xyz, float3(uv.x, uv.x, uv.x));
+    
+    vsOutput.v_CornerDir = lerp(top, bottom, float3(uv.y, uv.y, uv.y));
     
     return vsOutput;
 }
 
-TextureCube g_Skybox : register(t0);
+TextureCube<float3> g_Skybox : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    return float4(g_Skybox.Sample(g_AnisotropicClamp, psInput.v_CornerDir).xyz, 1.0);
+    return float4(g_Skybox.Sample(g_ActiveSampler, psInput.v_CornerDir).rgb, 1.0);
 }

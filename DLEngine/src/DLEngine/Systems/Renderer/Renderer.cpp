@@ -39,6 +39,10 @@ namespace DLEngine
             Math::Mat4x4 ViewProjection;
             Math::Mat4x4 InvViewProjection;
             Math::Vec4 CameraPosition;
+            Math::Vec4 FrustumTopRightDir;
+            Math::Vec4 FrustumTopLeftDir;
+            Math::Vec4 FrustumBottomLeftDir;
+            Math::Vec4 FrustumBottomRightDir;
         };
 
         struct RendererData
@@ -121,6 +125,8 @@ namespace DLEngine
         skyboxPipelineState.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::READ_ONLY_DEPTH);
 
         s_Data.SkyboxPipelineState.Create(skyboxPipelineState);
+
+        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP).Bind(6u, BIND_ALL);
 
         DL_LOG_INFO("Renderer Initialized");
     }
@@ -208,6 +214,12 @@ namespace DLEngine
         s_Data.PerView.ViewProjection = s_Data.PerView.View * s_Data.PerView.Projection;
         s_Data.PerView.InvViewProjection = Math::Mat4x4::Inverse(s_Data.PerView.ViewProjection);
         s_Data.PerView.CameraPosition = Math::Vec4{ camera.GetPosition(), 1.0f };
+
+        const auto& windowSize{ Application::Get().GetWindow()->GetSize() };
+        s_Data.PerView.FrustumTopRightDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ windowSize.x, 0.0f }), 0.0f };
+        s_Data.PerView.FrustumTopLeftDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ 0.0f, 0.0f }), 0.0f };
+        s_Data.PerView.FrustumBottomLeftDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ 0.0f, windowSize.y }), 0.0f };
+        s_Data.PerView.FrustumBottomRightDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ windowSize.x, windowSize.y }), 0.0f };
 
         s_Data.PerViewCB.Set(s_Data.PerView);
     }
