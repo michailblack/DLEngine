@@ -238,14 +238,16 @@ namespace DLEngine
         s_Data.PerFrameCB.Bind(0u, BIND_ALL);
         s_Data.PerViewCB.Bind(1u, BIND_ALL);
 
-        D3DStates::GetSamplerState(SamplerStates::POINT_WRAP).Bind(0u, BIND_ALL);
-        D3DStates::GetSamplerState(SamplerStates::POINT_CLAMP).Bind(1u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP).Bind(0u, BIND_ALL);
 
-        D3DStates::GetSamplerState(SamplerStates::TRILINEAR_WRAP).Bind(2u, BIND_ALL);
-        D3DStates::GetSamplerState(SamplerStates::TRILINEAR_CLAMP).Bind(3u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::POINT_WRAP).Bind(1u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::POINT_CLAMP).Bind(2u, BIND_ALL);
 
-        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP).Bind(4u, BIND_ALL);
-        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_CLAMP).Bind(5u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::TRILINEAR_WRAP).Bind(3u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::TRILINEAR_CLAMP).Bind(4u, BIND_ALL);
+
+        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP).Bind(5u, BIND_ALL);
+        D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_CLAMP).Bind(6u, BIND_ALL);
     }
 
     void Renderer::EndFrame()

@@ -6,9 +6,6 @@ struct VertexOutput
     float2 v_TexCoords : TEXCOORDS;
 };
 
-static const float VERTICES_XY[] = { -1.0, -1.0, 3.0, -1.0 };
-static const float VERTICES_UV[] = { 0.0, 1.0, 2.0, 1.0 };
-
 VertexOutput mainVS(uint vertexID : SV_VertexID)
 {
     VertexOutput vsOutput;
@@ -57,11 +54,11 @@ cbuffer PostProcessSettigs : register(b9)
     float c_Gamma;
 }
 
-Texture2D<float4> g_TextureHDR : register(t0);
+Texture2D<float4> t_TextureHDR : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-	float4 color = g_TextureHDR.Sample(g_TrilinearClamp, psInput.v_TexCoords);
+	float4 color = t_TextureHDR.Sample(s_TrilinearClamp, psInput.v_TexCoords);
     color.xyz = adjustExposure(color.xyz, c_EV100);
     color.xyz = acesHdr2Ldr(color.xyz);
     color.xyz = correctGamma(color.xyz, c_Gamma);

@@ -35,49 +35,49 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     return vsOutput;
 }
 
-float3 BlinnPhongResolveDirectionalLight(float3 color, float3 worldPos, float3 normal, float threshold)
+float3 BlinnPhongResolveDirectionalLight(float3 albedo, float3 worldPos, float3 normal, float threshold)
 {
-    float3 resultColor = color;
+    float3 reflectedColor = float3(0.0, 0.0, 0.0);
     for (uint i = 0; i < c_DirectionalLightsCount; ++i)
     {
         float3 lightDir = -normalize(mul(float4(c_DirectionalLights[i].Direction, 0.0), c_ModelToWorld[c_DirectionalLights[i].TransformIndex]).xyz);
 
-        float3 diffuse = max(dot(normal, lightDir), threshold) * c_DirectionalLights[i].Luminance * color;
+        float3 diffuse = max(dot(normal, lightDir), threshold) * albedo;
 
-        float3 halfDir = normalize(lightDir + (c_CameraPosition.xyz - worldPos));
+        float3 halfDir = normalize(lightDir + normalize(c_CameraPosition.xyz - worldPos));
         float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0);
 
-        resultColor += diffuse + specular;
+        reflectedColor += c_DirectionalLights[i].Luminance * (diffuse + specular);
     }
 
-    return resultColor;
+    return reflectedColor;
 }
 
-float3 BlinnPhongResolvePointLight(float3 color, float3 worldPos, float3 normal, float threshold)
+float3 BlinnPhongResolvePointLight(float3 albedo, float3 worldPos, float3 normal, float threshold)
 {
-    float3 resultColor = color;
+    float3 reflectedColor = float3(0.0, 0.0, 0.0);
     for (uint i = 0; i < c_PointLightsCount; ++i)
     {
         const float3 lightWorldPos = mul(float4(c_PointLights[i].Position, 1.0), c_ModelToWorld[c_PointLights[i].TransformIndex]).xyz;
         const float3 lightDir = normalize(lightWorldPos - worldPos);
 
-        const float3 diffuse = max(dot(normal, lightDir), threshold) * c_PointLights[i].Luminance * color;
+        const float3 diffuse = max(dot(normal, lightDir), threshold) * albedo;
 
-        const float3 halfDir = normalize(lightDir + (c_CameraPosition.xyz - worldPos));
+        const float3 halfDir = normalize(lightDir + normalize(c_CameraPosition.xyz - worldPos));
         const float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0);
 
         const float dist = length(lightWorldPos - worldPos);
         const float attenuation = 1.0 / (1.0 + c_PointLights[i].Linear * dist + c_PointLights[i].Quadratic * dist * dist);
 
-        resultColor += (diffuse + specular) * attenuation;
+        reflectedColor += c_PointLights[i].Luminance * (diffuse + specular) * attenuation;
     }
 
-    return resultColor;
+    return reflectedColor;
 }
 
-float3 BlinnPhongResolveSpotLight(float3 color, float3 worldPos, float3 normal, float threshold)
+float3 BlinnPhongResolveSpotLight(float3 albedo, float3 worldPos, float3 normal, float threshold)
 {
-    float3 resultColor = color;
+    float3 reflectedColor = float3(0.0, 0.0, 0.0);
     for (uint i = 0; i < c_SpotLightsCount; ++i)
     {
         const float3 spotLightWorldPos = mul(float4(c_SpotLights[i].Position, 1.0), c_ModelToWorld[c_SpotLights[i].TransformIndex]).xyz;
@@ -88,9 +88,9 @@ float3 BlinnPhongResolveSpotLight(float3 color, float3 worldPos, float3 normal, 
         const float angle = dot(lightDir, -spotLightWorldDir);
         if (angle > c_SpotLights[i].OuterCutoffCos)
         {
-            const float3 diffuse = max(dot(normal, lightDir), threshold) * c_SpotLights[i].Luminance * color;
+            const float3 diffuse = max(dot(normal, lightDir), threshold) * albedo;
 
-            const float3 halfDir = normalize(lightDir + (c_CameraPosition.xyz - worldPos));
+            const float3 halfDir = normalize(lightDir + normalize(c_CameraPosition.xyz - worldPos));
             const float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0);
 
             const float dist = length(spotLightWorldPos - worldPos);
@@ -99,22 +99,23 @@ float3 BlinnPhongResolveSpotLight(float3 color, float3 worldPos, float3 normal, 
             const float spotLightFactor = c_SpotLights[i].InnerCutoffCos - c_SpotLights[i].OuterCutoffCos;
             const float intensity = clamp((angle - c_SpotLights[i].OuterCutoffCos) / spotLightFactor, 0.0, 1.0);
 
-            resultColor += (diffuse + specular) * attenuation * intensity;
+            reflectedColor += c_SpotLights[i].Luminance * (diffuse + specular) * attenuation * intensity;
         }
     }
 
-    return resultColor;
+    return reflectedColor;
 }
 
-Texture2D<float3> g_Albedo : register(t0);
+Texture2D<float3> t_Albedo : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    float3 albedo = g_Albedo.Sample(g_AnisotropicClamp, psInput.v_TexCoords).xyz;
+    float3 albedo = t_Albedo.Sample(s_ActiveSampler, psInput.v_TexCoords).xyz;
     const float threshold = 0.0001;
-    float3 ambient = albedo * 0.05;
-    float3 color = BlinnPhongResolveDirectionalLight(ambient, psInput.v_WorldPos, psInput.v_Normal, threshold);
-    color = BlinnPhongResolvePointLight(color, psInput.v_WorldPos, psInput.v_Normal, threshold);
-    color = BlinnPhongResolveSpotLight(color, psInput.v_WorldPos, psInput.v_Normal, threshold);
-    return float4(color, 1.0);
+    const float3 indirect = float3(0.05, 0.05, 0.05);
+    float3 outputColor = albedo * indirect;
+    outputColor += BlinnPhongResolveDirectionalLight(albedo, psInput.v_WorldPos, psInput.v_Normal, threshold);
+    outputColor += BlinnPhongResolvePointLight(albedo, psInput.v_WorldPos, psInput.v_Normal, threshold);
+    outputColor += BlinnPhongResolveSpotLight(albedo, psInput.v_WorldPos, psInput.v_Normal, threshold);
+    return float4(outputColor, 1.0);
 }
