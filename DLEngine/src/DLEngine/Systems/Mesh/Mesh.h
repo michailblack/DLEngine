@@ -13,7 +13,6 @@ namespace DLEngine
     class Mesh
     {
         friend class ModelManager;
-        friend class Model;
     public:
         struct IntersectInfo
         {
@@ -41,7 +40,7 @@ namespace DLEngine
 
         void UpdateOctree() { m_Octree.Build(); }
 
-        // Ray must be in model space
+        // Ray and outIntersectInfo must be converted to model space
         bool Intersects(const Math::Ray& ray, Mesh::IntersectInfo& outIntersectInfo) const noexcept;
 
         const Vertex& GetVertex(uint32_t vertexIndex) const noexcept;

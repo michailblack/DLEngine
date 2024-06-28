@@ -76,19 +76,24 @@ namespace DLEngine
 
         m_Nodes.resize(CountMaxElementsWithDepth(m_MaxDepth),
             OctreeNode{
-                .BoundingBox = Math::AABB {},
+                .BoundingBox = Math::AABB{},
                 .FirstChild = m_EmptyLeafIndicator,
-                .FirstTriangle = 0,
-                .TriangleCount = 0
+                .FirstTriangle = 0u,
+                .TriangleCount = 0u
             });
         m_TriangleIndices.resize(triangles.size());
-        std::iota(m_TriangleIndices.begin(), m_TriangleIndices.end(), 0);
+        std::iota(m_TriangleIndices.begin(), m_TriangleIndices.end(), 0u);
 
-        constexpr uint32_t rootIndex{ 0 };
+        constexpr uint32_t rootIndex{ 0u };
         OctreeNode& root{ m_Nodes[rootIndex] };
+
+        constexpr Math::Vec3 eps{ 1e-5f };
         root.BoundingBox = m_TargetMesh.GetBoundingBox();
-        root.FirstChild = 0;
-        root.FirstTriangle = 0;
+        root.BoundingBox.Min -= eps;
+        root.BoundingBox.Max += eps;
+
+        root.FirstChild = 0u;
+        root.FirstTriangle = 0u;
         root.TriangleCount = static_cast<uint32_t>(m_TriangleIndices.size());
 
         Subdivide(rootIndex);
@@ -101,7 +106,7 @@ namespace DLEngine
         const std::vector<Mesh::Triangle>& triangles{ m_TargetMesh.GetTriangles() };
 
         OctreeNode& node{ m_Nodes[nodeIndex] };
-        if (node.TriangleCount <= m_MaxTrianglesPerNode || GetCurrentDepth(nodeIndex) >= m_MaxDepth)
+        if (node.TriangleCount <= m_MaxTrianglesPerNode || GetNodeDepth(nodeIndex) >= m_MaxDepth)
             return;
 
         const Math::Vec3 center{ (node.BoundingBox.Min + node.BoundingBox.Max) / 2.0f };
@@ -129,9 +134,11 @@ namespace DLEngine
             OctreeNode& child{ m_Nodes[firstChildIndex + i] };
             child.FirstTriangle = node.FirstTriangle;
             child.TriangleCount = 0;
+
+            constexpr Math::Vec3 eps{ 1e-5f };
             child.BoundingBox = Math::AABB{
-                .Min = centers[i] - quarterSize,
-                .Max = centers[i] + quarterSize
+                .Min = centers[i] - quarterSize - eps,
+                .Max = centers[i] + quarterSize + eps
             };
 
             const auto IsPointInsideAABB = [](const Math::Vec3& point, const Math::AABB& aabb) -> bool
@@ -171,6 +178,7 @@ namespace DLEngine
             else
                 child.FirstChild = m_EmptyLeafIndicator;
         }
+
         if (node.TriangleCount == numTriangleBeforeSubdivision)
             node.FirstChild = m_EmptyLeafIndicator;
         else
@@ -182,7 +190,7 @@ namespace DLEngine
         const auto& lastValidLeaf = std::find_if(m_Nodes.rbegin(), m_Nodes.rend(), [](const OctreeNode& node) { return node.TriangleCount > 0; });
         const uint32_t lastValidLeafIndex{ static_cast<uint32_t>(std::distance(m_Nodes.begin(), lastValidLeaf.base())) - 1 };
 
-        const uint32_t rightBorder{ CountMaxElementsWithDepth(GetCurrentDepth(lastValidLeafIndex)) };
+        const uint32_t rightBorder{ CountMaxElementsWithDepth(GetNodeDepth(lastValidLeafIndex)) };
         m_Nodes.resize(rightBorder);
 
         m_Nodes.shrink_to_fit();
@@ -193,7 +201,7 @@ namespace DLEngine
         return m_Nodes[nodeIndex].FirstChild != m_EmptyLeafIndicator;
     }
 
-    uint32_t TriangleOctree::GetCurrentDepth(uint32_t nodeIndex) const noexcept
+    uint32_t TriangleOctree::GetNodeDepth(uint32_t nodeIndex) noexcept
     {
         if (nodeIndex == 0)
             return 0;

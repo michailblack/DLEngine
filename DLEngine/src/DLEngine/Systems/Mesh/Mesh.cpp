@@ -34,9 +34,9 @@ namespace DLEngine
             {
                 Math::IntersectInfo triangleIntersectInfo{};
                 Math::Triangle triangle{
-                    Math::Vec4{ Math::Vec4{ m_Vertices[m_Triangles[triangleIndex].Indices[0]].Position, 1.0f } * meshToModel }.xyz(),
-                    Math::Vec4{ Math::Vec4{ m_Vertices[m_Triangles[triangleIndex].Indices[1]].Position, 1.0f } * meshToModel }.xyz(),
-                    Math::Vec4{ Math::Vec4{ m_Vertices[m_Triangles[triangleIndex].Indices[2]].Position, 1.0f } * meshToModel }.xyz()
+                    TransformSystem::TransformPoint(m_Vertices[m_Triangles[triangleIndex].Indices[0]].Position, meshToModel),
+                    TransformSystem::TransformPoint(m_Vertices[m_Triangles[triangleIndex].Indices[1]].Position, meshToModel),
+                    TransformSystem::TransformPoint(m_Vertices[m_Triangles[triangleIndex].Indices[2]].Position, meshToModel),
                 };
 
                 DL_ASSERT_EXPR(Math::Intersects(ray, triangle, triangleIntersectInfo));

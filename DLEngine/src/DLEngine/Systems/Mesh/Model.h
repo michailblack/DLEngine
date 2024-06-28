@@ -20,7 +20,8 @@ namespace DLEngine
 
     public:
         Model() = default;
-        Model(const std::wstring& path);
+
+        const Math::AABB& GetBoundingBox() const noexcept { return m_BoundingBox; }
 
         uint32_t GetMeshesCount() const noexcept { return static_cast<uint32_t>(m_Meshes.size()); }
 
@@ -37,6 +38,8 @@ namespace DLEngine
     private:
         std::vector<Mesh> m_Meshes;
         std::vector<MeshRange> m_Ranges;
+
+        Math::AABB m_BoundingBox;
 
         VertexBuffer<Mesh::Vertex, VertexBufferUsage::Immutable> m_VertexBuffer;
         IndexBuffer m_IndexBuffer;
