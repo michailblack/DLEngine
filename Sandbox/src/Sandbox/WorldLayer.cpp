@@ -47,15 +47,24 @@ struct EmissionGroupInstance
 struct LitGroupMaterial
 {
     DLEngine::ShaderResourceView AlbedoSRV{};
+    DLEngine::ShaderResourceView NormalSRV{};
+    DLEngine::ShaderResourceView MetallicSRV{};
+    DLEngine::ShaderResourceView RoughnessSRV{};
 
     void Set() const noexcept
     {
         AlbedoSRV.Bind(0u, DLEngine::BIND_PS);
+        NormalSRV.Bind(1u, DLEngine::BIND_PS);
+        MetallicSRV.Bind(2u, DLEngine::BIND_PS);
+        RoughnessSRV.Bind(3u, DLEngine::BIND_PS);
     }
 
     bool operator==(const LitGroupMaterial& other) const
     {
-        return AlbedoSRV.Handle == other.AlbedoSRV.Handle;
+        return AlbedoSRV.Handle == other.AlbedoSRV.Handle &&
+            NormalSRV.Handle == other.NormalSRV.Handle &&
+            MetallicSRV.Handle == other.MetallicSRV.Handle &&
+            RoughnessSRV.Handle == other.RoughnessSRV.Handle;
     }
 };
 
@@ -132,26 +141,50 @@ void WorldLayer::OnAttach()
     litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_BaseColor.dds"
     ).SRV;
+    litMaterials[0].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_Normal.dds"
+    ).SRV;
     litMaterials[1].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_BaseColor.dds"
+    ).SRV;
+    litMaterials[1].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_Normal.dds"
     ).SRV;
     litMaterials[2].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_BaseColor.dds"
     ).SRV;
+    litMaterials[2].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_Normal.dds"
+    ).SRV;
     litMaterials[3].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_BaseColor.dds"
+    ).SRV;
+    litMaterials[3].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_Normal.dds"
     ).SRV;
     litMaterials[4].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_BaseColor.dds"
     ).SRV;
+    litMaterials[4].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_Normal.dds"
+    ).SRV;
     litMaterials[5].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_BaseColor.dds"
+    ).SRV;
+    litMaterials[5].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_Normal.dds"
     ).SRV;
     litMaterials[6].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_BaseColor.dds"
     ).SRV;
+    litMaterials[6].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_Normal.dds"
+    ).SRV;
     litMaterials[7].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
+    ).SRV;
+    litMaterials[7].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_Normal.dds"
     ).SRV;
 
     DLEngine::MeshSystem::Get().Add<>(samurai, litMaterials, DLEngine::NullInstance{}, transformID);
@@ -167,7 +200,10 @@ void WorldLayer::OnAttach()
     );
 
     litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"cube\\stone.dds"
+        DLEngine::Filesystem::GetTextureDir() + L"cube\\Cobblestone_albedo.dds"
+    ).SRV;
+    litMaterials[0].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"cube\\Cobblestone_normal.dds"
     ).SRV;
 
     DLEngine::MeshSystem::Get().Add<>(cube, litMaterials, DLEngine::NullInstance{}, transformID);
@@ -177,7 +213,10 @@ void WorldLayer::OnAttach()
     );
 
     litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"texture_test.dds"
+        DLEngine::Filesystem::GetTextureDir() + L"cube\\MudRoad_albedo.dds"
+    ).SRV;
+    litMaterials[0].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"cube\\MudRoad_normal.dds"
     ).SRV;
 
     DLEngine::MeshSystem::Get().Add<>(cube, litMaterials, DLEngine::NullInstance{}, transformID);
@@ -211,8 +250,14 @@ void WorldLayer::OnAttach()
     litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
     ).SRV;
+    litMaterials[0].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Normal.dds"
+    ).SRV;
     litMaterials[1].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
+    ).SRV;
+    litMaterials[1].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Normal.dds"
     ).SRV;
 
     DLEngine::MeshSystem::Get().Add<>(flashlight, litMaterials, DLEngine::NullInstance{}, m_CameraTransformID);

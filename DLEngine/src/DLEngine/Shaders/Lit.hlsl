@@ -10,10 +10,11 @@ struct InstanceInput
 
 struct VertexOutput
 {
-    float4 v_Position  : SV_POSITION;
-    float3 v_WorldPos  : WORLD_POS;
-    float3 v_Normal    : NORMAL;
-    float2 v_TexCoords : TEXCOORDS;
+    float4   v_Position       : SV_POSITION;
+    float3   v_WorldPos       : WORLD_POS;
+    float3   v_Normal         : NORMAL;
+    float2   v_TexCoords      : TEXCOORDS;
+    float3x3 v_TangentToWorld : TANGENT_TO_WORLD;
 };
 
 VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
@@ -26,11 +27,17 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     vsOutput.v_WorldPos = vertexPos.xyz;
     vsOutput.v_Position = mul(vertexPos, c_ViewProjection);
 
+    vsOutput.v_TexCoords = vsInput.a_TexCoords;
+
     float3 axisX = normalize(meshToWorld[0].xyz);
     float3 axizY = normalize(meshToWorld[1].xyz);
     float3 axizZ = normalize(meshToWorld[2].xyz);
-    vsOutput.v_Normal = vsInput.a_Normal.x * axisX + vsInput.a_Normal.y * axizY + vsInput.a_Normal.z * axizZ;
-    vsOutput.v_TexCoords = vsInput.a_TexCoords;
+    vsOutput.v_Normal = normalize(vsInput.a_Normal.x * axisX + vsInput.a_Normal.y * axizY + vsInput.a_Normal.z * axizZ);
+
+    float3 T = normalize(vsInput.a_Tangent.x * axisX + vsInput.a_Tangent.y * axizY + vsInput.a_Tangent.z * axizZ);
+    float3 B = normalize(vsInput.a_Bitangent.x * axisX + vsInput.a_Bitangent.y * axizY + vsInput.a_Bitangent.z * axizZ);
+
+    vsOutput.v_TangentToWorld = float3x3(T, B, vsOutput.v_Normal);
 
     return vsOutput;
 }
@@ -109,16 +116,28 @@ float3 BlinnPhongResolveSpotLight(float3 albedo, float3 worldPos, float3 normal,
     return reflectedColor;
 }
 
-Texture2D<float3> t_Albedo : register(t0);
+Texture2D<float3> t_Albedo    : register(t0);
+Texture2D<float2> t_Normal    : register(t1);
+Texture2D<float>  t_Metallic  : register(t2);
+Texture2D<float>  t_Roughness : register(t3);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    float3 albedo = t_Albedo.Sample(s_ActiveSampler, psInput.v_TexCoords).xyz;
+    const float3 albedo = t_Albedo.Sample(s_ActiveSampler, psInput.v_TexCoords).xyz;
+    const float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, psInput.v_TexCoords).xy;
+    
+    const float3 normalTangentSpace = float3(normalBC5.x, normalBC5.y, sqrt(saturate(1.0 - dot(normalBC5.xy, normalBC5.yx))));
+    float3 normal = normalize(mul(
+        normalTangentSpace,
+        psInput.v_TangentToWorld
+    ));
+
     const float threshold = 0.0001;
     const float3 indirect = float3(0.05, 0.05, 0.05);
     float3 outputColor = albedo * indirect;
-    outputColor += BlinnPhongResolveDirectionalLight(albedo, psInput.v_WorldPos, psInput.v_Normal, threshold);
-    outputColor += BlinnPhongResolvePointLight(albedo, psInput.v_WorldPos, psInput.v_Normal, threshold);
-    outputColor += BlinnPhongResolveSpotLight(albedo, psInput.v_WorldPos, psInput.v_Normal, threshold);
+    outputColor += BlinnPhongResolveDirectionalLight(albedo, psInput.v_WorldPos, normal, threshold);
+    outputColor += BlinnPhongResolvePointLight(albedo, psInput.v_WorldPos, normal, threshold);
+    outputColor += BlinnPhongResolveSpotLight(albedo, psInput.v_WorldPos, normal, threshold);
+
     return float4(outputColor, 1.0);
 }
