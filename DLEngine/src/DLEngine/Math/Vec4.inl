@@ -2,6 +2,11 @@
 
 namespace DLEngine::Math
 {
+    inline bool Vec4::operator==(const Vec4& v) const noexcept
+    {
+        return DirectX::XMVector4Equal(static_cast<DirectX::XMVECTOR>(*this), static_cast<DirectX::XMVECTOR>(v));
+    }
+
     inline void Vec4::operator*=(float s) noexcept
     {
         *this = *this * s;

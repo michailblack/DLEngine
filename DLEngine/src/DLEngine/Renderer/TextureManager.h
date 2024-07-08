@@ -4,7 +4,7 @@
 
 namespace DLEngine
 {
-    struct Texture2DEntry
+    struct Texture2DResource
     {
         Texture2D Texture{};
         ShaderResourceView SRV{};
@@ -15,8 +15,11 @@ namespace DLEngine
     public:
         static void Init();
 
-        static Texture2DEntry LoadTexture2D(const std::wstring& path);
-        static Texture2DEntry GetTexture2D(const std::wstring& path);
+        static Texture2DResource LoadTexture2D(const std::wstring& path);
+        static Texture2DResource GetTexture2D(const std::wstring& path);
+
+        static Texture2DResource GenerateValueTexture2D(Math::Vec4 value);
+
         static bool Exists2D(const std::wstring& path);
     };
 }

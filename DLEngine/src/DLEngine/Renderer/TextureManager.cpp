@@ -5,6 +5,18 @@
 
 #pragma comment(lib, "DirectXTex.lib")
 
+namespace std
+{
+    template <>
+    struct hash<DLEngine::Math::Vec4>
+    {
+        size_t operator()(const DLEngine::Math::Vec4& key) const noexcept
+        {
+            return std::hash<float>{}(key.x) ^ std::hash<float>{}(key.y) ^ std::hash<float>{}(key.z) ^ std::hash<float>{}(key.w);
+        }
+    };
+}
+
 namespace DLEngine
 {
     namespace Utils
@@ -44,7 +56,8 @@ namespace DLEngine
     {
         struct TextureManagerData
         {
-            std::unordered_map<std::wstring, Texture2DEntry> Textures2D;
+            std::unordered_map<std::wstring, Texture2DResource> Textures2D;
+            std::unordered_map<Math::Vec4, Texture2DResource> ValueTextures2D;
         } s_Data;
     }
 
@@ -55,7 +68,7 @@ namespace DLEngine
         DL_LOG_INFO("TextureManager Initialized");
     }
 
-    Texture2DEntry TextureManager::LoadTexture2D(const std::wstring& path)
+    Texture2DResource TextureManager::LoadTexture2D(const std::wstring& path)
     {
         if (Exists2D(path))
             return s_Data.Textures2D[path];
@@ -92,20 +105,53 @@ namespace DLEngine
             initData.push_back(data);
         }
 
-        Texture2DEntry entry{};
-        entry.Texture.Create(textureDesc, initData);
-        entry.SRV.Create(entry.Texture);
+        Texture2DResource resource{};
+        resource.Texture.Create(textureDesc, initData);
+        resource.SRV.Create(resource.Texture);
 
-        const auto& [it, hasConstructed]{ s_Data.Textures2D.emplace(std::make_pair(path, entry)) };
+        const auto& [it, hasConstructed]{ s_Data.Textures2D.emplace(std::make_pair(path, resource)) };
 
         return it->second;
     }
 
-    Texture2DEntry TextureManager::GetTexture2D(const std::wstring& path)
+    Texture2DResource TextureManager::GetTexture2D(const std::wstring& path)
     {
         DL_ASSERT_NOINFO(Exists2D(path));
 
         return s_Data.Textures2D[path];
+    }
+
+    Texture2DResource TextureManager::GenerateValueTexture2D(Math::Vec4 value)
+    {
+        if (s_Data.ValueTextures2D.contains(value))
+            return s_Data.ValueTextures2D[value];
+
+        D3D11_TEXTURE2D_DESC1 textureDesc{};
+        textureDesc.Width = 1u;
+        textureDesc.Height = 1u;
+        textureDesc.MipLevels = 1u;
+        textureDesc.ArraySize = 1u;
+        textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        textureDesc.SampleDesc.Count = 1u;
+        textureDesc.SampleDesc.Quality = 0u;
+        textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
+        textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        textureDesc.CPUAccessFlags = 0u;
+        textureDesc.MiscFlags = 0u;
+        textureDesc.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
+
+        D3D11_SUBRESOURCE_DATA initData{};
+        initData.pSysMem = &value;
+        initData.SysMemPitch = sizeof(Math::Vec4);
+        initData.SysMemSlicePitch = 0u;
+
+        Texture2DResource resource{};
+        resource.Texture.Create(textureDesc, std::vector { initData });
+        resource.SRV.Create(resource.Texture);
+
+        const auto& [it, hasConstructed]{ s_Data.ValueTextures2D.emplace(std::make_pair(value, resource)) };
+
+        return it->second;
     }
 
     bool TextureManager::Exists2D(const std::wstring& path)

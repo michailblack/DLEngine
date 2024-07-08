@@ -38,6 +38,8 @@ namespace DLEngine::Math
 
         explicit operator DirectX::XMVECTOR() const noexcept { return DirectX::XMLoadFloat4(this); }
 
+        inline bool operator==(const Vec4& v) const noexcept;
+
         inline void operator*=(float s) noexcept;
         inline void operator/=(float s) noexcept;
 
