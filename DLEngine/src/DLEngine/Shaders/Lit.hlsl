@@ -45,7 +45,8 @@ float3 BlinnPhongResolveDirectionalLight(float3 albedo, float3 worldPos, float3 
         float3 diffuse = max(dot(normal, lightDir), threshold) * albedo;
 
         float3 halfDir = normalize(lightDir + normalize(c_CameraPosition.xyz - worldPos));
-        float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0);
+        float3 lightAboveSurfaceFactor = max(dot(normal, lightDir), threshold);
+        float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0) * lightAboveSurfaceFactor;
 
         reflectedColor += c_DirectionalLights[i].Luminance * (diffuse + specular);
     }
@@ -64,7 +65,8 @@ float3 BlinnPhongResolvePointLight(float3 albedo, float3 worldPos, float3 normal
         const float3 diffuse = max(dot(normal, lightDir), threshold) * albedo;
 
         const float3 halfDir = normalize(lightDir + normalize(c_CameraPosition.xyz - worldPos));
-        const float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0);
+        float3 lightAboveSurfaceFactor = max(dot(normal, lightDir), threshold);
+        float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0) * lightAboveSurfaceFactor;
 
         const float dist = length(lightWorldPos - worldPos);
         const float attenuation = 1.0 / (1.0 + c_PointLights[i].Linear * dist + c_PointLights[i].Quadratic * dist * dist);
@@ -91,7 +93,8 @@ float3 BlinnPhongResolveSpotLight(float3 albedo, float3 worldPos, float3 normal,
             const float3 diffuse = max(dot(normal, lightDir), threshold) * albedo;
 
             const float3 halfDir = normalize(lightDir + normalize(c_CameraPosition.xyz - worldPos));
-            const float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0);
+            float3 lightAboveSurfaceFactor = max(dot(normal, lightDir), threshold);
+            float3 specular = pow(max(dot(normal, halfDir), threshold), 256.0) * lightAboveSurfaceFactor;
 
             const float dist = length(spotLightWorldPos - worldPos);
             const float attenuation = 1.0 / (1.0 + c_SpotLights[i].Linear * dist + c_SpotLights[i].Quadratic * dist * dist);
