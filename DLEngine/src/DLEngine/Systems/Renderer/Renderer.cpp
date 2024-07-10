@@ -39,10 +39,9 @@ namespace DLEngine
             Math::Mat4x4 ViewProjection;
             Math::Mat4x4 InvViewProjection;
             Math::Vec4 CameraPosition;
-            Math::Vec4 FrustumTopRightDir;
-            Math::Vec4 FrustumTopLeftDir;
-            Math::Vec4 FrustumBottomLeftDir;
-            Math::Vec4 FrustumBottomRightDir;
+            Math::Vec4 BL;
+            Math::Vec4 BL2TL;
+            Math::Vec4 BL2BR;
         };
 
         struct RendererData
@@ -216,10 +215,9 @@ namespace DLEngine
         s_Data.PerView.CameraPosition = Math::Vec4{ camera.GetPosition(), 1.0f };
 
         const auto& windowSize{ Application::Get().GetWindow()->GetSize() };
-        s_Data.PerView.FrustumTopRightDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ windowSize.x, 0.0f }), 0.0f };
-        s_Data.PerView.FrustumTopLeftDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ 0.0f, 0.0f }), 0.0f };
-        s_Data.PerView.FrustumBottomLeftDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ 0.0f, windowSize.y }), 0.0f };
-        s_Data.PerView.FrustumBottomRightDir = Math::Vec4{ camera.ConstructFrustumDir(Math::Vec2{ windowSize.x, windowSize.y }), 0.0f };
+        s_Data.PerView.BL = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ 0.0f, windowSize.y }), 1.0f };
+        s_Data.PerView.BL2TL = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ 0.0f, 0.0f }), 1.0f } - s_Data.PerView.BL;
+        s_Data.PerView.BL2BR = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ windowSize.x, windowSize.y }), 1.0f } - s_Data.PerView.BL;
 
         s_Data.PerViewCB.Set(s_Data.PerView);
     }

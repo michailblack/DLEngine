@@ -57,7 +57,7 @@ namespace DLEngine
         return P.xyz();
     }
 
-    Math::Vec3 Camera::ConstructFrustumDir(Math::Vec2 cursorPos) const noexcept
+    Math::Vec3 Camera::ConstructFrustumPosRotOnly(Math::Vec2 cursorPos) const noexcept
     {
         auto viewMatrix{ GetViewMatrix() };
 
@@ -83,7 +83,7 @@ namespace DLEngine
 
         const Math::Vec4 P = BL + Right * (cursorPos.x / windowSize.x) + Up * (1.0f - cursorPos.y / windowSize.y);
 
-        return Math::Normalize(P.xyz());
+        return P.xyz();
     }
 
     Math::Mat4x4 Camera::GetProjectionMatrix() const noexcept

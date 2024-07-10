@@ -43,11 +43,13 @@ namespace DLEngine
     private:
         Camera m_Camera;
 
-        float m_Velocity{ 0.003f };
-        float m_VelocityScale{ 5.0f };
-        float m_DeltaVelocityPercents{ 5.0f };
+        float m_Velocity;
         float m_MinVelocity{ 0.0001f };
         float m_MaxVelocity{ 0.5f };
+        float m_VelocityScale{ 5.0f };
+
+        float m_VelocityFunX{ -0.5f };
+        float m_VelocityFunStepRate{ 100.0f };
 
         // Radians per millisecond
         float m_RotationVelocity{ Math::Pi() * 1.e-3f };

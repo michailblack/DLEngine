@@ -11,7 +11,8 @@ namespace DLEngine
     CameraController::CameraController(const Camera& camera) noexcept
         : m_Camera(camera)
     {
-
+        MouseScrolledEvent e{ 0 };
+        OnMouseScrolled(e);
     }
 
     void CameraController::OnUpdate(float dt)
@@ -64,7 +65,7 @@ namespace DLEngine
         {
             Math::Ray ray{};
             ray.Origin = m_Camera.ConstructFrustumPos(Input::GetCursorPosition());
-            ray.Direction = m_Camera.ConstructFrustumDir(Input::GetCursorPosition());
+            ray.Direction = Math::Normalize(m_Camera.ConstructFrustumPosRotOnly(Input::GetCursorPosition()));
             m_Dragger->Drag(ray);
         }
     }
@@ -122,7 +123,7 @@ namespace DLEngine
             
             Math::Ray ray{};
             ray.Origin = m_Camera.ConstructFrustumPos(Input::GetCursorPosition());
-            ray.Direction = m_Camera.ConstructFrustumDir(Input::GetCursorPosition());
+            ray.Direction = Math::Normalize(m_Camera.ConstructFrustumPosRotOnly(Input::GetCursorPosition()));
 
             if (MeshSystem::Get().Intersects(ray, intersectInfo))
             {
@@ -157,25 +158,23 @@ namespace DLEngine
 
     bool CameraController::OnMouseScrolled(MouseScrolledEvent& e)
     {
-        if (!Input::IsKeyPressed(VK_SHIFT))
-        {
-            if (e.GetOffset() > 0)
-            {
-                m_Velocity *= 1.0f + m_DeltaVelocityPercents / 100.0f;
-                if (m_Velocity > m_MaxVelocity)
-                {
-                    m_Velocity = m_MaxVelocity;
-                }
-            }
-            else
-            {
-                m_Velocity *= 1.0f - m_DeltaVelocityPercents / 100.0f;
-                if (m_Velocity < m_MinVelocity)
-                {
-                    m_Velocity = m_MinVelocity;
-                }
-            }
-        }
+        // To calculate the velocity, we use the sigmoid function,
+        // which has domain (-1.0; 1.0) for considering floating point precision
+        // and range (m_MinVelocity; m_MaxVelocity)
+
+        static constexpr float eps{ 0.0001f };
+
+        static constexpr float minX{ -1.0f };
+        static constexpr float maxX{ 1.0f };
+
+        static constexpr float sigmoidCenter{ (minX + maxX) * 0.5f };
+
+        const float sigmoidScalingFactor{ 2.0f * Math::Log10((m_MaxVelocity - m_MinVelocity) / eps - 1.0f) / (maxX - minX) };
+
+        const float step{ (maxX - minX) / m_VelocityFunStepRate };
+        m_VelocityFunX = Math::Clamp(m_VelocityFunX + step * Math::Sign(static_cast<float>(e.GetOffset())), minX, maxX);
+
+        m_Velocity = m_MinVelocity + (m_MaxVelocity - m_MinVelocity) / (1.0f + Math::Exp(-sigmoidScalingFactor * (m_VelocityFunX - sigmoidCenter)));
 
         return false;
     }

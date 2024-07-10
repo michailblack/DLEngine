@@ -36,9 +36,24 @@ namespace DLEngine
             return std::min(a, b);
         }
 
+        inline float Sign(float x)
+        {
+            return std::signbit(x) ? -1.0f : 1.0f;
+        }
+
         inline float Pow(float base, float exponent) noexcept
         {
             return std::pow(base, exponent);
+        }
+
+        inline float Exp(float x) noexcept
+        {
+            return std::exp(x);
+        }
+
+        inline float Log10(float x) noexcept
+        {
+            return std::log10(x);
         }
 
         inline float Clamp(float value, float min, float max)
