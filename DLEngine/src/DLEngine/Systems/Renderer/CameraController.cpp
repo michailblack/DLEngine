@@ -11,41 +11,32 @@ namespace DLEngine
     CameraController::CameraController(const Camera& camera) noexcept
         : m_Camera(camera)
     {
-        MouseScrolledEvent e{ 0 };
-        OnMouseScrolled(e);
+
     }
 
     void CameraController::OnUpdate(float dt)
     {
+        Math::Vec3 translation{ 0.0f };
+
         if (Input::IsKeyPressed('W'))
-        {
-            m_Camera.Translate(m_Camera.GetForward() * m_Velocity * dt);
-        }
+            translation += m_Camera.GetForward() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('S'))
-        {
-            m_Camera.Translate(-m_Camera.GetForward() * m_Velocity * dt);
-        }
+            translation -= m_Camera.GetForward() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('D'))
-        {
-            m_Camera.Translate(m_Camera.GetRight() * m_Velocity * dt);
-        }
+            translation += m_Camera.GetRight() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('A'))
-        {
-            m_Camera.Translate(-m_Camera.GetRight() * m_Velocity * dt);
-        }
+            translation -= m_Camera.GetRight() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('E'))
-        {
-            m_Camera.Translate(m_Camera.GetUp() * m_Velocity * dt);
-        }
+            translation += m_Camera.GetUp() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('Q'))
-        {
-            m_Camera.Translate(-m_Camera.GetUp() * m_Velocity * dt);
-        }
+            translation -= m_Camera.GetUp() * m_Velocity * dt;
+
+        m_Camera.Translate(Math::Normalize(translation) * m_Velocity * dt);
 
         if (m_IsRotating)
         {
@@ -158,23 +149,11 @@ namespace DLEngine
 
     bool CameraController::OnMouseScrolled(MouseScrolledEvent& e)
     {
-        // To calculate the velocity, we use the sigmoid function,
-        // which has domain (-1.0; 1.0) for considering floating point precision
-        // and range (m_MinVelocity; m_MaxVelocity)
+        const float count{ static_cast<float>(e.GetOffset() / WHEEL_DELTA) };
+        const float deltaPercents{ m_DeltaVelocityPercents * count };
 
-        static constexpr float eps{ 0.0001f };
-
-        static constexpr float minX{ -1.0f };
-        static constexpr float maxX{ 1.0f };
-
-        static constexpr float sigmoidCenter{ (minX + maxX) * 0.5f };
-
-        const float sigmoidScalingFactor{ 2.0f * Math::Log10((m_MaxVelocity - m_MinVelocity) / eps - 1.0f) / (maxX - minX) };
-
-        const float step{ (maxX - minX) / m_VelocityFunStepRate };
-        m_VelocityFunX = Math::Clamp(m_VelocityFunX + step * Math::Sign(static_cast<float>(e.GetOffset())), minX, maxX);
-
-        m_Velocity = m_MinVelocity + (m_MaxVelocity - m_MinVelocity) / (1.0f + Math::Exp(-sigmoidScalingFactor * (m_VelocityFunX - sigmoidCenter)));
+        m_Velocity = m_Velocity * (1.0f + deltaPercents / 100.0f);
+        Math::Clamp(m_Velocity, m_MinVelocity, m_MaxVelocity);
 
         return false;
     }

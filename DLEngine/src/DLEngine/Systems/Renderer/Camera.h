@@ -22,7 +22,6 @@ namespace DLEngine
 
         Math::Vec3 ConstructFrustumPos(Math::Vec2 cursorPos) const noexcept;
         Math::Vec3 ConstructFrustumPosRotOnly(Math::Vec2 cursorPos) const noexcept;
-        Math::Vec3 ConstructFrustumPosWithoutTranslation(Math::Vec2 cursorPos) const noexcept;
 
         Math::Vec3 GetPosition() const noexcept { return m_Position; }
 
