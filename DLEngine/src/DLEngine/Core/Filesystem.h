@@ -8,8 +8,9 @@ namespace DLEngine
     public:
         static void Init();
 
-        static std::string GetShaderDir() noexcept;
-        static std::string GetModelDir() noexcept;
+        static std::wstring GetShaderDir() noexcept;
+        static std::wstring GetModelDir() noexcept;
+        static std::wstring GetTextureDir() noexcept;
     };
 }
 

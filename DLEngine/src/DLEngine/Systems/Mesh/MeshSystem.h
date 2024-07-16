@@ -12,10 +12,11 @@ namespace DLEngine
 
     struct NullMaterial
     {
+        void Set() const noexcept {}
         bool operator==(const NullMaterial&) const { return true; }
     };
 
-    struct NormalVisGroupInstance
+    struct NullInstance
     {
         /// Empty struct has a size of 1 byte, which ShadingGroup can't handle
         /// right now when building its instance buffer, so we need to add an empty data flag here,
@@ -96,7 +97,7 @@ namespace DLEngine
 
         ShadingGroupKey normalVisKey{
             .MaterialType = std::type_index{ typeid(NullMaterial) },
-            .InstanceType = std::type_index{ typeid(NormalVisGroupInstance) }
+            .InstanceType = std::type_index{ typeid(NullInstance) }
         };
 
         auto normalVisShadingGroup{ m_ShadingGroups.find(normalVisKey) };
@@ -106,6 +107,6 @@ namespace DLEngine
         std::vector<NullMaterial> nullMaterials{};
         nullMaterials.resize(model->GetMeshesCount());
         
-        static_cast<ShadingGroup<NullMaterial, NormalVisGroupInstance>&>(*normalVisShadingGroup->second).AddModel(model, nullMaterials, NormalVisGroupInstance{}, transformIndex);
+        static_cast<ShadingGroup<NullMaterial, NullInstance>&>(*normalVisShadingGroup->second).AddModel(model, nullMaterials, NullInstance{}, transformIndex);
     }
 }

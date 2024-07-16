@@ -9,7 +9,7 @@
 
 namespace DLEngine
 {
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     ShadingGroup<TMaterial, TInstance>::ShadingGroup(const ShadingGroupDesc& desc)
     {
         PipelineStateDesc pipelineStateSpec{};
@@ -33,7 +33,7 @@ namespace DLEngine
         m_Render = desc.Render;
     }
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     void ShadingGroup<TMaterial, TInstance>::AddModel(
         const Ref<Model>& model,
         std::vector<TMaterial> meshMaterials,
@@ -91,7 +91,7 @@ namespace DLEngine
         }
     }
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     void ShadingGroup<TMaterial, TInstance>::Render()
     {
         if (!m_Render)
@@ -101,7 +101,7 @@ namespace DLEngine
 
         m_PipelineState.Bind();
         m_InstanceBuffer.Bind(0u);
-        m_MeshInstanceCB.Bind(2u, CB_BIND_VS);
+        m_MeshInstanceCB.Bind(2u, BIND_VS);
 
         uint32_t renderedInstances{ 0u };
         for (uint32_t modelIndex{ 0u }; modelIndex < m_Models.size(); ++modelIndex)
@@ -118,8 +118,7 @@ namespace DLEngine
 
                 for (const auto& materialInst : modelInst.Meshes[meshIndex].Materials)
                 {
-                    //const auto& material{ materialInst.Material };
-                    // Set materials here. Not used for now
+                    materialInst.Material.Set();
 
                     uint32_t instanceCount{ static_cast<uint32_t>(materialInst.Instances.size()) };
 
@@ -147,7 +146,7 @@ namespace DLEngine
     }
 
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     bool ShadingGroup<TMaterial, TInstance>::Intersects(
         const Math::Ray& ray,
         IShadingGroup::IntersectInfo& outIntersectInfo
@@ -199,7 +198,7 @@ namespace DLEngine
         return intersects;
     }
 
-    template <typename TMaterial, typename TInstance>
+    template <MaterialConcept TMaterial, typename TInstance>
     void ShadingGroup<TMaterial, TInstance>::UpdateInstanceBuffer() noexcept
     {
         uint32_t totalInstances{ 0u };

@@ -9,6 +9,8 @@
 
 #include "DLEngine/Systems/Mesh/Mesh.h"
 
+#include <concepts>
+
 namespace DLEngine
 {
     class Model;
@@ -32,14 +34,14 @@ namespace DLEngine
         void ToggleRender() noexcept { m_Render = !m_Render; }
 
     protected:
-        bool m_Render;
+        bool m_Render{ true };
     };
 
     struct ShadingGroupDesc
     {
         std::string Name;
 
-        // PipelineStateDesc::Layout is ignored as it is create in the ShadingGroup constructor
+        // PipelineStateDesc::Layout is ignored as it is created in the ShadingGroup constructor
         PipelineStateDesc PipelineDesc;
 
         // First entry must be model-to-world matrix with the appropriate semantics
@@ -48,7 +50,22 @@ namespace DLEngine
         bool Render{ true };
     };
 
-    template <typename TMaterial, typename TInstance>
+    template <typename T>
+    concept EqualityComparable = requires(const T& a, const T& b)
+    {
+        { a == b } -> std::same_as<bool>;
+    };
+
+    template <typename TMaterial>
+    concept Settable = requires(const TMaterial& material)
+    {
+        { material.Set() } -> std::same_as<void>;
+    };
+
+    template <typename TMaterial>
+    concept MaterialConcept = EqualityComparable<TMaterial> && Settable<TMaterial>;
+
+    template <MaterialConcept TMaterial, typename TInstance>
     class ShadingGroup
         : public IShadingGroup
     {

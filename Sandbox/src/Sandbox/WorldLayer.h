@@ -17,6 +17,9 @@ public:
 
 private:
     void InitHologramGroup() const;
+    void InitTextureOnlyGroup() const;
+
+    bool OnKeyPressed(DLEngine::KeyPressedEvent& e);
 
 private:
     DLEngine::CameraController m_CameraController;

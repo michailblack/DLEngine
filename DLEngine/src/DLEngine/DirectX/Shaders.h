@@ -6,7 +6,7 @@ namespace DLEngine
     struct ShaderSpecification
     {
         std::vector<D3D_SHADER_MACRO> Defines{};
-        std::string Path{};
+        std::wstring Path{};
         std::string EntryPoint{ "main" };
     };
 
@@ -101,9 +101,9 @@ namespace DLEngine
         inline static ShaderIncludeHandler* s_Instance{ nullptr };
 
     private:
-        void AddIncludeDir(const std::string& dir) noexcept { m_IncludeDirs.push_back(dir); }
+        void AddIncludeDir(const std::wstring& dir) noexcept { m_IncludeDirs.push_back(dir); }
 
     private:
-        std::vector<std::string> m_IncludeDirs{};
+        std::vector<std::wstring> m_IncludeDirs{};
     };
 }

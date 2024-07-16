@@ -1,9 +1,10 @@
 #pragma once
 #include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/Texture2D.h"
 
 namespace DLEngine
 {
+    class Texture2D;
+
     class SwapChain
     {
     public:
@@ -13,12 +14,10 @@ namespace DLEngine
 
         void Present() const;
 
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> GetComPtr() const noexcept { return m_SwapChain; }
-        const Texture2D& GetBackBuffer() const noexcept { return m_BackBuffer; }
+        Texture2D GetBackBuffer() const;
 
-    private:
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> m_SwapChain;
-        Texture2D m_BackBuffer;
+    public:
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> Handle;
     };
 }
 

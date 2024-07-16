@@ -6,20 +6,6 @@
 
 namespace DLEngine
 {
-    enum ShaderBindType : uint8_t
-    {
-        CB_BIND_VS = BIT(0),
-        CB_BIND_PS = BIT(1),
-        CB_BIND_DS = BIT(2),
-        CB_BIND_HS = BIT(3),
-        CB_BIND_GS = BIT(4),
-
-        CB_BIND_ALL = CB_BIND_VS |
-        CB_BIND_PS |
-        CB_BIND_DS |
-        CB_BIND_HS |
-        CB_BIND_GS
-    };
     template <typename Data>
     class ConstantBuffer
     {
@@ -55,29 +41,24 @@ namespace DLEngine
             DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&constantBufferDesc, &constantBufferData, &m_ConstantBuffer));
         }
 
-        void Bind(uint32_t slot, uint8_t shaderBindType) const
+        void Bind(uint32_t slot, uint8_t shaderBindFlags) const noexcept
         {
             const auto& deviceContext{ D3D::GetDeviceContext4() };
-            if (shaderBindType & CB_BIND_VS)
-            {
+            
+            if (shaderBindFlags & BIND_VS)
                 deviceContext->VSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
-            }
-            if (shaderBindType & CB_BIND_PS)
-            {
+
+            if (shaderBindFlags & BIND_PS)
                 deviceContext->PSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
-            }
-            if (shaderBindType & CB_BIND_DS)
-            {
+
+            if (shaderBindFlags & BIND_DS)
                 deviceContext->DSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
-            }
-            if (shaderBindType & CB_BIND_HS)
-            {
+
+            if (shaderBindFlags & BIND_HS)
                 deviceContext->HSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
-            }
-            if (shaderBindType & CB_BIND_GS)
-            {
+
+            if (shaderBindFlags & BIND_GS)
                 deviceContext->GSSetConstantBuffers1(slot, 1u, m_ConstantBuffer.GetAddressOf(), nullptr, nullptr);
-            }
         }
 
         void Set(const Data& data)
@@ -95,6 +76,6 @@ namespace DLEngine
         }
 
     private:
-        Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer{};
     };
 }

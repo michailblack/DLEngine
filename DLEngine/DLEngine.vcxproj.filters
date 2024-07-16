@@ -150,16 +150,16 @@
     <ClInclude Include="src\DLEngine\DirectX\PipelineState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\DirectX\DXStates.h">
+    <ClInclude Include="src\DLEngine\DirectX\D3DStates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\DirectX\Texture2D.h">
+    <ClInclude Include="src\DLEngine\DirectX\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\DirectX\ResourceView.h">
+    <ClInclude Include="src\DLEngine\DirectX\View.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroup.h">
@@ -169,6 +169,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Systems\Transform\TransformSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Systems\Renderer\TextureManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\DirectX\Binder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Utils\RandomGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Utils\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -242,16 +254,16 @@
     <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\DirectX\DXStates.cpp">
+    <ClCompile Include="src\DLEngine\DirectX\D3DStates.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\DirectX\Texture2D.cpp">
+    <ClCompile Include="src\DLEngine\DirectX\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\DirectX\ResourceView.cpp">
+    <ClCompile Include="src\DLEngine\DirectX\View.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp">
@@ -261,6 +273,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\Systems\Transform\TransformSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Systems\Renderer\TextureManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\Utils\Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -291,8 +309,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\GlobalCB.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Global.hlsli" />
     <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\TextureOnly.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Skybox.hlsl" />
   </ItemGroup>
 </Project>

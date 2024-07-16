@@ -16,35 +16,27 @@ namespace DLEngine
 
     void CameraController::OnUpdate(float dt)
     {
+        Math::Vec3 translation{ 0.0f };
+
         if (Input::IsKeyPressed('W'))
-        {
-            m_Camera.Translate(m_Camera.GetForward() * m_Velocity * dt);
-        }
+            translation += m_Camera.GetForward() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('S'))
-        {
-            m_Camera.Translate(-m_Camera.GetForward() * m_Velocity * dt);
-        }
+            translation -= m_Camera.GetForward() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('D'))
-        {
-            m_Camera.Translate(m_Camera.GetRight() * m_Velocity * dt);
-        }
+            translation += m_Camera.GetRight() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('A'))
-        {
-            m_Camera.Translate(-m_Camera.GetRight() * m_Velocity * dt);
-        }
+            translation -= m_Camera.GetRight() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('E'))
-        {
-            m_Camera.Translate(m_Camera.GetUp() * m_Velocity * dt);
-        }
+            translation += m_Camera.GetUp() * m_Velocity * dt;
 
         if (Input::IsKeyPressed('Q'))
-        {
-            m_Camera.Translate(-m_Camera.GetUp() * m_Velocity * dt);
-        }
+            translation -= m_Camera.GetUp() * m_Velocity * dt;
+
+        m_Camera.Translate(Math::Normalize(translation) * m_Velocity * dt);
 
         if (m_IsRotating)
         {
@@ -61,7 +53,12 @@ namespace DLEngine
         }
 
         if (m_Dragger)
-            m_Dragger->Drag(m_Camera.ConstructRay(Input::GetCursorPosition()));
+        {
+            Math::Ray ray{};
+            ray.Origin = m_Camera.ConstructFrustumPos(Input::GetCursorPosition());
+            ray.Direction = Math::Normalize(m_Camera.ConstructFrustumPosRotOnly(Input::GetCursorPosition()));
+            m_Dragger->Drag(ray);
+        }
     }
 
     void CameraController::OnEvent(Event& e)
@@ -114,7 +111,12 @@ namespace DLEngine
         case VK_RBUTTON:
         {
             IShadingGroup::IntersectInfo intersectInfo{};
-            if (MeshSystem::Get().Intersects(m_Camera.ConstructRay(Input::GetCursorPosition()), intersectInfo))
+            
+            Math::Ray ray{};
+            ray.Origin = m_Camera.ConstructFrustumPos(Input::GetCursorPosition());
+            ray.Direction = Math::Normalize(m_Camera.ConstructFrustumPosRotOnly(Input::GetCursorPosition()));
+
+            if (MeshSystem::Get().Intersects(ray, intersectInfo))
             {
                 m_Dragger = CreateScope<MeshDragger>(MeshDragger{
                     intersectInfo.MeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint,
@@ -147,25 +149,11 @@ namespace DLEngine
 
     bool CameraController::OnMouseScrolled(MouseScrolledEvent& e)
     {
-        if (!Input::IsKeyPressed(VK_SHIFT))
-        {
-            if (e.GetOffset() > 0)
-            {
-                m_Velocity *= 1.0f + m_DeltaVelocityPercents / 100.0f;
-                if (m_Velocity > m_MaxVelocity)
-                {
-                    m_Velocity = m_MaxVelocity;
-                }
-            }
-            else
-            {
-                m_Velocity *= 1.0f - m_DeltaVelocityPercents / 100.0f;
-                if (m_Velocity < m_MinVelocity)
-                {
-                    m_Velocity = m_MinVelocity;
-                }
-            }
-        }
+        const float count{ static_cast<float>(e.GetOffset() / WHEEL_DELTA) };
+        const float deltaPercents{ m_DeltaVelocityPercents * count };
+
+        m_Velocity = m_Velocity * (1.0f + deltaPercents / 100.0f);
+        Math::Clamp(m_Velocity, m_MinVelocity, m_MaxVelocity);
 
         return false;
     }

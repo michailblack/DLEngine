@@ -6,7 +6,9 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 {
     try
     {
-        const Scope<DLEngine::Application> app { DLEngine::CreateApplication(lpCmdLine) };
+        const Scope<DLEngine::Application> app {
+            DLEngine::CreateApplication(std::wstring{ lpCmdLine, lpCmdLine + strlen(lpCmdLine) })
+        };
         app->Run();
 
         return 0;

@@ -15,6 +15,7 @@ namespace DLEngine
         {
             std::filesystem::path ShaderDir;
             std::filesystem::path ModelDir;
+            std::filesystem::path TextureDir;
         } s_FilesystemData;
     }
 
@@ -22,19 +23,26 @@ namespace DLEngine
     {
         std::filesystem::path workingDir{ Application::Get().GetWorkingDir() };
         s_FilesystemData.ShaderDir = workingDir / "DLEngine" / "src" / "DLEngine" / "Shaders\\";
-        s_FilesystemData.ModelDir = workingDir / "models\\";
+        s_FilesystemData.ModelDir = workingDir / "assets" / "models\\";
+        s_FilesystemData.TextureDir = workingDir / "assets" / "textures\\";
 
-        DL_LOG_INFO("Shader directory: {0}", GetShaderDir());
-        DL_LOG_INFO("Model directory: {0}", GetModelDir());
+        DL_LOG_INFO("Shader directory: {}", Utils::WideStrToMultiByteStr(GetShaderDir()));
+        DL_LOG_INFO("Model directory: {}", Utils::WideStrToMultiByteStr(GetModelDir()));
+        DL_LOG_INFO("Texture directory: {}", Utils::WideStrToMultiByteStr(GetTextureDir()));
     }
 
-    std::string Filesystem::GetShaderDir() noexcept
+    std::wstring Filesystem::GetShaderDir() noexcept
     {
-        return s_FilesystemData.ShaderDir.string();
+        return s_FilesystemData.ShaderDir.wstring();
     }
 
-    std::string Filesystem::GetModelDir() noexcept
+    std::wstring Filesystem::GetModelDir() noexcept
     {
-        return s_FilesystemData.ModelDir.string();
+        return s_FilesystemData.ModelDir.wstring();
+    }
+
+    std::wstring Filesystem::GetTextureDir() noexcept
+    {
+        return s_FilesystemData.TextureDir.wstring();
     }
 }

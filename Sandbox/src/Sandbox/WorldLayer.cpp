@@ -3,19 +3,36 @@
 #include "DLEngine/Core/Filesystem.h"
 
 #include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/DXStates.h"
+#include "DLEngine/DirectX/D3DStates.h"
+#include "DLEngine/DirectX/View.h"
 
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
 #include "DLEngine/Systems/Mesh/ModelManager.h"
 
 #include "DLEngine/Systems/Renderer/Renderer.h"
+#include "DLEngine/Systems/Renderer/TextureManager.h"
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
 struct HologramGroupInstance
 {
-    DLEngine::Math::Vec3 BaseColor;
-    DLEngine::Math::Vec3 AdditionalColor;
+    DLEngine::Math::Vec3 BaseColor{};
+    DLEngine::Math::Vec3 AdditionalColor{};
+};
+
+struct TextureOnlyGroupMaterial
+{
+    DLEngine::ShaderResourceView TextureSRV{};
+
+    void Set() const noexcept
+    {
+        TextureSRV.Bind(0u, DLEngine::BIND_PS);
+    }
+
+    bool operator==(const TextureOnlyGroupMaterial& other) const
+    {
+        return TextureSRV.Handle == other.TextureSRV.Handle;
+    }
 };
 
 WorldLayer::WorldLayer()
@@ -29,8 +46,11 @@ WorldLayer::~WorldLayer()
 
 void WorldLayer::OnAttach()
 {
-    const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + "cube\\cube.obj") };
-    const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + "samurai\\samurai.fbx") };
+    const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"cube\\cube.obj") };
+    const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
+    
+    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\sky.dds") };
+    DLEngine::Renderer::SetSkybox(skybox.SRV);
 
     std::vector<DLEngine::NullMaterial> nullMaterials{};
     uint32_t transformIndex{ 0u };
@@ -87,6 +107,62 @@ void WorldLayer::OnAttach()
     hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.1f, 0.3f, 0.7f };
     hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f };
     DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
+
+    InitTextureOnlyGroup();
+    std::vector<TextureOnlyGroupMaterial> textureOnlyMaterials{};
+    textureOnlyMaterials.resize(samurai->GetMeshesCount());
+
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.5f })
+    );
+    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_BaseColor.dds"
+    ).SRV;
+    textureOnlyMaterials[1].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_BaseColor.dds"
+    ).SRV;
+    textureOnlyMaterials[2].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_BaseColor.dds"
+    ).SRV;
+    textureOnlyMaterials[3].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_BaseColor.dds"
+    ).SRV;
+    textureOnlyMaterials[4].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_BaseColor.dds"
+    ).SRV;
+    textureOnlyMaterials[5].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_BaseColor.dds"
+    ).SRV;
+    textureOnlyMaterials[6].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_BaseColor.dds"
+    ).SRV;
+    textureOnlyMaterials[7].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
+    ).SRV;
+
+    DLEngine::MeshSystem::Get().Add<>(samurai, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+
+    textureOnlyMaterials.resize(cube->GetMeshesCount());
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -1.5f, 3.0f })
+    );
+
+    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"texture_test.dds"
+    ).SRV;
+
+    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+
+    transformIndex = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 10.0f, 10.0f, 1.0f }) *
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 1.5f, 10.0f })
+    );
+
+    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"cube\\stone.dds"
+    ).SRV;
+
+    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
 }
 
 void WorldLayer::OnDetach()
@@ -106,61 +182,122 @@ void WorldLayer::OnUpdate(DeltaTime dt)
 void WorldLayer::OnEvent(DLEngine::Event& e)
 {
     m_CameraController.OnEvent(e);
+
+    DLEngine::EventDispatcher dispatcher{ e };
+    dispatcher.Dispatch<DLEngine::KeyPressedEvent>(DL_BIND_EVENT_FN(WorldLayer::OnKeyPressed));
 }
 
 void WorldLayer::InitHologramGroup() const
 {
-    DLEngine::ShadingGroupDesc hologramGroupDesc{};
+    using namespace DLEngine;
+    ShadingGroupDesc hologramGroupDesc{};
 
     hologramGroupDesc.Name = "Hologram";
 
     hologramGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
 
-    hologramGroupDesc.InstanceBufferLayout = DLEngine::BufferLayout{
-        { "TRANSFORM" , DLEngine::BufferLayout::ShaderDataType::Mat4   },
-        { "BASE_COLOR", DLEngine::BufferLayout::ShaderDataType::Float3 },
-        { "ADD_COLOR" , DLEngine::BufferLayout::ShaderDataType::Float3 }
+    hologramGroupDesc.InstanceBufferLayout = BufferLayout{
+        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4   },
+        { "BASE_COLOR", BufferLayout::ShaderDataType::Float3 },
+        { "ADD_COLOR" , BufferLayout::ShaderDataType::Float3 }
     };
 
-    DLEngine::ShaderSpecification shaderSpec{};
+    ShaderSpecification shaderSpec{};
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainVS";
-    DLEngine::VertexShader vs{};
+    VertexShader vs{};
     vs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.VS = vs;
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainPS";
-    DLEngine::PixelShader ps{};
+    PixelShader ps{};
     ps.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.PS = ps;
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainHS";
-    DLEngine::HullShader hs{};
+    HullShader hs{};
     hs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.HS = hs;
 
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainDS";
-    DLEngine::DomainShader ds{};
+    DomainShader ds{};
     ds.Create(shaderSpec);
     
     hologramGroupDesc.PipelineDesc.DS = ds;
     
-    shaderSpec.Path = DLEngine::Filesystem::GetShaderDir() + "Hologram.hlsl";
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainGS";
-    DLEngine::GeometryShader gs{};
+    GeometryShader gs{};
     gs.Create(shaderSpec);
 
     hologramGroupDesc.PipelineDesc.GS = gs;
 
-    hologramGroupDesc.PipelineDesc.DepthStencilState = DLEngine::DXStates::GetDepthStencilState(DLEngine::DepthStencilStates::Default);
-    hologramGroupDesc.PipelineDesc.RasterizerState = DLEngine::DXStates::GetRasterizerState(DLEngine::RasterizerStates::Default);
+    hologramGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
+    hologramGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
 
-    DLEngine::MeshSystem::Get().CreateShadingGroup<DLEngine::NullMaterial, HologramGroupInstance>(hologramGroupDesc);
+    MeshSystem::Get().CreateShadingGroup<NullMaterial, HologramGroupInstance>(hologramGroupDesc);
+}
+
+void WorldLayer::InitTextureOnlyGroup() const
+{
+    using namespace DLEngine;
+    ShadingGroupDesc textureOnlyGroupDesc{};
+
+    textureOnlyGroupDesc.Name = "TextureOnly";
+
+    textureOnlyGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    textureOnlyGroupDesc.InstanceBufferLayout = BufferLayout{
+        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4  },
+        { "_empty"    , BufferLayout::ShaderDataType::Float }
+    };
+
+    ShaderSpecification shaderSpec{};
+
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"TextureOnly.hlsl";
+    shaderSpec.EntryPoint = "mainVS";
+    VertexShader vs{};
+    vs.Create(shaderSpec);
+
+    textureOnlyGroupDesc.PipelineDesc.VS = vs;
+
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"TextureOnly.hlsl";
+    shaderSpec.EntryPoint = "mainPS";
+    PixelShader ps{};
+    ps.Create(shaderSpec);
+
+    textureOnlyGroupDesc.PipelineDesc.PS = ps;
+
+    textureOnlyGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
+    textureOnlyGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
+
+    MeshSystem::Get().CreateShadingGroup<TextureOnlyGroupMaterial, NullInstance>(textureOnlyGroupDesc);
+}
+
+bool WorldLayer::OnKeyPressed(DLEngine::KeyPressedEvent& e)
+{
+    switch (e.GetKeyCode())
+    {
+    case '1':
+        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::POINT_WRAP).Bind(6u, DLEngine::BIND_ALL);
+        DL_LOG_INFO("Active sampler: POINT_WRAP");
+        break;
+    case '2':
+        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::TRILINEAR_WRAP).Bind(6u, DLEngine::BIND_ALL);
+        DL_LOG_INFO("Active sampler: TRILINEAR_WRAP");
+        break;
+    case '3':
+        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::ANISOTROPIC_8_WRAP).Bind(6u, DLEngine::BIND_ALL);
+        DL_LOG_INFO("Active sampler: ANISOTROPIC_8_WRAP");
+        break;
+    }
+
+    return false;
 }

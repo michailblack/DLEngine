@@ -28,8 +28,6 @@ namespace DLEngine
 
     void InputLayout::AppendVertexBuffer(const BufferLayout& bufferLayout, D3D11_INPUT_CLASSIFICATION inputSlotClass) noexcept
     {
-        DL_ASSERT(!m_InputLayout, "Input Layout is already built");
-
         m_InputElementDescs.reserve(m_InputElementDescs.size() + bufferLayout.GetElements().size());
 
         D3D11_INPUT_ELEMENT_DESC elementDesc{};
@@ -74,8 +72,6 @@ namespace DLEngine
 
     void InputLayout::Create(const VertexShader& vertexShader)
     {
-        DL_ASSERT(!m_InputLayout, "Input Layout is already built")
-
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateInputLayout(
             m_InputElementDescs.data(), static_cast<uint32_t>(m_InputElementDescs.size()),
             vertexShader.GetBlob()->GetBufferPointer(), vertexShader.GetBlob()->GetBufferSize(),
