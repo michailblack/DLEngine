@@ -4,7 +4,6 @@
 
 struct InstanceInput
 {
-    float _emptyInstance  : _empty;
     uint a_TransformIndex : TRANSFORM_INDEX;
 };
 
@@ -19,7 +18,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     VertexOutput vsOutput;
 
     float4 worldPos = mul(float4(vsInput.a_Position, 1.0), c_MeshToModel);
-    worldPos = mul(worldPos, c_ModelToWorld[instInput.a_TransformIndex]);
+    worldPos = mul(worldPos, t_ModelToWorld[instInput.a_TransformIndex]);
 
     vsOutput.v_Position = mul(worldPos, c_ViewProjection);
     vsOutput.v_TexCoords = vsInput.a_TexCoords;
@@ -27,7 +26,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     return vsOutput;
 }
 
-Texture2D<float3> g_Texture : register(t0);
+Texture2D<float3> g_Texture : register(t5);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {

@@ -56,8 +56,8 @@ namespace DLEngine
     {
         struct TextureManagerData
         {
-            std::unordered_map<std::wstring, Texture2DResource> Textures2D;
-            std::unordered_map<Math::Vec4, Texture2DResource> ValueTextures2D;
+            std::unordered_map<std::wstring, RTexture2D> Textures2D;
+            std::unordered_map<Math::Vec4, RTexture2D> ValueTextures2D;
         } s_Data;
     }
 
@@ -68,7 +68,7 @@ namespace DLEngine
         DL_LOG_INFO("TextureManager Initialized");
     }
 
-    Texture2DResource TextureManager::LoadTexture2D(const std::wstring& path)
+    RTexture2D TextureManager::LoadTexture2D(const std::wstring& path)
     {
         if (Exists2D(path))
             return s_Data.Textures2D[path];
@@ -105,23 +105,25 @@ namespace DLEngine
             initData.push_back(data);
         }
 
-        Texture2DResource resource{};
-        resource.Texture.Create(textureDesc, initData);
-        resource.SRV.Create(resource.Texture);
+        Texture2D texture{};
+        texture.Create(textureDesc, initData);
+
+        RTexture2D resource{};
+        resource.Create(texture);
 
         const auto& [it, hasConstructed]{ s_Data.Textures2D.emplace(std::make_pair(path, resource)) };
 
         return it->second;
     }
 
-    Texture2DResource TextureManager::GetTexture2D(const std::wstring& path)
+    RTexture2D TextureManager::GetTexture2D(const std::wstring& path)
     {
         DL_ASSERT_NOINFO(Exists2D(path));
 
         return s_Data.Textures2D[path];
     }
 
-    Texture2DResource TextureManager::GenerateValueTexture2D(Math::Vec4 value)
+    RTexture2D TextureManager::GenerateValueTexture2D(Math::Vec4 value)
     {
         if (s_Data.ValueTextures2D.contains(value))
             return s_Data.ValueTextures2D[value];
@@ -145,9 +147,11 @@ namespace DLEngine
         initData.SysMemPitch = sizeof(Math::Vec4);
         initData.SysMemSlicePitch = 0u;
 
-        Texture2DResource resource{};
-        resource.Texture.Create(textureDesc, std::vector { initData });
-        resource.SRV.Create(resource.Texture);
+        Texture2D texture{};
+        texture.Create(textureDesc, std::vector { initData });
+
+        RTexture2D resource{};
+        resource.Create(texture);
 
         const auto& [it, hasConstructed]{ s_Data.ValueTextures2D.emplace(std::make_pair(value, resource)) };
 

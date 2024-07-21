@@ -27,24 +27,17 @@ namespace DLEngine
             &swapChainDesk,
             nullptr,
             nullptr,
-            &Handle
+            &m_Handle
         ));
     }
 
     void SwapChain::Resize(uint32_t width, uint32_t height)
     {
-        DL_THROW_IF_HR(Handle->ResizeBuffers(0u, width, height, DXGI_FORMAT_UNKNOWN, 0));
+        DL_THROW_IF_HR(m_Handle->ResizeBuffers(0u, width, height, DXGI_FORMAT_UNKNOWN, 0));
     }
 
     void SwapChain::Present() const
     {
-        DL_THROW_IF_HR(Handle->Present(1, 0));
-    }
-
-    Texture2D SwapChain::GetBackBuffer() const
-    {
-        Texture2D texture{};
-        DL_THROW_IF_HR(Handle->GetBuffer(0, __uuidof(ID3D11Texture2D1), &texture.Handle));
-        return texture;
+        DL_THROW_IF_HR(m_Handle->Present(1, 0));
     }
 }

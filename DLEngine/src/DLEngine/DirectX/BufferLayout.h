@@ -21,8 +21,12 @@ namespace DLEngine
 
     public:
         BufferLayout(const std::initializer_list<Element>& elements);
+        ~BufferLayout() = default;
 
-        void AppendElement(const Element& element) noexcept;
+        BufferLayout(const BufferLayout&) = default;
+        BufferLayout(BufferLayout&&) noexcept = default;
+        BufferLayout& operator=(const BufferLayout&) = default;
+        BufferLayout& operator=(BufferLayout&&) noexcept = default;
 
         const std::vector<Element>& GetElements() const noexcept { return m_Elements; }
         uint32_t GetStride() const noexcept { return m_Stride; }
@@ -37,7 +41,7 @@ namespace DLEngine
         void CalculateStride() noexcept;
 
     private:
-        std::vector<Element> m_Elements;
+        std::vector<Element> m_Elements{};
         uint32_t m_Stride{ 0u };
     };
 }

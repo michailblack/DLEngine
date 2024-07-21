@@ -6,24 +6,24 @@ namespace DLEngine
     struct DirectionalLight
     {
         Math::Vec3 Direction;
+        Math::Vec3 Radiance;
         float SolidAngle;
-        Math::Vec3 Luminance;
     };
 
     struct PointLight
     {
         Math::Vec3 Position;
+        Math::Vec3 Radiance;
         float Radius;
-        Math::Vec3 Luminance;
     };
 
     struct SpotLight
     {
         Math::Vec3 Position;
-        float InnerCutoffCos;
         Math::Vec3 Direction;
-        float OuterCutoffCos;
-        Math::Vec3 Luminance;
+        Math::Vec3 Radiance;
         float Radius;
+        float InnerCutoffCos;
+        float OuterCutoffCos;
     };
 }

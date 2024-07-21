@@ -5,35 +5,32 @@ namespace DLEngine
 {
     class RasterizerState
     {
+        friend class RenderCommand;
     public:
         void Create(const D3D11_RASTERIZER_DESC2& desc);
 
-        void Bind() const noexcept;
-
-    public:
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState2> Handle{};
+    private:
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_Handle{};
     };
 
     class DepthStencilState
     {
+        friend class RenderCommand;
     public:
         void Create(const D3D11_DEPTH_STENCIL_DESC& desc);
 
-        void Bind() const noexcept;
-
-    public:
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> Handle{};
+    private:
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_Handle{};
     };
 
     class SamplerState
     {
+        friend class RenderCommand;
     public:
         void Create(const D3D11_SAMPLER_DESC& desc);
 
-        void Bind(uint32_t slot, uint8_t shaderBindFlags) const noexcept;
-
-    public:
-        Microsoft::WRL::ComPtr<ID3D11SamplerState> Handle{};
+    private:
+        Microsoft::WRL::ComPtr<ID3D11SamplerState> m_Handle{};
     };
 
     enum class DepthStencilStates

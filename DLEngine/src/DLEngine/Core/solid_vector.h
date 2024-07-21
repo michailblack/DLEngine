@@ -4,7 +4,7 @@
 #include <vector>
 
 template <typename T>
-class SolidVector
+class solid_vector
 {
 public:
     using ID = uint32_t;
@@ -13,6 +13,7 @@ public:
     bool occupied(ID id) const noexcept { DL_ASSERT_NOINFO(id < static_cast<ID>(m_Occupied.size())); return m_Occupied[id]; }
 
     Index size() const noexcept { return static_cast<Index>(m_Data.size()); }
+    Index capacity() const noexcept { return static_cast<Index>(m_Data.capacity()); }
 
     const T* data() const noexcept { return m_Data.data(); }
     T* data() noexcept { return m_Data.data(); }

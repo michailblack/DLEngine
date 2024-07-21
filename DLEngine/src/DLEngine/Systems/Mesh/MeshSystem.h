@@ -2,6 +2,7 @@
 #include "DLEngine/Core/Base.h"
 
 #include "DLEngine/Systems/Mesh/ShadingGroup.h"
+#include "DLEngine/Systems/Mesh/ShadingGroupStructs.h"
 
 #include <map>
 #include <typeindex>
@@ -9,20 +10,6 @@
 namespace DLEngine
 {
     class Model;
-
-    struct NullMaterial
-    {
-        void Set() const noexcept {}
-        bool operator==(const NullMaterial&) const { return true; }
-    };
-
-    struct NullInstance
-    {
-        /// Empty struct has a size of 1 byte, which ShadingGroup can't handle
-        /// right now when building its instance buffer, so we need to add an empty data flag here,
-        /// in the shader, and in the buffer layout as well
-        float _EmptyInstance;
-    };
 
     class MeshSystem
     {
@@ -42,7 +29,7 @@ namespace DLEngine
         void CreateShadingGroup(const ShadingGroupDesc& desc);
 
         template <typename TMaterial, typename TInstance>
-        void Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformIndex);
+        void Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance);
 
         void ToggleNormalVis() noexcept;
 
@@ -51,6 +38,10 @@ namespace DLEngine
 
     private:
         void InitNormalVisGroup();
+        void InitHologramGroup();
+        void InitTextureOnlyGroup();
+        void InitEmissionGroup();
+        void InitLitGroup();
 
     private:
         struct ShadingGroupKey
@@ -82,7 +73,7 @@ namespace DLEngine
     }
 
     template <typename TMaterial, typename TInstance>
-    void MeshSystem::Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformIndex)
+    void MeshSystem::Add(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance)
     {
         ShadingGroupKey key{
             .MaterialType = std::type_index{ typeid(TMaterial) },
@@ -93,20 +84,23 @@ namespace DLEngine
 
         DL_ASSERT(shadingGroup != m_ShadingGroups.end(), "Shading group does not exist");
 
-        static_cast<ShadingGroup<TMaterial, TInstance>&>(*shadingGroup->second).AddModel(model, meshMaterials, instance, transformIndex);
+        static_cast<ShadingGroup<TMaterial, TInstance>&>(*shadingGroup->second).AddModel(model, meshMaterials, instance);
 
         ShadingGroupKey normalVisKey{
-            .MaterialType = std::type_index{ typeid(NullMaterial) },
-            .InstanceType = std::type_index{ typeid(NullInstance) }
+            .MaterialType = std::type_index{ typeid(ShadingGroupStruct::Material::Null) },
+            .InstanceType = std::type_index{ typeid(ShadingGroupStruct::Instance::Null) }
         };
 
         auto normalVisShadingGroup{ m_ShadingGroups.find(normalVisKey) };
 
         DL_ASSERT(normalVisShadingGroup != m_ShadingGroups.end(), "NormalVis shading group does not exist");
 
-        std::vector<NullMaterial> nullMaterials{};
+        std::vector<ShadingGroupStruct::Material::Null> nullMaterials{};
         nullMaterials.resize(model->GetMeshesCount());
+
+        ShadingGroupStruct::Instance::Null nullInstance{};
+        nullInstance.TransformID = instance.TransformID;
         
-        static_cast<ShadingGroup<NullMaterial, NullInstance>&>(*normalVisShadingGroup->second).AddModel(model, nullMaterials, NullInstance{}, transformIndex);
+        static_cast<ShadingGroup<ShadingGroupStruct::Material::Null, ShadingGroupStruct::Instance::Null>&>(*normalVisShadingGroup->second).AddModel(model, nullMaterials, nullInstance);
     }
 }

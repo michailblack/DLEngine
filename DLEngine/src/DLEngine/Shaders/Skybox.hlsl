@@ -13,7 +13,7 @@ VertexOutput mainVS(uint vertexID : SV_VertexID)
     
     const float2 uv = float2((vertexID << 1) & 2, vertexID & 2);
     vsOutput.v_Position = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
-    vsOutput.v_CubemapSample = c_BL.xyz + uv.x * c_BL2BR.xyz + (1.0 - uv.y) * c_BL2TL.xyz;
+    vsOutput.v_CubemapSample = c_BL + uv.x * c_BL2BR + (1.0 - uv.y) * c_BL2TL;
     
     return vsOutput;
 }

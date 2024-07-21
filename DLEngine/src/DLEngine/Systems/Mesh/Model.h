@@ -28,7 +28,7 @@ namespace DLEngine
         const Mesh& GetMesh(uint32_t meshIndex) const noexcept;
         const MeshRange& GetMeshRange(uint32_t meshIndex) const noexcept;
 
-        const VertexBuffer<Mesh::Vertex, VertexBufferUsage::Immutable>& GetVertexBuffer() const noexcept { return m_VertexBuffer; }
+        const VertexBuffer& GetVertexBuffer() const noexcept { return m_VertexBuffer; }
         const IndexBuffer& GetIndexBuffer() const noexcept { return m_IndexBuffer; }
 
         static BufferLayout GetCommonVertexBufferLayout() noexcept;
@@ -41,7 +41,7 @@ namespace DLEngine
 
         Math::AABB m_BoundingBox;
 
-        VertexBuffer<Mesh::Vertex, VertexBufferUsage::Immutable> m_VertexBuffer;
+        VertexBuffer m_VertexBuffer;
         IndexBuffer m_IndexBuffer;
 
         std::wstring m_Name{};

@@ -18,11 +18,6 @@ namespace DLEngine
         indexBufferData.SysMemPitch = 0u;
         indexBufferData.SysMemSlicePitch = 0u;
 
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_IndexBuffer));
-    }
-
-    void IndexBuffer::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_Handle));
     }
 }

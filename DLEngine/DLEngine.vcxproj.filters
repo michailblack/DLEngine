@@ -168,7 +168,7 @@
     <ClInclude Include="src\DLEngine\Utils\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Core\SolidVector.h">
+    <ClInclude Include="src\DLEngine\Core\solid_vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Systems\Light\LightSystem.h">
@@ -190,6 +190,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Renderer\PostProcess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroupStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\DirectX\StructuredBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\DirectX\RenderCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -251,9 +260,6 @@
     <ClCompile Include="src\DLEngine\Systems\Mesh\IDragger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\D3DStates.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -294,6 +300,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DLEngine\Renderer\PostProcess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\DirectX\RenderCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\DirectX\ConstantBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\DirectX\StructuredBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

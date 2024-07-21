@@ -16,11 +16,6 @@ public:
     void OnEvent(DLEngine::Event& e) override;
 
 private:
-    void InitHologramGroup() const;
-    void InitTextureOnlyGroup() const;
-    void InitEmissionGroup() const;
-    void InitLitGroup() const;
-
     bool OnKeyPressedEvent(DLEngine::KeyPressedEvent& e);
 
 private:

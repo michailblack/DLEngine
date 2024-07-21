@@ -4,7 +4,6 @@
 #include "DLEngine/DirectX/BufferLayout.h"
 #include "DLEngine/DirectX/ConstantBuffer.h"
 #include "DLEngine/DirectX/PipelineState.h"
-#include "DLEngine/DirectX/Shaders.h"
 #include "DLEngine/DirectX/VertexBuffer.h"
 
 #include "DLEngine/Systems/Mesh/Mesh.h"
@@ -26,6 +25,13 @@ namespace DLEngine
         };
 
     public:
+        IShadingGroup() = default;
+
+        IShadingGroup(const IShadingGroup& other) = delete;
+        IShadingGroup(IShadingGroup&& other) noexcept = delete;
+        IShadingGroup& operator=(const IShadingGroup& other) = delete;
+        IShadingGroup& operator=(IShadingGroup&& other) noexcept = delete;
+
         virtual ~IShadingGroup() = default;
 
         virtual void Render() = 0;
@@ -42,7 +48,7 @@ namespace DLEngine
         std::string Name;
 
         // PipelineStateDesc::Layout is ignored as it is created in the ShadingGroup constructor
-        PipelineStateDesc PipelineDesc;
+        PipelineState PipelineState;
 
         BufferLayout InstanceBufferLayout;
 
@@ -64,14 +70,26 @@ namespace DLEngine
     template <typename TMaterial>
     concept MaterialConcept = EqualityComparable<TMaterial> && Settable<TMaterial>;
 
-    template <MaterialConcept TMaterial, typename TInstance>
+    template <typename TInstance>
+    concept Transformable = std::same_as<decltype(std::declval<TInstance>().TransformID), uint32_t>;
+
+    template <typename TInstance>
+    concept ConvertableToGPU = requires(const TInstance& instance)
+    {
+        { instance.ConvertToGPU() } -> std::same_as<typename TInstance::GPUType>;
+    };
+
+    template <typename TInstance>
+    concept InstanceConcept = Transformable<TInstance> && ConvertableToGPU<TInstance>;
+
+    template <MaterialConcept TMaterial, InstanceConcept TInstance>
     class ShadingGroup
         : public IShadingGroup
     {
     public:
         ShadingGroup(const ShadingGroupDesc& desc);
 
-        void AddModel(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformID) noexcept;
+        void AddModel(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance) noexcept;
         void Render() override;
         bool Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const noexcept override;
 
@@ -79,16 +97,10 @@ namespace DLEngine
         void UpdateInstanceBuffer() noexcept;
 
     private:
-        struct PerInstance
-        {
-            TInstance Instance{};
-            uint32_t TransformID{ 0u };
-        };
-
         struct PerMaterial
         {
             TMaterial Material{};
-            std::vector<PerInstance> Instances;
+            std::vector<TInstance> Instances;
         };
 
         struct PerMesh
@@ -102,12 +114,6 @@ namespace DLEngine
             std::vector<PerMesh> Meshes;
         };
 
-        struct InstanceBufferData
-        {
-            TInstance Instance{};
-            uint32_t TransformIndex{ 0u };
-        };
-
     private:
         struct MeshInstance
         {
@@ -118,9 +124,9 @@ namespace DLEngine
     private:
         std::vector<PerModel> m_Models;
 
-        PipelineState m_PipelineState;
-        VertexBuffer<InstanceBufferData, VertexBufferUsage::Dynamic> m_InstanceBuffer;
-        ConstantBuffer<MeshInstance> m_MeshInstanceCB;
+        PipelineState m_PipelineState{};
+        VertexBuffer m_InstanceBuffer{};
+        ConstantBuffer m_MeshInstanceCB{};
     };
 }
 

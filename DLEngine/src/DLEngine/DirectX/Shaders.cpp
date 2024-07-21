@@ -112,112 +112,87 @@ namespace DLEngine
 
     void VertexShader::Create(const ShaderSpecification& spec)
     {
-        m_VertexShaderBlob.Reset();
-        m_VertexShader.Reset();
+        m_Blob.Reset();
+        m_Handle.Reset();
 
         m_Specification = spec;
 
-        Utils::CompileShader(m_Specification, Utils::ShaderType::Vertex, m_VertexShaderBlob);
+        Utils::CompileShader(m_Specification, Utils::ShaderType::Vertex, m_Blob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateVertexShader(
-            m_VertexShaderBlob->GetBufferPointer(),
-            m_VertexShaderBlob->GetBufferSize(),
+            m_Blob->GetBufferPointer(),
+            m_Blob->GetBufferSize(),
             nullptr,
-            &m_VertexShader
+            &m_Handle
         ));
-    }
-
-    void VertexShader::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->VSSetShader(m_VertexShader.Get(), nullptr, 0u);
     }
 
     void PixelShader::Create(const ShaderSpecification& spec)
     {
-        m_PixelShaderBlob.Reset();
-        m_PixelShader.Reset();
+        m_Blob.Reset();
+        m_Handle.Reset();
 
         m_Specification = spec;
 
-        Utils::CompileShader(m_Specification, Utils::ShaderType::Pixel, m_PixelShaderBlob);
+        Utils::CompileShader(m_Specification, Utils::ShaderType::Pixel, m_Blob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreatePixelShader(
-            m_PixelShaderBlob->GetBufferPointer(),
-            m_PixelShaderBlob->GetBufferSize(),
+            m_Blob->GetBufferPointer(),
+            m_Blob->GetBufferSize(),
             nullptr,
-            &m_PixelShader
+            &m_Handle
         ));
-    }
-
-    void PixelShader::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
     }
 
     void HullShader::Create(const ShaderSpecification& spec)
     {
-        m_HullShaderBlob.Reset();
-        m_HullShader.Reset();
+        m_Blob.Reset();
+        m_Handle.Reset();
 
         m_Specification = spec;
 
-        Utils::CompileShader(m_Specification, Utils::ShaderType::Hull, m_HullShaderBlob);
+        Utils::CompileShader(m_Specification, Utils::ShaderType::Hull, m_Blob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateHullShader(
-            m_HullShaderBlob->GetBufferPointer(),
-            m_HullShaderBlob->GetBufferSize(),
+            m_Blob->GetBufferPointer(),
+            m_Blob->GetBufferSize(),
             nullptr,
-            &m_HullShader
+            &m_Handle
         ));
-    }
-
-    void HullShader::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->HSSetShader(m_HullShader.Get(), nullptr, 0u);
     }
 
     void DomainShader::Create(const ShaderSpecification& spec)
     {
-        m_DomainShaderBlob.Reset();
-        m_DomainShader.Reset();
+        m_Blob.Reset();
+        m_Handle.Reset();
 
         m_Specification = spec;
 
-        Utils::CompileShader(m_Specification, Utils::ShaderType::Domain, m_DomainShaderBlob);
+        Utils::CompileShader(m_Specification, Utils::ShaderType::Domain, m_Blob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateDomainShader(
-            m_DomainShaderBlob->GetBufferPointer(),
-            m_DomainShaderBlob->GetBufferSize(),
+            m_Blob->GetBufferPointer(),
+            m_Blob->GetBufferSize(),
             nullptr,
-            &m_DomainShader
+            &m_Handle
         ));
-    }
-
-    void DomainShader::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->DSSetShader(m_DomainShader.Get(), nullptr, 0u);
     }
 
     void GeometryShader::Create(const ShaderSpecification& spec)
     {
-        m_GeometryShaderBlob.Reset();
-        m_GeometryShader.Reset();
+        m_Blob.Reset();
+        m_Handle.Reset();
 
         m_Specification = spec;
 
-        Utils::CompileShader(m_Specification, Utils::ShaderType::Geometry, m_GeometryShaderBlob);
+        Utils::CompileShader(m_Specification, Utils::ShaderType::Geometry, m_Blob);
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateGeometryShader(
-            m_GeometryShaderBlob->GetBufferPointer(),
-            m_GeometryShaderBlob->GetBufferSize(),
+            m_Blob->GetBufferPointer(),
+            m_Blob->GetBufferSize(),
             nullptr,
-            &m_GeometryShader
+            &m_Handle
         ));
-    }
-
-    void GeometryShader::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->GSSetShader(m_GeometryShader.Get(), nullptr, 0u);
     }
 
     ShaderIncludeHandler::~ShaderIncludeHandler()

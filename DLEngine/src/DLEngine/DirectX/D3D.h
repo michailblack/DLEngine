@@ -23,19 +23,4 @@ namespace DLEngine
 
         static Microsoft::WRL::ComPtr<ID3D11InfoQueue> GetInfoQueue() noexcept;
     };
-
-    enum ShaderBindType : uint8_t
-    {
-        BIND_VS = BIT(0),
-        BIND_PS = BIT(1),
-        BIND_DS = BIT(2),
-        BIND_HS = BIT(3),
-        BIND_GS = BIT(4),
-
-        BIND_ALL = BIND_VS |
-        BIND_PS |
-        BIND_DS |
-        BIND_HS |
-        BIND_GS
-    };
 }

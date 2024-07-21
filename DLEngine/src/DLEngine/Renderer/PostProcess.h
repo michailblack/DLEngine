@@ -26,6 +26,6 @@ namespace DLEngine
         PipelineState m_PipelineState;
 
         PostProcessSettings m_CurrentSettings{};
-        ConstantBuffer<PostProcessSettings> m_SettingsCB{};
+        ConstantBuffer m_SettingsCB{};
     };
 }

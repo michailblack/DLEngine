@@ -1,41 +1,38 @@
 #pragma once
 #include "DLEngine/DirectX/D3D.h"
 
-#include "DLEngine/Math/Vec4.h"
-
 namespace DLEngine
 {
-    class Texture2D;
-
     class RenderTargetView
     {
+        friend class RenderCommand;
     public:
-        void Create(const Texture2D& texture);
-        void Clear(const Math::Vec4& color = Math::Vec4{ 1.0f, 0.0f, 1.0f, 1.0f }) const noexcept;
+        void Reset() noexcept { m_Handle.Reset(); }
 
-    public:
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> Handle{};
+    private:
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> m_Handle{};
     };
 
     class DepthStencilView
     {
+        friend class RenderCommand;
     public:
-        void Create(const Texture2D& texture);
-        void Clear(float depth = 0.0f, uint8_t stencil = 0) const noexcept;
+        void Reset() noexcept { m_Handle.Reset(); }
 
-    public:
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> Handle{};
+    private:
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_Handle{};
     };
 
     class ShaderResourceView
     {
+        friend class RenderCommand;
     public:
-        void Create(const Texture2D& texture);
+        void Reset() noexcept { m_Handle.Reset(); }
 
-        void Bind(uint32_t slot, uint8_t shaderBindFlags) const noexcept;
+        bool operator==(const ShaderResourceView& other) const noexcept { return m_Handle == other.m_Handle; }
 
-    public:
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> Handle{};
+    private:
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> m_Handle{};
     };
 }
 

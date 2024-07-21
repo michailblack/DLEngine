@@ -58,9 +58,9 @@ Texture2D<float4> t_TextureHDR : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-	float4 color = t_TextureHDR.Sample(s_TrilinearClamp, psInput.v_TexCoords);
-    color.xyz = adjustExposure(color.xyz, c_EV100);
-    color.xyz = acesHdr2Ldr(color.xyz);
-    color.xyz = correctGamma(color.xyz, c_Gamma);
-    return color;
+	float3 color = t_TextureHDR.Sample(s_TrilinearClamp, psInput.v_TexCoords).rgb;
+    color = adjustExposure(color, c_EV100);
+    color = acesHdr2Ldr(color);
+    color = correctGamma(color, c_Gamma);
+    return float4(color, 1.0);
 }

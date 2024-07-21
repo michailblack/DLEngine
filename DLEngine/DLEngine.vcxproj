@@ -108,6 +108,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\DirectX\RenderCommand.h" />
+    <ClInclude Include="src\DLEngine\DirectX\StructuredBuffer.h" />
     <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
     <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
     <ClInclude Include="src\DLEngine\Renderer\LightCasters.h" />
@@ -116,7 +118,7 @@
     <ClInclude Include="src\DLEngine\Renderer\TextureManager.h" />
     <ClInclude Include="src\DLEngine\Systems\Light\LightSystem.h" />
     <ClInclude Include="src\DLEngine\Core\Filesystem.h" />
-    <ClInclude Include="src\DLEngine\Core\SolidVector.h" />
+    <ClInclude Include="src\DLEngine\Core\solid_vector.h" />
     <ClInclude Include="src\DLEngine\DirectX\Binder.h" />
     <ClInclude Include="src\DLEngine\DirectX\View.h" />
     <ClInclude Include="src\DLEngine\DirectX\D3DStates.h" />
@@ -128,6 +130,7 @@
     <ClInclude Include="src\DLEngine\Systems\Mesh\Model.h" />
     <ClInclude Include="src\DLEngine\Systems\Mesh\ModelManager.h" />
     <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroup.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroupStructs.h" />
     <ClInclude Include="src\DLEngine\Systems\Mesh\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\DirectX\BufferLayout.h" />
     <ClInclude Include="src\DLEngine\DirectX\IndexBuffer.h" />
@@ -169,6 +172,10 @@
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\DirectX\ConstantBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\RenderCommand.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\StructuredBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\PostProcess.cpp" />
@@ -179,7 +186,6 @@
     <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\View.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\D3DStates.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\IDragger.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\Mesh.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\MeshSystem.cpp" />
