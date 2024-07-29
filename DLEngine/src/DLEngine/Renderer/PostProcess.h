@@ -4,8 +4,7 @@
 
 namespace DLEngine
 {
-    class ShaderResourceView;
-    class RenderTargetView;
+    class Texture2D;
 
     struct PostProcessSettings
     {
@@ -20,7 +19,7 @@ namespace DLEngine
         void Create();
 
         void SetSettings(const PostProcessSettings& settings) noexcept;
-        void Resolve(const ShaderResourceView& src, const RenderTargetView& dst) const;
+        void Resolve(const Texture2D& src, const Texture2D& dst) const;
 
     private:
         PipelineState m_PipelineState;

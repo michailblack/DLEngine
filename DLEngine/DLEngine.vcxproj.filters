@@ -147,9 +147,6 @@
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\DirectX\View.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -199,6 +196,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\DirectX\RenderCommand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\ReflectionCapture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -269,9 +269,6 @@
     <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\DirectX\View.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -314,6 +311,9 @@
     <ClCompile Include="src\DLEngine\DirectX\StructuredBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\ReflectionCapture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\DLEngine\Math\Vec3.inl">
@@ -343,6 +343,7 @@
     <None Include="src\DLEngine\Shaders\Input.hlsli" />
     <None Include="src\DLEngine\Shaders\Buffers.hlsli" />
     <None Include="src\DLEngine\Shaders\LightCasters.hlsli" />
+    <None Include="src\DLEngine\Shaders\BRDF.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\DLEngine\Shaders\Samplers.hlsli" />
@@ -353,5 +354,6 @@
     <FxCompile Include="src\DLEngine\Shaders\PostProcess.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\Emission.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\Lit.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\ReflectionCapture.hlsl" />
   </ItemGroup>
 </Project>

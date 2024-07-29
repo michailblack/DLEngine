@@ -4,7 +4,7 @@
 namespace DLEngine
 {
     class Camera;
-    class ShaderResourceView;
+    class Texture2D;
     struct PostProcessSettings;
 
     class Renderer
@@ -20,8 +20,12 @@ namespace DLEngine
         static void BeginScene(const Camera& camera);
         static void EndScene();
 
-        static void SetSkybox(const ShaderResourceView& skyboxSRV);
+        static void SetSkybox(const Texture2D& skybox);
 
         static void SetPostProcessSettings(const PostProcessSettings& settings) noexcept;
+
+    private:
+        static void InitSkyboxPipeline() noexcept;
+        static void DrawSkybox() noexcept;
     };
 }

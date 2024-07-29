@@ -5,13 +5,13 @@
 
 namespace DLEngine
 {
-    void StructuredBuffer::Create(const StructuredBufferDesc& desc)
+    void StructuredBuffer::Create(size_t structureSize, uint32_t count, const void* data)
     {
-        DL_ASSERT(desc.StructureSize > 0u, "Structure size can't be 0");
-        DL_ASSERT(desc.Count > 0u, "Can't allocate structured buffer for less than 1 element");
+        DL_ASSERT(structureSize > 0u, "Structure size can't be 0");
+        DL_ASSERT(count > 0u, "Can't allocate structured buffer for less than 1 element");
 
-        m_StructureSize = desc.StructureSize;
-        m_Count = desc.Count;
+        m_StructureSize = structureSize;
+        m_Count = count;
 
         D3D11_BUFFER_DESC bufferDesc{};
         bufferDesc.ByteWidth = static_cast<uint32_t>(m_StructureSize) * m_Count;
@@ -22,13 +22,15 @@ namespace DLEngine
         bufferDesc.StructureByteStride = static_cast<uint32_t>(m_StructureSize);
 
         D3D11_SUBRESOURCE_DATA structuredBufferData{};
-        structuredBufferData.pSysMem = desc.Data;
+        structuredBufferData.pSysMem = data;
         structuredBufferData.SysMemPitch = 0u;
         structuredBufferData.SysMemSlicePitch = 0u;
 
-        D3D11_SUBRESOURCE_DATA* pStructuredBufferData = desc.Data ? &structuredBufferData : nullptr;
+        D3D11_SUBRESOURCE_DATA* pStructuredBufferData = data ? &structuredBufferData : nullptr;
 
         DL_THROW_IF_HR(D3D::GetDevice5()->CreateBuffer(&bufferDesc, pStructuredBufferData, &m_Handle));
+
+        CreateSRV();
     }
 
     void StructuredBuffer::Resize(uint32_t count)
@@ -42,11 +44,7 @@ namespace DLEngine
 
         m_Handle.Reset();
 
-        StructuredBufferDesc desc{};
-        desc.StructureSize = m_StructureSize;
-        desc.Count = m_Count;
-
-        Create(desc);
+        Create(m_StructureSize, m_Count);
     }
 
     void* StructuredBuffer::Map() const
@@ -63,21 +61,19 @@ namespace DLEngine
         return mappedSubresource.pData;
     }
 
-    void StructuredBuffer::Unmap() const
+    void StructuredBuffer::Unmap() const noexcept
     {
         D3D::GetDeviceContext4()->Unmap(m_Handle.Get(), 0u);
     }
 
-    void RStructuredBuffer::Create(const StructuredBuffer& structuredBuffer)
+    void StructuredBuffer::CreateSRV()
     {
-        m_StructuredBuffer = structuredBuffer;
-        m_SRV = RenderCommand::CreateShaderResourceView(structuredBuffer);
-    }
+        D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc{};
+        srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+        srvDesc.Buffer.FirstElement = 0u;
+        srvDesc.Buffer.NumElements = m_Count;
 
-    void RStructuredBuffer::Resize(uint32_t count)
-    {
-        m_StructuredBuffer.Resize(count);
-        m_SRV.Reset();
-        m_SRV = RenderCommand::CreateShaderResourceView(m_StructuredBuffer);
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateShaderResourceView1(m_Handle.Get(), &srvDesc, &m_SRV));
     }
 }

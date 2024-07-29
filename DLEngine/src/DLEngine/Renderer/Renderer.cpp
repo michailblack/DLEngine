@@ -9,10 +9,10 @@
 #include "DLEngine/DirectX/D3DStates.h"
 #include "DLEngine/DirectX/SwapChain.h"
 #include "DLEngine/DirectX/Texture.h"
-#include "DLEngine/DirectX/View.h"
 
 #include "DLEngine/Renderer/Camera.h"
 #include "DLEngine/Renderer/PostProcess.h"
+#include "DLEngine/Renderer/ReflectionCapture.h"
 
 #include "DLEngine/Systems/Light/LightSystem.h"
 
@@ -49,22 +49,23 @@ namespace DLEngine
 
         struct
         {
-            PerFrameData PerFrame;    
+            PerFrameData PerFrame;
             ConstantBuffer PerFrameCB;
 
             PerViewData PerView;
             ConstantBuffer PerViewCB;
 
             PipelineState SkyboxPipelineState;
-            ShaderResourceView SkyboxSRV;
+            Texture2D SkyboxTex;
 
-            RWTexture2D FrameRWTex;
+            Texture2D FrameTex;
 
             PostProcess PostProcess;
+            ReflectionCapture ReflectionCapture;
 
             SwapChain SwapChain;
-            WTexture2D BackBufferTex;
-            DTexture2D DepthStencilTex;
+            Texture2D BackBufferTex;
+            Texture2D DepthStencilTex;
         } s_Data;
     }
 
@@ -76,77 +77,13 @@ namespace DLEngine
         s_Data.PerViewCB.Create(sizeof(PerViewData));
 
         s_Data.SwapChain.Create(Application::Get().GetWindow()->GetHandle());
-        s_Data.BackBufferTex.Create(RenderCommand::GetBackBuffer(s_Data.SwapChain));
 
-        const auto& backBufferDesk{ s_Data.BackBufferTex.GetTexture().GetDesc()};
+        OnResize(window->GetWidth(), window->GetHeight());
 
-        D3D11_TEXTURE2D_DESC1 depthStencilDesk{};
-        depthStencilDesk.Width = backBufferDesk.Width;
-        depthStencilDesk.Height = backBufferDesk.Height;
-        depthStencilDesk.MipLevels = 1u;
-        depthStencilDesk.ArraySize = 1u;
-        depthStencilDesk.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-        depthStencilDesk.SampleDesc.Count = 1u;
-        depthStencilDesk.SampleDesc.Quality = 0u;
-        depthStencilDesk.Usage = D3D11_USAGE_DEFAULT;
-        depthStencilDesk.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-        depthStencilDesk.CPUAccessFlags = 0;
-        depthStencilDesk.MiscFlags = 0;
-        depthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
-
-        Texture2D depthStencilTex{};
-        depthStencilTex.Create(depthStencilDesk);
-
-        s_Data.DepthStencilTex.Create(depthStencilTex);
-
-        D3D11_VIEWPORT viewport{};
-        viewport.TopLeftX = 0.0f;
-        viewport.TopLeftY = 0.0f;
-        viewport.Width = static_cast<float>(window->GetWidth());
-        viewport.Height = static_cast<float>(window->GetHeight());
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-
-        RenderCommand::SetViewports({ viewport });
-
-        s_Data.SkyboxPipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        
-        ShaderSpecification shaderSpec{};
-        shaderSpec.Path = Filesystem::GetShaderDir() + L"Skybox.hlsl";
-        
-        shaderSpec.EntryPoint = "mainVS";
-        VertexShader vs{};
-        vs.Create(shaderSpec);
-        s_Data.SkyboxPipelineState.VS = vs;
-
-        shaderSpec.EntryPoint = "mainPS";
-        PixelShader ps{};
-        ps.Create(shaderSpec);
-        s_Data.SkyboxPipelineState.PS = ps;
-
-        s_Data.SkyboxPipelineState.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
-        s_Data.SkyboxPipelineState.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEPTH_READ_ONLY);
-
-        D3D11_TEXTURE2D_DESC1 frameTexDesk{};
-        frameTexDesk.Width = window->GetWidth();
-        frameTexDesk.Height = window->GetHeight();
-        frameTexDesk.MipLevels = 1u;
-        frameTexDesk.ArraySize = 1u;
-        frameTexDesk.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-        frameTexDesk.SampleDesc.Count = 1u;
-        frameTexDesk.SampleDesc.Quality = 0u;
-        frameTexDesk.Usage = D3D11_USAGE_DEFAULT;
-        frameTexDesk.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-        frameTexDesk.CPUAccessFlags = 0u;
-        frameTexDesk.MiscFlags = 0u;
-        frameTexDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
-
-        Texture2D frameTex{};
-        frameTex.Create(frameTexDesk);
-
-        s_Data.FrameRWTex.Create(frameTex);
+        InitSkyboxPipeline();
 
         s_Data.PostProcess.Create();
+        s_Data.ReflectionCapture.Create(4096u);
 
         DL_LOG_INFO("Renderer Initialized");
     }
@@ -163,16 +100,16 @@ namespace DLEngine
 
         RenderCommand::SetViewports({ viewport });
 
-        RenderCommand::SetRenderTargets({ RenderTargetView{} }, DepthStencilView{});
+        RenderCommand::SetRenderTargets();
 
         s_Data.BackBufferTex.Reset();
         s_Data.DepthStencilTex.Reset();
 
         s_Data.SwapChain.Resize(width, height);
 
-        s_Data.BackBufferTex.Create(RenderCommand::GetBackBuffer(s_Data.SwapChain));
+        s_Data.BackBufferTex = RenderCommand::GetBackBuffer(s_Data.SwapChain);
 
-        const auto& backBufferDesk{ s_Data.BackBufferTex.GetTexture().GetDesc() };
+        const auto& backBufferDesk{ s_Data.BackBufferTex.GetDesc() };
 
         D3D11_TEXTURE2D_DESC1 depthStencilDesk{};
         depthStencilDesk.Width = backBufferDesk.Width;
@@ -188,12 +125,9 @@ namespace DLEngine
         depthStencilDesk.MiscFlags = 0u;
         depthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
 
-        Texture2D depthStencilTex{};
-        depthStencilTex.Create(depthStencilDesk);
+        s_Data.DepthStencilTex.Create(depthStencilDesk);
 
-        s_Data.DepthStencilTex.Create(depthStencilTex);
-
-        s_Data.FrameRWTex.Reset();
+        s_Data.FrameTex.Reset();
 
         D3D11_TEXTURE2D_DESC1 frameTexDesk{};
         frameTexDesk.Width = width;
@@ -209,10 +143,7 @@ namespace DLEngine
         frameTexDesk.MiscFlags = 0u;
         frameTexDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
 
-        Texture2D frameTex{};
-        frameTex.Create(frameTexDesk);
-
-        s_Data.FrameRWTex.Create(frameTex);
+        s_Data.FrameTex.Create(frameTexDesk);
     }
 
     void Renderer::BeginFrame(DeltaTime dt)
@@ -243,6 +174,16 @@ namespace DLEngine
                 D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_CLAMP)
             }
         );
+
+        RenderCommand::SetShaderResources(
+            5u,
+            ShaderStage::Pixel,
+            {
+                s_Data.ReflectionCapture.GetDiffuseIrradiance().GetSRV(),
+                s_Data.ReflectionCapture.GetSpecularIrradiance().GetSRV(),
+                s_Data.ReflectionCapture.GetSpecularFactor().GetSRV()
+            }
+        );
     }
 
     void Renderer::EndFrame()
@@ -271,37 +212,60 @@ namespace DLEngine
     void Renderer::EndScene()
     {
         RenderCommand::SetRenderTargets(
-            { s_Data.FrameRWTex.GetRTV() },
+            { s_Data.FrameTex.GetRTV() },
             s_Data.DepthStencilTex.GetDSV()
         );
 
-        RenderCommand::ClearRenderTargetView(s_Data.FrameRWTex.GetRTV());
+        RenderCommand::ClearRenderTargetView(s_Data.FrameTex.GetRTV());
         RenderCommand::ClearDepthStencilView(s_Data.DepthStencilTex.GetDSV());
 
         TransformSystem::Update();
         LightSystem::Update();
         MeshSystem::Get().Render();
 
-        // Drawing skybox
-        RenderCommand::SetPipelineState(s_Data.SkyboxPipelineState);
-        RenderCommand::SetShaderResources(0u, ShaderStage::Pixel, { s_Data.SkyboxSRV });
+        DrawSkybox();
 
-        RenderCommand::Draw(3u);
+        RenderCommand::SetRenderTargets();
 
-        RenderCommand::SetRenderTargets({ RenderTargetView{} }, DepthStencilView{});
+        s_Data.PostProcess.Resolve(s_Data.FrameTex, s_Data.BackBufferTex);
 
-        s_Data.PostProcess.Resolve(s_Data.FrameRWTex.GetSRV(), s_Data.BackBufferTex.GetRTV());
-
-        RenderCommand::SetRenderTargets({ RenderTargetView{} }, DepthStencilView{});
+        RenderCommand::SetRenderTargets();
     }
 
-    void Renderer::SetSkybox(const ShaderResourceView& skyboxSRV)
+    void Renderer::SetSkybox(const Texture2D& skybox)
     {
-        s_Data.SkyboxSRV = skyboxSRV;
+        s_Data.SkyboxTex = skybox;
+
+        s_Data.ReflectionCapture.Build(s_Data.SkyboxTex);
     }
 
     void Renderer::SetPostProcessSettings(const PostProcessSettings& settings) noexcept
     {
         s_Data.PostProcess.SetSettings(settings);
+    }
+
+    void Renderer::InitSkyboxPipeline() noexcept
+    {
+        s_Data.SkyboxPipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+        ShaderSpecification shaderSpec{};
+        shaderSpec.Path = Filesystem::GetShaderDir() + L"Skybox.hlsl";
+
+        shaderSpec.EntryPoint = "mainVS";
+        s_Data.SkyboxPipelineState.VS.Create(shaderSpec);
+
+        shaderSpec.EntryPoint = "mainPS";
+        s_Data.SkyboxPipelineState.PS.Create(shaderSpec);
+
+        s_Data.SkyboxPipelineState.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
+        s_Data.SkyboxPipelineState.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEPTH_READ_ONLY);
+    }
+
+    void Renderer::DrawSkybox() noexcept
+    {
+        RenderCommand::SetPipelineState(s_Data.SkyboxPipelineState);
+        RenderCommand::SetShaderResources(0u, ShaderStage::Pixel, { s_Data.SkyboxTex.GetSRV() });
+
+        RenderCommand::Draw(3u);
     }
 }

@@ -10,10 +10,12 @@ namespace DLEngine
     public:
         static void Init();
 
-        static RTexture2D LoadTexture2D(const std::wstring& path);
-        static RTexture2D GetTexture2D(const std::wstring& path);
+        static Texture2D LoadTexture2D(const std::wstring& path);
+        static Texture2D GetTexture2D(const std::wstring& path);
 
-        static RTexture2D GenerateValueTexture2D(Math::Vec4 value);
+        static Texture2D GenerateValueTexture2D(Math::Vec4 value);
+
+        static void SaveToDDS(const Texture2D& texture, const std::wstring& name);
 
         static bool Exists2D(const std::wstring& path);
     };

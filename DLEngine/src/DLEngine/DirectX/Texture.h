@@ -1,102 +1,36 @@
 #pragma once
 #include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/View.h"
 
 namespace DLEngine
 {
     class Texture2D
     {
-        friend class RenderCommand;
     public:
-        void Create(const Microsoft::WRL::ComPtr<ID3D11Texture2D1>& handle) noexcept { m_Handle = handle; }
-        void Create(const D3D11_TEXTURE2D_DESC1& desc);
-        void Create(const D3D11_TEXTURE2D_DESC1& desc, const std::vector<D3D11_SUBRESOURCE_DATA>& data);
+        void Create(const D3D11_TEXTURE2D_DESC1& desc, const std::vector<D3D11_SUBRESOURCE_DATA>& data = {});
+        void Create(const Microsoft::WRL::ComPtr<ID3D11Texture2D1>& handle);
 
-        void Reset() noexcept { m_Handle.Reset(); }
+        void SetDebugName(const std::string_view& name) const;
 
-        D3D11_TEXTURE2D_DESC1 GetDesc() const;
+        void Reset() noexcept { m_Handle.Reset(); m_SRV.Reset(); m_RTVs.clear(); m_DSV.Reset(); }
+
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> GetSRV() const noexcept;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> GetRTV(uint32_t mipIndex = 0u, uint32_t arrayIndex = 0u) const noexcept;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> GetDSV() const noexcept;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D1> GetHandle() const noexcept { return m_Handle; }
+
+        D3D11_TEXTURE2D_DESC1 GetDesc() const noexcept;
+
+        bool operator==(const Texture2D& other) const noexcept { return m_Handle == other.m_Handle; }
+
+    private:
+        void CreateSRV(const D3D11_TEXTURE2D_DESC1& desc);
+        void CreateRTV(const D3D11_TEXTURE2D_DESC1& desc);
+        void CreateDSV(const D3D11_TEXTURE2D_DESC1& desc);
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Texture2D1> m_Handle{};
-    };
-
-    struct RTexture2D
-    {
-    public:
-        void Create(const Texture2D& texture);
-
-        void Reset() noexcept { m_Texture.Reset(); m_SRV.Reset(); }
-
-        Texture2D GetTexture() const noexcept { return m_Texture; }
-        ShaderResourceView GetSRV() const noexcept { return m_SRV; }
-
-    private:
-        Texture2D m_Texture{};
-        ShaderResourceView m_SRV{};
-    };
-
-    struct WTexture2D
-    {
-    public:
-        void Create(const Texture2D& texture);
-        
-        void Reset() noexcept { m_Texture.Reset(); m_RTV.Reset(); }
-        
-        Texture2D GetTexture() const noexcept { return m_Texture; }
-        RenderTargetView GetRTV() const noexcept { return m_RTV; }
-
-    private:
-        Texture2D m_Texture{};
-        RenderTargetView m_RTV{};
-    };
-
-    struct RWTexture2D
-    {
-    public:
-        void Create(const Texture2D& texture);
-
-        void Reset() noexcept { m_Texture.Reset(); m_RTV.Reset(); m_SRV.Reset(); }
-
-        Texture2D GetTexture() const noexcept { return m_Texture; }
-        RenderTargetView GetRTV() const noexcept { return m_RTV; }
-        ShaderResourceView GetSRV() const noexcept { return m_SRV; }
-
-    private:
-        Texture2D m_Texture{};
-        RenderTargetView m_RTV{};
-        ShaderResourceView m_SRV{};
-    };
-
-    struct DTexture2D
-    {
-    public:
-        void Create(const Texture2D& texture);
-
-        void Reset() noexcept { m_Texture.Reset(); m_DSV.Reset(); }
-
-        Texture2D GetTexture() const noexcept { return m_Texture; }
-        DepthStencilView GetDSV() const noexcept { return m_DSV; }
-
-    private:
-        Texture2D m_Texture{};
-        DepthStencilView m_DSV{};
-    };
-
-    struct RDTexture2D
-    {
-    public:
-        void Create(const Texture2D& texture);
-
-        void Reset() noexcept { m_Texture.Reset(); m_DSV.Reset(); m_SRV.Reset(); }
-
-        Texture2D GetTexture() const noexcept { return m_Texture; }
-        DepthStencilView GetDSV() const noexcept { return m_DSV; }
-        ShaderResourceView GetSRV() const noexcept { return m_SRV; }
-
-    private:
-        Texture2D m_Texture{};
-        DepthStencilView m_DSV{};
-        ShaderResourceView m_SRV{};
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> m_SRV{};
+        std::vector<Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>> m_RTVs{};
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_DSV{};
     };
 }
-

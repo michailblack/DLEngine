@@ -15,8 +15,8 @@ namespace DLEngine
             solid_vector<Math::Mat4x4> Transforms;
             solid_vector<Math::Mat4x4> InvTransforms;
 
-            RStructuredBuffer TransformSB;
-            RStructuredBuffer InvTransformSB;
+            StructuredBuffer TransformSB;
+            StructuredBuffer InvTransformSB;
 
             bool ShouldUpdate{ false };
         } s_Data;
@@ -24,13 +24,8 @@ namespace DLEngine
 
     void TransformSystem::Init()
     {
-        StructuredBufferDesc desc{};
-        desc.StructureSize = sizeof(Math::Mat4x4);
-
-        StructuredBuffer sb{};
-        sb.Create(desc);
-        s_Data.TransformSB.Create(sb);
-        s_Data.InvTransformSB.Create(sb);
+        s_Data.TransformSB.Create(sizeof(Math::Mat4x4));
+        s_Data.InvTransformSB.Create(sizeof(Math::Mat4x4));
 
         DL_LOG_INFO("Transform System Initialized");
     }
@@ -73,7 +68,7 @@ namespace DLEngine
         {
             s_Data.ShouldUpdate = false;
 
-            if (s_Data.Transforms.capacity() != s_Data.TransformSB.GetStructuredBuffer().GetElementsCount())
+            if (s_Data.Transforms.capacity() != s_Data.TransformSB.GetElementsCount())
             {
                 s_Data.TransformSB.Resize(s_Data.Transforms.capacity());
                 s_Data.InvTransformSB.Resize(s_Data.InvTransforms.capacity());
@@ -81,8 +76,8 @@ namespace DLEngine
 
             const auto* transformsData{ s_Data.Transforms.data() };
             const auto* invTransformsData{ s_Data.InvTransforms.data() };
-            auto* transforms{ static_cast<Math::Mat4x4*>(s_Data.TransformSB.GetStructuredBuffer().Map()) };
-            auto* invTransforms{ static_cast<Math::Mat4x4*>(s_Data.InvTransformSB.GetStructuredBuffer().Map()) };
+            auto* transforms{ static_cast<Math::Mat4x4*>(s_Data.TransformSB.Map()) };
+            auto* invTransforms{ static_cast<Math::Mat4x4*>(s_Data.InvTransformSB.Map()) };
 
             const uint32_t transformsCount { s_Data.Transforms.size() };
             for (uint32_t i{ 0u }; i < transformsCount; ++i)
@@ -90,11 +85,18 @@ namespace DLEngine
                transforms[i] = Math::Mat4x4::Transpose(transformsData[i]);
                invTransforms[i] = Math::Mat4x4::Transpose(invTransformsData[i]);
             }
-            s_Data.TransformSB.GetStructuredBuffer().Unmap();
-            s_Data.InvTransformSB.GetStructuredBuffer().Unmap();
+            s_Data.TransformSB.Unmap();
+            s_Data.InvTransformSB.Unmap();
         }
 
-        RenderCommand::SetShaderResources(0u, ShaderStage::All, { s_Data.TransformSB.GetSRV(), s_Data.InvTransformSB.GetSRV() });
+        RenderCommand::SetShaderResources(
+            0u,
+            ShaderStage::All,
+            {
+                s_Data.TransformSB.GetSRV(),
+                s_Data.InvTransformSB.GetSRV()
+            }
+        );
     }
 
     Math::Mat4x4& TransformSystem::GetTransform(uint32_t id) noexcept

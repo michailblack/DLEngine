@@ -30,10 +30,10 @@ void WorldLayer::OnAttach()
     const auto cube{ ModelManager::Load(Filesystem::GetModelDir() + L"cube\\cube.obj") };
     const auto samurai{ ModelManager::Load(Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
     const auto flashlight{ ModelManager::Load(Filesystem::GetModelDir() + L"flashlight\\flashlight.fbx") };
-    const auto sphere { ModelManager::Get(L"UNIT_SPHERE") };
-    
-    const auto skybox{ TextureManager::LoadTexture2D(Filesystem::GetTextureDir() + L"skybox\\night_street_hdr.dds") };
-    Renderer::SetSkybox(skybox.GetSRV());
+    const auto sphere { ModelManager::Get(L"UNIT_SPHERE") }; 
+    const auto skybox{ TextureManager::LoadTexture2D(Filesystem::GetTextureDir() + L"skybox\\night_street.dds") };
+
+    Renderer::SetSkybox(skybox);
 
     uint32_t transformID{ 0u };
 
@@ -46,7 +46,7 @@ void WorldLayer::OnAttach()
     PointLight pointLight{};
     pointLight.Position = Math::Vec3{ 0.0f };
     pointLight.Radius = 0.5f;
-    pointLight.Radiance = Math::Vec3{ 98.3f, 156.7f, 30.4f };
+    pointLight.Radiance = Math::Vec3{ 9.83f, 15.67f, 3.04f };
 
     transformID = TransformSystem::AddTransform(
         Math::Mat4x4::Scale(Math::Vec3{ pointLight.Radius }) *
@@ -78,101 +78,101 @@ void WorldLayer::OnAttach()
         Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 0.0f, 1.5f })
     );
 
-    litMaterials[0].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Sword_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[0].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Sword_Normal.dds"
-    ).GetSRV();
-    litMaterials[0].MetallicSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Sword_Metallic.dds"
-    ).GetSRV();
-    litMaterials[0].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Sword_Roughness.dds"
-    ).GetSRV();
+    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_BaseColor.dds"
+    );
+    litMaterials[0].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Normal.dds"
+    );
+    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Metallic.dds"
+    );
+    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Roughness.dds"
+    );
 
-    litMaterials[1].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Head_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[1].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Head_Normal.dds"
-    ).GetSRV();
-    litMaterials[1].MetallicSRV = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f }).GetSRV();
-    litMaterials[1].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Head_Roughness.dds"
-    ).GetSRV();
+    litMaterials[1].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Head_BaseColor.dds"
+    );
+    litMaterials[1].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Head_Normal.dds"
+    );
+    litMaterials[1].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
+    litMaterials[1].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Head_Roughness.dds"
+    );
 
-    litMaterials[2].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Eyes_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[2].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Eyes_Normal.dds"
-    ).GetSRV();
-    litMaterials[2].MetallicSRV = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f }).GetSRV();
-    litMaterials[2].RoughnessSRV = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f }).GetSRV();
+    litMaterials[2].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Eyes_BaseColor.dds"
+    );
+    litMaterials[2].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Eyes_Normal.dds"
+    );
+    litMaterials[2].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
+    litMaterials[2].Roughness = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
 
-    litMaterials[3].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Helmet_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[3].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Helmet_Normal.dds"
-    ).GetSRV();
-    litMaterials[3].MetallicSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Helmet_Metallic.dds"
-    ).GetSRV();
-    litMaterials[3].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Helmet_Roughness.dds"
-    ).GetSRV();
+    litMaterials[3].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_BaseColor.dds"
+    );
+    litMaterials[3].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Normal.dds"
+    );
+    litMaterials[3].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Metallic.dds"
+    );
+    litMaterials[3].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Roughness.dds"
+    );
 
-    litMaterials[4].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Decor_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[4].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Decor_Normal.dds"
-    ).GetSRV();
-    litMaterials[4].MetallicSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Decor_Metallic.dds"
-    ).GetSRV();
-    litMaterials[4].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Decor_Roughness.dds"
-    ).GetSRV();
+    litMaterials[4].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_BaseColor.dds"
+    );
+    litMaterials[4].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Normal.dds"
+    );
+    litMaterials[4].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Metallic.dds"
+    );
+    litMaterials[4].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Roughness.dds"
+    );
 
-    litMaterials[5].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Pants_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[5].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Pants_Normal.dds"
-    ).GetSRV();
-    litMaterials[5].MetallicSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Pants_Metallic.dds"
-    ).GetSRV();
-    litMaterials[5].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Pants_Roughness.dds"
-    ).GetSRV();
+    litMaterials[5].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_BaseColor.dds"
+    );
+    litMaterials[5].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Normal.dds"
+    );
+    litMaterials[5].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Metallic.dds"
+    );
+    litMaterials[5].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Roughness.dds"
+    );
 
-    litMaterials[6].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Hands_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[6].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Hands_Normal.dds"
-    ).GetSRV();
-    litMaterials[6].MetallicSRV = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f }).GetSRV();
-    litMaterials[6].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Hands_Roughness.dds"
-    ).GetSRV();
+    litMaterials[6].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_BaseColor.dds"
+    );
+    litMaterials[6].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_Normal.dds"
+    );
+    litMaterials[6].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
+    litMaterials[6].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_Roughness.dds"
+    );
 
-    litMaterials[7].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
-    ).GetSRV();
-    litMaterials[7].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Torso_Normal.dds"
-    ).GetSRV();
-    litMaterials[7].MetallicSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Torso_Metallic.dds"
-    ).GetSRV();
-    litMaterials[7].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"samurai\\Torso_Roughness.dds"
-    ).GetSRV();
+    litMaterials[7].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_BaseColor.dds"
+    );
+    litMaterials[7].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Normal.dds"
+    );
+    litMaterials[7].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Metallic.dds"
+    );
+    litMaterials[7].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Roughness.dds"
+    );
 
     ShadingGroupStruct::Instance::Null nullInstance{};
     nullInstance.TransformID = transformID;
@@ -190,14 +190,18 @@ void WorldLayer::OnAttach()
         Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 0.0f, 0.0f })
     );
 
-    litMaterials[0].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"cube\\Cobblestone_albedo.dds"
-    ).GetSRV();
-    litMaterials[0].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"cube\\Cobblestone_normal.dds"
-    ).GetSRV();
-    litMaterials[0].MetallicSRV = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f }).GetSRV();
-    litMaterials[0].RoughnessSRV = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f }).GetSRV();
+    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_BaseColor.dds"
+    );
+    litMaterials[0].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Normal.dds"
+    );
+    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Metallic.dds"
+    );
+    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Roughness.dds"
+    );
 
     for (int32_t x{ -5 }; x < 5; ++x)
     {
@@ -227,9 +231,9 @@ void WorldLayer::OnAttach()
     );
 
     SpotLight spotLight{};
-    spotLight.Position = Math::Vec3{ 0.0f, 0.0f, 0.0f };
+    spotLight.Position = Math::Vec3{ 0.0f, 5.0f, 0.0f };
     spotLight.Direction = Math::Normalize(Math::Vec3{ 0.0f, 0.0f, 1.0f });
-    spotLight.Radiance = Math::Vec3{ 400.0f, 100.0f, 1500.0f };
+    spotLight.Radiance = Math::Vec3{ 40.0f, 10.0f, 150.0f };
     spotLight.Radius = 0.075f;
     spotLight.InnerCutoffCos = Math::Cos(Math::ToRadians(15.0f));
     spotLight.OuterCutoffCos = Math::Cos(Math::ToRadians(25.0f));
@@ -237,31 +241,31 @@ void WorldLayer::OnAttach()
     LightSystem::AddSpotLight(spotLight, m_CameraTransformID);
 
     litMaterials.resize(flashlight->GetMeshesCount());
-    litMaterials[0].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
-    ).GetSRV();
-    litMaterials[0].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Normal.dds"
-    ).GetSRV();
-    litMaterials[0].MetallicSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Metallic.dds"
-    ).GetSRV();
-    litMaterials[0].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Roughness.dds"
-    ).GetSRV();
+    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Base_color.dds"
+    );
+    litMaterials[0].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Normal.dds"
+    );
+    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Metallic.dds"
+    );
+    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Roughness.dds"
+    );
 
-    litMaterials[1].AlbedoSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
-    ).GetSRV();
-    litMaterials[1].NormalSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Normal.dds"
-    ).GetSRV();
-    litMaterials[1].MetallicSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Metallic.dds"
-    ).GetSRV();
-    litMaterials[1].RoughnessSRV = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Roughness.dds"
-    ).GetSRV();
+    litMaterials[1].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Base_color.dds"
+    );
+    litMaterials[1].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Normal.dds"
+    );
+    litMaterials[1].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Metallic.dds"
+    );
+    litMaterials[1].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Roughness.dds"
+    );
 
     nullInstance.TransformID = m_CameraTransformID;
     MeshSystem::Get().Add<>(flashlight, litMaterials, nullInstance);

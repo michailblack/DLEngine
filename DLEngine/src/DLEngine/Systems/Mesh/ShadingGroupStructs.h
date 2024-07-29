@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "DLEngine/DirectX/RenderCommand.h"
-#include "DLEngine/DirectX/View.h"
+#include "DLEngine/DirectX/Texture.h"
 
 #include "DLEngine/Math/Vec3.h"
 
@@ -18,37 +18,46 @@ namespace DLEngine
 
         struct TextureOnly
         {
-            ShaderResourceView TextureSRV{};
+            Texture2D Texture{};
 
             void Set() const noexcept
             {
-                RenderCommand::SetShaderResources(5u, ShaderStage::Pixel, { TextureSRV });
+                RenderCommand::SetShaderResources(8u, ShaderStage::Pixel, { Texture.GetSRV() });
             }
 
             bool operator==(const TextureOnly& other) const
             {
-                return TextureSRV == other.TextureSRV;
+                return Texture == other.Texture;
             }
         };
 
         struct Lit
         {
-            ShaderResourceView AlbedoSRV{};
-            ShaderResourceView NormalSRV{};
-            ShaderResourceView MetallicSRV{};
-            ShaderResourceView RoughnessSRV{};
+            Texture2D Albedo{};
+            Texture2D Normal{};
+            Texture2D Metallic{};
+            Texture2D Roughness{};
 
             void Set() const noexcept
             {
-                RenderCommand::SetShaderResources(5u, ShaderStage::Pixel, { AlbedoSRV, NormalSRV, MetallicSRV, RoughnessSRV });
+                RenderCommand::SetShaderResources(
+                    8u,
+                    ShaderStage::Pixel,
+                    {
+                        Albedo.GetSRV(),
+                        Normal.GetSRV(),
+                        Metallic.GetSRV(),
+                        Roughness.GetSRV()
+                    }
+                );
             }
 
             bool operator==(const Lit& other) const
             {
-                return AlbedoSRV == other.AlbedoSRV &&
-                    NormalSRV == other.NormalSRV &&
-                    MetallicSRV == other.MetallicSRV &&
-                    RoughnessSRV == other.RoughnessSRV;
+                return Albedo == other.Albedo &&
+                    Normal == other.Normal &&
+                    Metallic == other.Metallic &&
+                    Roughness == other.Roughness;
             }
         };
     }

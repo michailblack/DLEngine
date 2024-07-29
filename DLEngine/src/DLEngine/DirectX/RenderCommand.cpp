@@ -7,63 +7,73 @@
 #include "DLEngine/DirectX/InputLayout.h"
 #include "DLEngine/DirectX/PipelineState.h"
 #include "DLEngine/DirectX/Shaders.h"
-#include "DLEngine/DirectX/StructuredBuffer.h"
 #include "DLEngine/DirectX/SwapChain.h"
 #include "DLEngine/DirectX/Texture.h"
 #include "DLEngine/DirectX/VertexBuffer.h"
-#include "DLEngine/DirectX/View.h"
 
 namespace DLEngine
 {
-    void RenderCommand::SetRenderTargets(const std::initializer_list<RenderTargetView>& RTVs,
-        const DepthStencilView& DSV) noexcept
+    void RenderCommand::SetRenderTargets(
+        const std::initializer_list<Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>>& RTVs,
+        const Microsoft::WRL::ComPtr<ID3D11DepthStencilView>& DSV
+    ) noexcept
     {
         const auto& deviceContext{ D3D::GetDeviceContext4() };
+        std::array<ID3D11RenderTargetView*, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT> rtvs{};
+        rtvs.fill(nullptr);
 
-        std::vector<ID3D11RenderTargetView*> rtvs{};
-        rtvs.reserve(RTVs.size());
+        uint32_t i{ 0u };
         for (const auto& rtv : RTVs)
-            rtvs.push_back(static_cast<ID3D11RenderTargetView*>(rtv.m_Handle.Get()));
+            rtvs[i++] = static_cast<ID3D11RenderTargetView*>(rtv.Get());
 
-        deviceContext->OMSetRenderTargets(static_cast<UINT>(rtvs.size()), rtvs.data(), DSV.m_Handle.Get());
+        const uint32_t numViews = RTVs.size() == 0u ? D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT : static_cast<uint32_t>(RTVs.size());
+
+        deviceContext->OMSetRenderTargets(numViews, rtvs.data(), DSV.Get());
     }
 
-    void RenderCommand::SetShaderResources(uint32_t startSlot, ShaderStage stage, const std::initializer_list<ShaderResourceView>& SRVs) noexcept
+    void RenderCommand::SetShaderResources(
+        uint32_t startSlot,
+        ShaderStage stage,
+        const std::initializer_list<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1>>& SRVs
+    ) noexcept
     {
         const auto& deviceContext{ D3D::GetDeviceContext4() };
         std::array<ID3D11ShaderResourceView*, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT> srvs{};
+        srvs.fill(nullptr);
 
         uint32_t i{ 0u };
         for (const auto& srv : SRVs)
-            srvs[i++] = static_cast<ID3D11ShaderResourceView*>(srv.m_Handle.Get());
+            srvs[i++] = static_cast<ID3D11ShaderResourceView*>(srv.Get());
+
+        const uint32_t numViews = SRVs.size() == 0u ? D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT : static_cast<uint32_t>(SRVs.size());
 
         switch (stage)
         {
         case ShaderStage::Vertex:
-            deviceContext->VSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
+            deviceContext->VSSetShaderResources(startSlot, numViews, srvs.data());
             break;
         case ShaderStage::Domain:
-            deviceContext->DSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
+            deviceContext->DSSetShaderResources(startSlot, numViews, srvs.data());
             break;
         case ShaderStage::Hull:
-            deviceContext->HSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
+            deviceContext->HSSetShaderResources(startSlot, numViews, srvs.data());
             break;
         case ShaderStage::Geometry:
-            deviceContext->GSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
+            deviceContext->GSSetShaderResources(startSlot, numViews, srvs.data());
             break;
         case ShaderStage::Pixel:
-            deviceContext->PSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
+            deviceContext->PSSetShaderResources(startSlot, numViews, srvs.data());
             break;
         case ShaderStage::Compute:
-            deviceContext->CSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
+            deviceContext->CSSetShaderResources(startSlot, numViews, srvs.data());
             break;
         case ShaderStage::All:
-            deviceContext->VSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
-            deviceContext->DSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
-            deviceContext->HSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
-            deviceContext->GSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
-            deviceContext->PSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
-            deviceContext->CSSetShaderResources(startSlot, static_cast<UINT>(SRVs.size()), srvs.data());
+            deviceContext->VSSetShaderResources(startSlot, numViews, srvs.data());
+            deviceContext->DSSetShaderResources(startSlot, numViews, srvs.data());
+            deviceContext->HSSetShaderResources(startSlot, numViews, srvs.data());
+            deviceContext->GSSetShaderResources(startSlot, numViews, srvs.data());
+            deviceContext->PSSetShaderResources(startSlot, numViews, srvs.data());
+            deviceContext->CSSetShaderResources(startSlot, numViews, srvs.data());
             break;
         }
     }
@@ -259,22 +269,34 @@ namespace DLEngine
         RenderCommand::SetDepthStencilState(PS.DepthStencil);
     }
 
-    void RenderCommand::ClearRenderTargetView(const RenderTargetView& RTV, const Math::Vec4& color) noexcept
+    void RenderCommand::ClearRenderTargetView(
+        const Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>& RTV,
+        const Math::Vec4& color
+    ) noexcept
     {
         const auto& deviceContext{ D3D::GetDeviceContext4() };
-        deviceContext->ClearRenderTargetView(RTV.m_Handle.Get(), color.data());
+        deviceContext->ClearRenderTargetView(static_cast<ID3D11RenderTargetView*>(RTV.Get()), color.data());
     }
 
-    void RenderCommand::ClearDepthStencilView(const DepthStencilView& DSV, float depth, uint8_t stencil) noexcept
+    void RenderCommand::ClearDepthStencilView(
+        const Microsoft::WRL::ComPtr<ID3D11DepthStencilView>& DSV,
+        float depth, uint8_t stencil
+    ) noexcept
     {
         const auto& deviceContext{ D3D::GetDeviceContext4() };
-        deviceContext->ClearDepthStencilView(DSV.m_Handle.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, depth, stencil);
+        deviceContext->ClearDepthStencilView(DSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, depth, stencil);
     }
 
     void RenderCommand::Draw(uint32_t vertexCount, uint32_t startVertexLocation)
     {
         const auto& deviceContext{ D3D::GetDeviceContext4() };
         DL_THROW_IF_D3D11(deviceContext->Draw(vertexCount, startVertexLocation));
+    }
+
+    void RenderCommand::DrawIndexed(uint32_t indexCount, uint32_t startIndexLocation, uint32_t baseVertexLocation)
+    {
+        const auto& deviceContext{ D3D::GetDeviceContext4() };
+        DL_THROW_IF_D3D11(deviceContext->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation));
     }
 
     void RenderCommand::DrawInstancedIndexed(uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLocation, uint32_t baseVertexLocation, uint32_t startInstanceLocation)
@@ -298,61 +320,4 @@ namespace DLEngine
         texture.Create(backBuffer);
         return texture;
     }
-
-    ShaderResourceView RenderCommand::CreateShaderResourceView(const Texture2D& texture)
-    {
-        const auto& device{ D3D::GetDevice5() };
-
-        const auto& desc{ texture.GetDesc() };
-        D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc{};
-        srvDesc.Format = desc.Format;
-        srvDesc.ViewDimension = (desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE) ? 
-            D3D11_SRV_DIMENSION_TEXTURECUBE :
-            D3D11_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MostDetailedMip = 0u;
-        srvDesc.Texture2D.MipLevels = static_cast<UINT>(-1);
-        srvDesc.Texture2D.PlaneSlice = 0u;
-        
-        ShaderResourceView srv{};
-        DL_THROW_IF_HR(device->CreateShaderResourceView1(texture.m_Handle.Get(), &srvDesc, &srv.m_Handle));
-
-        return srv;
-    }
-
-    ShaderResourceView RenderCommand::CreateShaderResourceView(const StructuredBuffer& structuredBuffer)
-    {
-        const auto& device{ D3D::GetDevice5() };
-
-        D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc{};
-        srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-        srvDesc.Buffer.FirstElement = 0u;
-        srvDesc.Buffer.NumElements = structuredBuffer.m_Count;
-
-        ShaderResourceView srv{};
-        DL_THROW_IF_HR(device->CreateShaderResourceView1(structuredBuffer.m_Handle.Get(), &srvDesc, &srv.m_Handle));
-
-        return srv;
-    }
-
-    RenderTargetView RenderCommand::CreateRenderTargetView(const Texture2D& texture)
-    {
-        const auto& device{ D3D::GetDevice5() };
-
-        RenderTargetView rtv{};
-        DL_THROW_IF_HR(device->CreateRenderTargetView1(texture.m_Handle.Get(), nullptr, &rtv.m_Handle));
-
-        return rtv;
-    }
-
-    DepthStencilView RenderCommand::CreateDepthStencilView(const Texture2D& texture)
-    {
-        const auto& device{ D3D::GetDevice5() };
-
-        DepthStencilView dsv{};
-        DL_THROW_IF_HR(device->CreateDepthStencilView(texture.m_Handle.Get(), nullptr, &dsv.m_Handle));
-
-        return dsv;
-    }
-
 }

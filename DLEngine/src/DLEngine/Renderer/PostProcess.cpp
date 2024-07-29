@@ -2,9 +2,9 @@
 #include "PostProcess.h"
 
 #include "DLEngine/Core/Filesystem.h"
-#include "DLEngine/DirectX/RenderCommand.h"
 
-#include "DLEngine/DirectX/View.h"
+#include "DLEngine/DirectX/RenderCommand.h"
+#include "DLEngine/DirectX/Texture.h"
 
 namespace DLEngine
 {
@@ -37,17 +37,17 @@ namespace DLEngine
         m_SettingsCB.Set(&m_CurrentSettings);
     }
 
-    void PostProcess::Resolve(const ShaderResourceView& src, const RenderTargetView& dst) const
+    void PostProcess::Resolve(const Texture2D& src, const Texture2D& dst) const
     {
         RenderCommand::SetPipelineState(m_PipelineState);
-        RenderCommand::SetShaderResources(0u, ShaderStage::Pixel, { src });
+        RenderCommand::SetShaderResources(0u, ShaderStage::Pixel, { src.GetSRV() });
         RenderCommand::SetConstantBuffers(9u, ShaderStage::Pixel, { m_SettingsCB });
         
-        RenderCommand::SetRenderTargets({ dst }, DepthStencilView{});
-        RenderCommand::ClearRenderTargetView(dst);
+        RenderCommand::SetRenderTargets({ dst.GetRTV() });
+        RenderCommand::ClearRenderTargetView(dst.GetRTV());
 
         RenderCommand::Draw(3u);
 
-        RenderCommand::SetShaderResources(0u, ShaderStage::Pixel, { ShaderResourceView{} });
+        RenderCommand::SetShaderResources(0u, ShaderStage::Pixel);
     }
 }

@@ -17,10 +17,6 @@ enum class ShaderStage
 
 namespace DLEngine
 {
-    class RenderTargetView;
-    class DepthStencilView;
-    class ShaderResourceView;
-
     class InputLayout;
 
     class VertexBuffer;
@@ -47,8 +43,16 @@ namespace DLEngine
     class RenderCommand
     {
     public:
-        static void SetRenderTargets(const std::initializer_list<RenderTargetView>& RTVs, const DepthStencilView& DSV) noexcept;
-        static void SetShaderResources(uint32_t startSlot, ShaderStage stage, const std::initializer_list<ShaderResourceView>& SRVs) noexcept;
+        static void SetRenderTargets(
+            const std::initializer_list<Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>>& RTVs = {},
+            const Microsoft::WRL::ComPtr<ID3D11DepthStencilView>& DSV = {}
+        ) noexcept;
+
+        static void SetShaderResources(
+            uint32_t startSlot,
+            ShaderStage stage,
+            const std::initializer_list<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1>>& SRVs = {}
+        ) noexcept;
 
         static void SetViewports(const std::initializer_list<D3D11_VIEWPORT>& viewports) noexcept;
 
@@ -72,18 +76,19 @@ namespace DLEngine
 
         static void SetPipelineState(const PipelineState& PS) noexcept;
 
-        static void ClearRenderTargetView(const RenderTargetView& RTV, const Math::Vec4& color = Math::Vec4{ 1.0f, 0.0f, 1.0f, 1.0f }) noexcept;
-        static void ClearDepthStencilView(const DepthStencilView& DSV, float depth = 0.0f, uint8_t stencil = 0) noexcept;
+        static void ClearRenderTargetView(
+            const Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>& RTV,
+            const Math::Vec4& color = Math::Vec4{ 1.0f, 0.0f, 1.0f, 1.0f }
+        ) noexcept;
+        static void ClearDepthStencilView(
+            const Microsoft::WRL::ComPtr<ID3D11DepthStencilView>& DSV,
+            float depth = 0.0f, uint8_t stencil = 0
+        ) noexcept;
 
         static void Draw(uint32_t vertexCount, uint32_t startVertexLocation = 0u);
+        static void DrawIndexed(uint32_t indexCount, uint32_t startIndexLocation = 0u, uint32_t baseVertexLocation = 0u);
         static void DrawInstancedIndexed(uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLocation = 0u, uint32_t baseVertexLocation = 0u, uint32_t startInstanceLocation = 0u);
 
         static Texture2D GetBackBuffer(const SwapChain& swapChain);
-
-        static ShaderResourceView CreateShaderResourceView(const Texture2D& texture);
-        static ShaderResourceView CreateShaderResourceView(const StructuredBuffer& structuredBuffer);
-
-        static RenderTargetView CreateRenderTargetView(const Texture2D& texture);
-        static DepthStencilView CreateDepthStencilView(const Texture2D& texture);
     };
 }

@@ -26,7 +26,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     return vsOutput;
 }
 
-Texture2D<float3> g_Texture : register(t5);
+Texture2D<float3> g_Texture : register(t8);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {

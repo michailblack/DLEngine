@@ -121,6 +121,23 @@ namespace DLEngine
 
                     return rasterizerDesc;
                 }
+                case RasterizerStates::CULL_NONE:
+                {
+                    rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+                    rasterizerDesc.CullMode = D3D11_CULL_NONE;
+                    rasterizerDesc.FrontCounterClockwise = FALSE;
+                    rasterizerDesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+                    rasterizerDesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+                    rasterizerDesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+                    rasterizerDesc.DepthClipEnable = TRUE;
+                    rasterizerDesc.ScissorEnable = FALSE;
+                    rasterizerDesc.MultisampleEnable = FALSE;
+                    rasterizerDesc.AntialiasedLineEnable = FALSE;
+                    rasterizerDesc.ForcedSampleCount = 0u;
+                    rasterizerDesc.ConservativeRaster = D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+                    return rasterizerDesc;
+                }
                 default:
                     DL_ASSERT(false, "Unknown RasterizerState");
                     return rasterizerDesc;

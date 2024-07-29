@@ -34,3 +34,7 @@ StructuredBuffer<float4x4> t_WorldToModel : register(t1);
 StructuredBuffer<DirectionalLight> t_DirectionalLights : register(t2);
 StructuredBuffer<PointLight>       t_PointLights       : register(t3);
 StructuredBuffer<SpotLight>        t_SpotLights        : register(t4);
+
+TextureCube<float3> t_DiffuseIrradianceIBL  : register(t5);
+TextureCube<float3> t_SpecularIrradianceIBL : register(t6);
+Texture2D<float2> t_SpecularFactorIBL       : register(t7);

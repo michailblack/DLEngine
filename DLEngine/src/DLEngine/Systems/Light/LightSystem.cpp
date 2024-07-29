@@ -54,9 +54,9 @@ namespace DLEngine
             solid_vector<PointLightInstance> PointLights;
             solid_vector<SpotLightInstance> SpotLights;
 
-            RStructuredBuffer DirectionalLightSB;
-            RStructuredBuffer PointLightSB;
-            RStructuredBuffer SpotLightSB;
+            StructuredBuffer DirectionalLightSB;
+            StructuredBuffer PointLightSB;
+            StructuredBuffer SpotLightSB;
 
             bool ShouldUpdate{ false };
         } s_Data;
@@ -64,22 +64,9 @@ namespace DLEngine
 
     void LightSystem::Init()
     {
-        StructuredBufferDesc desc{};
-
-        desc.StructureSize = sizeof(GPUDirectionalLight);
-        StructuredBuffer sb{};
-        sb.Create(desc);
-        s_Data.DirectionalLightSB.Create(sb);
-
-        desc.StructureSize = sizeof(GPUPointLight);
-        sb.Reset();
-        sb.Create(desc);
-        s_Data.PointLightSB.Create(sb);
-
-        desc.StructureSize = sizeof(GPUSpotLight);
-        sb.Reset();
-        sb.Create(desc);
-        s_Data.SpotLightSB.Create(sb);
+        s_Data.DirectionalLightSB.Create(sizeof(GPUDirectionalLight));
+        s_Data.PointLightSB.Create(sizeof(GPUPointLight));
+        s_Data.SpotLightSB.Create(sizeof(GPUSpotLight));
 
         DL_LOG_INFO("Light System Initialized");
     }
@@ -133,9 +120,9 @@ namespace DLEngine
 
             uint32_t i{ 0u };
 
-            if (s_Data.DirectionalLights.capacity() != s_Data.DirectionalLightSB.GetStructuredBuffer().GetElementsCount())
+            if (s_Data.DirectionalLights.capacity() != s_Data.DirectionalLightSB.GetElementsCount())
                 s_Data.DirectionalLightSB.Resize(s_Data.DirectionalLights.capacity());
-            auto* directionalLights{ static_cast<GPUDirectionalLight*>(s_Data.DirectionalLightSB.GetStructuredBuffer().Map()) };
+            auto* directionalLights{ static_cast<GPUDirectionalLight*>(s_Data.DirectionalLightSB.Map()) };
             for (const auto& [directionalLight, transformID] : s_Data.DirectionalLights)
             {
                 GPUDirectionalLight gpuLight{};
@@ -144,12 +131,12 @@ namespace DLEngine
 
                 directionalLights[i++] = gpuLight;
             }
-            s_Data.DirectionalLightSB.GetStructuredBuffer().Unmap();
+            s_Data.DirectionalLightSB.Unmap();
 
             i = 0u;
-            if (s_Data.PointLights.capacity() != s_Data.PointLightSB.GetStructuredBuffer().GetElementsCount())
+            if (s_Data.PointLights.capacity() != s_Data.PointLightSB.GetElementsCount())
                 s_Data.PointLightSB.Resize(s_Data.PointLights.capacity());
-            auto* pointLights{ static_cast<GPUPointLight*>(s_Data.PointLightSB.GetStructuredBuffer().Map()) };
+            auto* pointLights{ static_cast<GPUPointLight*>(s_Data.PointLightSB.Map()) };
             for (const auto& [pointLight, transformID] : s_Data.PointLights)
             {
                 GPUPointLight gpuLight{};
@@ -158,12 +145,12 @@ namespace DLEngine
 
                 pointLights[i++] = gpuLight;
             }
-            s_Data.PointLightSB.GetStructuredBuffer().Unmap();
+            s_Data.PointLightSB.Unmap();
 
             i = 0u;
-            if (s_Data.SpotLights.capacity() != s_Data.SpotLightSB.GetStructuredBuffer().GetElementsCount())
+            if (s_Data.SpotLights.capacity() != s_Data.SpotLightSB.GetElementsCount())
                 s_Data.SpotLightSB.Resize(s_Data.SpotLights.capacity());
-            auto* spotLights{ static_cast<GPUSpotLight*>(s_Data.SpotLightSB.GetStructuredBuffer().Map()) };
+            auto* spotLights{ static_cast<GPUSpotLight*>(s_Data.SpotLightSB.Map()) };
             for (const auto& [spotLight, transformID] : s_Data.SpotLights)
             {
                 GPUSpotLight gpuLight{};
@@ -172,7 +159,7 @@ namespace DLEngine
 
                 spotLights[i++] = gpuLight;
             }
-            s_Data.SpotLightSB.GetStructuredBuffer().Unmap();
+            s_Data.SpotLightSB.Unmap();
         }
 
         RenderCommand::SetShaderResources(
