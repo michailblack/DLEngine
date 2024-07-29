@@ -1,11 +1,14 @@
 static const float PI = 3.14159265359;
+static const float THRESHOLD = 1e-5;
 
 float TrowbridgeReitzNDF(float NdotH, float rough4)
 {
-    float denom = NdotH * NdotH * (rough4 - 1.0) + 1.0;
+    const float rough = max(rough4, THRESHOLD);
+
+    float denom = NdotH * NdotH * (rough - 1.0) + 1.0;
     denom = PI * denom * denom;
 
-    return rough4 / denom;
+    return rough / denom;
 }
 
 float SmithGAF(float NdotV, float NdotL, float rough4)

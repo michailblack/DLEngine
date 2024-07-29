@@ -32,6 +32,7 @@ namespace DLEngine
         void OnEvent(Event& e);
 
         void PushLayer(Layer* layer);
+        void PushOverlay(Layer* layer);
 
         Scope<Window>& GetWindow() noexcept { return m_Window; }
         static Application& Get() noexcept { return *s_Instance; }

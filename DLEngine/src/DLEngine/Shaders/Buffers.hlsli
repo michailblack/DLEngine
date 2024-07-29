@@ -1,9 +1,21 @@
+struct RendererSettings
+{
+    float3 IndirectLightingRadiance;
+    bool UseIBL;
+    bool OverwriteRoughness;
+    float OverwrittenRoughness;
+    bool DiffuseReflectoinsEnabled;
+    bool SpecularReflectionsEnabled;
+    float EV100;
+};
+
 cbuffer PerFrame : register(b0)
 {
     float2 c_Resolution;
     float2 c_MousePos;
     float c_TimeMS;
     float c_TimeS;
+    RendererSettings c_RendererSettings;
 };
 
 cbuffer PerView : register(b1)

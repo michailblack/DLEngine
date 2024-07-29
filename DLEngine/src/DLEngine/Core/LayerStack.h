@@ -21,7 +21,10 @@ namespace DLEngine
         LayerStack& operator=(LayerStack&&) = delete;
 
         void PushLayer(Layer* layer);
+        void PushOverlay(Layer* overlay);
+
         void PopLayer(Layer* layer);
+        void PopOverlay(Layer* overlay);
 
         LayerStackIterator begin() { return m_Layers.begin(); }
         LayerStackIterator end() { return m_Layers.end(); }
@@ -31,5 +34,6 @@ namespace DLEngine
 
     private:
         LayerStackBuffer m_Layers;
+        uint32_t m_LayerInsertIndex{ 0u };
     };
 }

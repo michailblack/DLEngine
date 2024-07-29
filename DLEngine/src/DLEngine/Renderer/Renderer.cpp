@@ -31,6 +31,7 @@ namespace DLEngine
             float TimeMS{ 0u };
             float TimeS{ 0u };
             float _padding[2]{};
+            RendererSettings Settings;
         };
 
         struct PerViewData
@@ -188,6 +189,7 @@ namespace DLEngine
 
     void Renderer::EndFrame()
     {
+        RenderCommand::SetRenderTargets();
         s_Data.SwapChain.Present();
     }
 
@@ -228,8 +230,11 @@ namespace DLEngine
         RenderCommand::SetRenderTargets();
 
         s_Data.PostProcess.Resolve(s_Data.FrameTex, s_Data.BackBufferTex);
+    }
 
-        RenderCommand::SetRenderTargets();
+    void Renderer::SetRendererSettings(const RendererSettings& settings)
+    {
+        s_Data.PerFrame.Settings = settings;
     }
 
     void Renderer::SetSkybox(const Texture2D& skybox)
@@ -237,11 +242,6 @@ namespace DLEngine
         s_Data.SkyboxTex = skybox;
 
         s_Data.ReflectionCapture.Build(s_Data.SkyboxTex);
-    }
-
-    void Renderer::SetPostProcessSettings(const PostProcessSettings& settings) noexcept
-    {
-        s_Data.PostProcess.SetSettings(settings);
     }
 
     void Renderer::InitSkyboxPipeline() noexcept

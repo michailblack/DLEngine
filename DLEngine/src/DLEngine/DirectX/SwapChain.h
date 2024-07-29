@@ -11,7 +11,7 @@ namespace DLEngine
     public:
         void Create(HWND hWnd);
 
-        void Resize(uint32_t width, uint32_t height);
+        void Resize(uint32_t width, uint32_t height) const;
 
         void Present() const;
 

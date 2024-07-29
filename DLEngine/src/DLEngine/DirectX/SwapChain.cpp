@@ -31,13 +31,13 @@ namespace DLEngine
         ));
     }
 
-    void SwapChain::Resize(uint32_t width, uint32_t height)
+    void SwapChain::Resize(uint32_t width, uint32_t height) const
     {
         DL_THROW_IF_HR(m_Handle->ResizeBuffers(0u, width, height, DXGI_FORMAT_UNKNOWN, 0));
     }
 
     void SwapChain::Present() const
     {
-        DL_THROW_IF_HR(m_Handle->Present(1, 0));
+        DL_THROW_IF_HR(m_Handle->Present(1u, 0u));
     }
 }

@@ -92,11 +92,16 @@ float3 RenderingEquation(in const View view, in const Surface surface, in const 
     const float diffuseCosTheta = dot(surface.SurfaceNormal, light.LightDir);
     const float specularCosTheta = dot(view.HalfDir, light.LightDir);
 
-    return light.Radiance * (
-        light.SolidAngle * surface.Albedo * (1.0 - surface.Metallic) * (1.0 - FresnelSchlick(surface.F0, diffuseCosTheta)) * view.NoL / PI +
-        min(1.0, (TrowbridgeReitzNDF(view.NoH, surface.Rough4) * light.SolidAngle) / (4.0 * view.NoV)) *
-        SmithGAF(view.NoV, view.NoL, surface.Rough4) * FresnelSchlick(surface.F0, specularCosTheta)
-    );
+    float3 diffuseComponent = light.SolidAngle * surface.Albedo * (1.0 - surface.Metallic) * (1.0 - FresnelSchlick(surface.F0, diffuseCosTheta)) * view.NoL / PI;
+    if (!c_RendererSettings.DiffuseReflectoinsEnabled)
+        diffuseComponent = float3(0.0, 0.0, 0.0);
+
+    float3 specularComponent = min(1.0, (TrowbridgeReitzNDF(view.NoH, surface.Rough4) * light.SolidAngle) / (4.0 * view.NoV)) *
+        SmithGAF(view.NoV, view.NoL, surface.Rough4) * FresnelSchlick(surface.F0, specularCosTheta);
+    if (!c_RendererSettings.SpecularReflectionsEnabled)
+        specularComponent = float3(0.0, 0.0, 0.0);
+
+    return light.Radiance * (diffuseComponent + specularComponent);
 }
 
 // May return direction pointing beneath surface horizon (dot(N, dir) < 0), use clampDirToHorizon to fix it.
@@ -155,25 +160,33 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
         psInput.v_TangentToWorld
     ));
 
+    float rough = roughness;
+    if (c_RendererSettings.OverwriteRoughness)
+        rough = c_RendererSettings.OverwrittenRoughness;
+
     Surface surface;
     surface.Albedo = albedo;
     surface.GeometryNormal = psInput.v_Normal;
     surface.SurfaceNormal = surfaceNormal;
     surface.Metallic = metallic;
-    surface.Rough = roughness;
-    surface.Rough2 = roughness * roughness;
-    surface.Rough4 = roughness * roughness * roughness * roughness;
+    surface.Rough = rough;
+    surface.Rough2 = rough * rough;
+    surface.Rough4 = rough * rough * rough * rough;
     surface.F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
 
     View view;
     view.ViewDir = normalize(c_CameraPosition - psInput.v_WorldPos);
     view.ReflectionDir = normalize(reflect(-view.ViewDir, surface.SurfaceNormal));
-    view.NoV = saturate(dot(view.ViewDir, surface.SurfaceNormal));
+    view.NoV = max(dot(view.ViewDir, surface.SurfaceNormal), THRESHOLD);
     view.HalfDir = float3(0.0, 0.0, 0.0);
     view.NoL = -1.0;
     view.NoH = -1.0;
 
-    float3 outputColor = CalculateEnvironmentReflection(view, surface);
+    float3 indirectLighting = CalculateEnvironmentReflection(view, surface);
+    if (!c_RendererSettings.UseIBL)
+        indirectLighting = c_RendererSettings.IndirectLightingRadiance * albedo;
+
+    float3 outputColor = indirectLighting;
 
     uint stride = 0;
     uint lightsCount = 0;
@@ -190,8 +203,8 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
         light.SolidAngle = directionalLight.SolidAngle;
 
         view.HalfDir = normalize(view.ViewDir + light.LightDir);
-        view.NoL = saturate(dot(surface.SurfaceNormal, light.LightDir));
-        view.NoH = saturate(dot(surface.SurfaceNormal, view.HalfDir));
+        view.NoL = max(dot(surface.SurfaceNormal, light.LightDir), THRESHOLD);
+        view.NoH = max(dot(surface.SurfaceNormal, view.HalfDir), THRESHOLD);
 
         outputColor += RenderingEquation(view, surface, light);
     }
@@ -214,7 +227,7 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
 
         float3 lightDir = ApproximateClosestSphereDir(view.ReflectionDir, sphereCos, sphereDir * sphereDist, sphereDir, sphereDist, pointLight.Radius);
         float NoD = dot(surface.SurfaceNormal, lightDir);
-        ClampDirToHorizon(lightDir, NoD, surface.SurfaceNormal, 0.5);
+        ClampDirToHorizon(lightDir, NoD, surface.SurfaceNormal, THRESHOLD);
 
         Light light;
         light.LightDir = lightDir;
@@ -222,8 +235,8 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
         light.SolidAngle = solidAngle;
 
         view.HalfDir = normalize(view.ViewDir + light.LightDir);
-        view.NoL = saturate(dot(surface.SurfaceNormal, light.LightDir));
-        view.NoH = saturate(dot(surface.SurfaceNormal, view.HalfDir));
+        view.NoL = max(dot(surface.SurfaceNormal, light.LightDir), THRESHOLD);
+        view.NoH = max(dot(surface.SurfaceNormal, view.HalfDir), THRESHOLD);
 
         // Plane equation: Ax + By + Cz + D = 0, where (A, B, C) is its normal.
         const float geometryPlaneD = -dot(psInput.v_WorldPos, surface.GeometryNormal);
@@ -260,8 +273,8 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
             light.SolidAngle = solidAngle;
 
             view.HalfDir = normalize(view.ViewDir + light.LightDir);
-            view.NoL = saturate(dot(surface.SurfaceNormal, light.LightDir));
-            view.NoH = saturate(dot(surface.SurfaceNormal, view.HalfDir));
+            view.NoL = max(dot(surface.SurfaceNormal, light.LightDir), THRESHOLD);
+            view.NoH = max(dot(surface.SurfaceNormal, view.HalfDir), THRESHOLD);
 
             const float spotLightFactor = spotLight.InnerCutoffCos - spotLight.OuterCutoffCos;
             const float intensity = saturate((angle - spotLight.OuterCutoffCos) / spotLightFactor);

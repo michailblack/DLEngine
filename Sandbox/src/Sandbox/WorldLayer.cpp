@@ -3,8 +3,6 @@
 #include "DLEngine/Core/Filesystem.h"
 #include "DLEngine/Core/Input.h"
 
-#include "DLEngine/Renderer/PostProcess.h"
-#include "DLEngine/Renderer/Renderer.h"
 #include "DLEngine/Renderer/TextureManager.h"
 
 #include "DLEngine/Systems/Light/LightSystem.h"
@@ -14,8 +12,10 @@
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
+#include <imgui/imgui.h>
+
 WorldLayer::WorldLayer()
-    : m_CameraController(DLEngine::Camera { DLEngine::Math::ToRadians(45.0f), 800.0f / 600.0f, 0.001f, 100.0f })
+    : m_CameraController(DLEngine::Camera{ DLEngine::Math::ToRadians(45.0f), 1280.0f / 720.0f, 0.001f, 100.0f })
 {
 }
 
@@ -30,7 +30,7 @@ void WorldLayer::OnAttach()
     const auto cube{ ModelManager::Load(Filesystem::GetModelDir() + L"cube\\cube.obj") };
     const auto samurai{ ModelManager::Load(Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
     const auto flashlight{ ModelManager::Load(Filesystem::GetModelDir() + L"flashlight\\flashlight.fbx") };
-    const auto sphere { ModelManager::Get(L"UNIT_SPHERE") }; 
+    const auto sphere{ ModelManager::Get(L"UNIT_SPHERE") };
     const auto skybox{ TextureManager::LoadTexture2D(Filesystem::GetTextureDir() + L"skybox\\night_street.dds") };
 
     Renderer::SetSkybox(skybox);
@@ -273,7 +273,7 @@ void WorldLayer::OnAttach()
 
 void WorldLayer::OnDetach()
 {
-    
+
 }
 
 void WorldLayer::OnUpdate(DeltaTime dt)
@@ -292,31 +292,31 @@ void WorldLayer::OnUpdate(DeltaTime dt)
         );
     }
 
-    static constexpr float EV100Step{ 0.001f };
-    if (DLEngine::Input::IsKeyPressed(VK_OEM_PLUS))
-    {
-        m_EV100 += EV100Step * dt;
-        if (m_EV100 > 16.0f)
-            m_EV100 = 16.0f;
-
-        DL_LOG_INFO("EV100: {0}", m_EV100);
-    }
-    else if (DLEngine::Input::IsKeyPressed(VK_OEM_MINUS))
-    {
-        m_EV100 -= EV100Step * dt;
-        if (m_EV100 < -16.0f)
-            m_EV100 = -16.0f;
-
-        DL_LOG_INFO("EV100: {0}", m_EV100);
-    }
-
-    DLEngine::PostProcessSettings postProcessSettings{};
-    postProcessSettings.EV100 = m_EV100;
-    
-    DLEngine::Renderer::SetPostProcessSettings(postProcessSettings);
     DLEngine::Renderer::BeginScene(m_CameraController.GetCamera());
 
     DLEngine::Renderer::EndScene();
+}
+
+void WorldLayer::OnImGuiRender()
+{
+    ImGui::Begin("Settings");
+
+    ImGui::Checkbox("Diffuse Reflections", reinterpret_cast<bool*>(&m_Settings.DiffuseReflections));
+    ImGui::Checkbox("Specular Reflections", reinterpret_cast<bool*>(&m_Settings.SpecularReflections));
+
+    ImGui::Checkbox("Use IBL", reinterpret_cast<bool*>(&m_Settings.UseIBL));
+    if (!m_Settings.UseIBL)
+        ImGui::SliderFloat3("Indirect Light Radiance", &m_Settings.IndirectLightRadiance.x, 0.0f, 10.0f, "%.001f");
+
+    ImGui::Checkbox("Overwrite Roughness", reinterpret_cast<bool*>(&m_Settings.OverwriteRoughness));
+    if (m_Settings.OverwriteRoughness)
+        ImGui::SliderFloat("Overwritten Roughness", &m_Settings.OverwrittenRoughness, 0.0f, 1.0f);
+
+    ImGui::SliderFloat("EV100", &m_Settings.EV100, -16.0f, 16.0f, "%.001f");
+
+    ImGui::End();
+
+    DLEngine::Renderer::SetRendererSettings(m_Settings);
 }
 
 void WorldLayer::OnEvent(DLEngine::Event& e)

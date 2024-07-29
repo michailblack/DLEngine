@@ -27,22 +27,13 @@ namespace DLEngine
 
         m_PipelineState.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
         m_PipelineState.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEPTH_DISABLED);
-
-        m_SettingsCB.Create(sizeof(PostProcessSettings));
-    }
-
-    void PostProcess::SetSettings(const PostProcessSettings& settings) noexcept
-    {
-        m_CurrentSettings = settings;
-        m_SettingsCB.Set(&m_CurrentSettings);
     }
 
     void PostProcess::Resolve(const Texture2D& src, const Texture2D& dst) const
     {
         RenderCommand::SetPipelineState(m_PipelineState);
         RenderCommand::SetShaderResources(0u, ShaderStage::Pixel, { src.GetSRV() });
-        RenderCommand::SetConstantBuffers(9u, ShaderStage::Pixel, { m_SettingsCB });
-        
+
         RenderCommand::SetRenderTargets({ dst.GetRTV() });
         RenderCommand::ClearRenderTargetView(dst.GetRTV());
 

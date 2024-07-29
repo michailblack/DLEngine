@@ -108,6 +108,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\Core\ImGuiLayer.h" />
     <ClInclude Include="src\DLEngine\DirectX\RenderCommand.h" />
     <ClInclude Include="src\DLEngine\DirectX\StructuredBuffer.h" />
     <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
@@ -172,6 +173,7 @@
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\Core\ImGuiLayer.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\ConstantBuffer.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\RenderCommand.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\StructuredBuffer.cpp" />
@@ -222,7 +224,7 @@
     <None Include="src\DLEngine\Math\Vec3.inl" />
     <None Include="src\DLEngine\Math\Vec4.inl" />
     <None Include="src\DLEngine\Shaders\BRDF.hlsli">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="src\DLEngine\Shaders\Buffers.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -269,6 +271,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\Skybox.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
