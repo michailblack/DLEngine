@@ -98,7 +98,7 @@ void WorldLayer::OnAttach()
     DLEngine::PointLight pointLight{};
     pointLight.Position = DLEngine::Math::Vec3{ 0.0f };
     pointLight.Linear = 0.7f;
-    pointLight.Luminance = DLEngine::Math::Vec3{ 1.0f, 2.0f, 12.0f };
+    pointLight.Luminance = DLEngine::Math::Vec3{ 0.5f, 1.0, 6.0f };
     pointLight.Quadratic = 1.8f;
 
     DLEngine::LightSystem::AddPointLight(pointLight, transformID);
@@ -115,7 +115,7 @@ void WorldLayer::OnAttach()
 
     pointLight.Position = DLEngine::Math::Vec3{ 0.0f };
     pointLight.Linear = 0.7f;
-    pointLight.Luminance = DLEngine::Math::Vec3{ 2.0f, 12.0f, 1.0f };
+    pointLight.Luminance = DLEngine::Math::Vec3{ 1.0, 6.0f, 0.5f };
     pointLight.Quadratic = 1.8f;
 
     DLEngine::LightSystem::AddPointLight(pointLight, transformID);
@@ -199,7 +199,7 @@ void WorldLayer::OnAttach()
     DLEngine::SpotLight spotLight{};
     spotLight.Position = DLEngine::Math::Vec3{ 0.0f, 0.0f, 0.0f };
     spotLight.Direction = DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.0f });
-    spotLight.Luminance = DLEngine::Math::Vec3{ 4.0f, 1.0f, 15.0f };
+    spotLight.Luminance = DLEngine::Math::Vec3{ 2.0f, 0.5f, 7.5f };
     spotLight.Linear = 0.35f;
     spotLight.Quadratic = 0.44f;
     spotLight.InnerCutoffCos = DLEngine::Math::Cos(DLEngine::Math::ToRadians(15.0f));

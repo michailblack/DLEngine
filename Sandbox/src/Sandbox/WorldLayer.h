@@ -29,5 +29,5 @@ private:
     DLEngine::CameraController m_CameraController;
     uint32_t m_CameraTransformID{ 0u };
     bool m_IsFlashlightAttached{ true };
-    float m_EV100{ -2.0f };
+    float m_EV100{ 1.0f };
 };

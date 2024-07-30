@@ -113,6 +113,9 @@ namespace DLEngine
         } return 0;
         case WM_SIZE:
         {
+            if (wParam == SIZE_MINIMIZED)
+                break;
+
             const auto width = LOWORD(lParam);
             const auto height = HIWORD(lParam);
 

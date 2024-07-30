@@ -11,14 +11,12 @@
 
 #define DL_THROW_IF_D3D11(d3d11DrawCall)\
     {\
-        DL_THROW_IF_HR(DLEngine::D3D::GetInfoQueue()->PushEmptyStorageFilter());\
         const uint64_t numMsg { DLEngine::D3D::GetInfoQueue()->GetNumStoredMessages() };\
         (d3d11DrawCall);\
         if (numMsg != DLEngine::D3D::GetInfoQueue()->GetNumStoredMessages())\
         {\
             throw DLEngine::D3D11Exception { static_cast<uint32_t>(__LINE__), __FILE__ };\
         }\
-        DLEngine::D3D::GetInfoQueue()->ClearStoredMessages();\
     }
 
 #else
