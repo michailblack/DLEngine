@@ -17,7 +17,6 @@
         {\
             throw DLEngine::D3D11Exception { static_cast<uint32_t>(__LINE__), __FILE__ };\
         }\
-        DLEngine::D3D::GetInfoQueue()->ClearStoredMessages();\
     }
 
 #else

@@ -13,6 +13,12 @@ namespace DLEngine
         static uint32_t AddTransform(const Math::Mat4x4& transform) noexcept;
         static uint32_t AddTransform(const Math::Mat4x4& transform, const Math::Mat4x4& invTransform) noexcept;
 
+        static void ReplaceTransform(uint32_t id, const Math::Mat4x4& transform) noexcept;
+
+        static uint32_t GetArrayIndex(uint32_t id) noexcept;
+
+        static void Update();
+
         static Math::Mat4x4& GetTransform(uint32_t id) noexcept;
         static Math::Mat4x4& GetInvTransform(uint32_t id) noexcept;
 

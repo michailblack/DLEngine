@@ -1,25 +1,11 @@
-#include "Global.hlsli"
-
-cbuffer MeshInstance : register(b2)
-{
-    float4x4 c_MeshToModel;
-    float4x4 c_ModelToMesh;
-};
-
-struct VertexInput
-{
-    float3 a_Position  : POSITION;
-    float3 a_Normal    : NORMAL;
-    float3 a_Tangent   : TANGENT;
-    float3 a_Bitangent : BITANGENT;  
-    float2 a_TexCoords : TEXCOORDS;
-};
+#include "Buffers.hlsli"
+#include "Input.hlsli"
 
 struct InstanceInput
 {
-    float4x4 a_ModelToWorld : TRANSFORM;
-    float3 a_BaseColor      : BASE_COLOR;
-    float3 a_AddColor       : ADD_COLOR;
+    float3 a_BaseColor    : BASE_COLOR;
+    float3 a_AddColor     : ADD_COLOR;
+    uint a_TransformIndex : TRANSFORM_INDEX;
 };
 
 struct VertexOutput
@@ -35,7 +21,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
 {
     VertexOutput vsOutput;
 
-    float4x4 meshToWorld = mul(c_MeshToModel, instInput.a_ModelToWorld);
+    float4x4 meshToWorld = mul(c_MeshToModel, c_ModelToWorld[instInput.a_TransformIndex]);
     float4 vertexPos = mul(float4(vsInput.a_Position, 1.0), meshToWorld);
 
     vsOutput.v_WorldPos = vertexPos.xyz;

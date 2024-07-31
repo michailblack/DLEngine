@@ -20,6 +20,9 @@ namespace DLEngine
                 case BufferLayout::ShaderDataType::Mat4:
                 case BufferLayout::ShaderDataType::Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 
+                case BufferLayout::ShaderDataType::Int:    return DXGI_FORMAT_R32_SINT;
+                case BufferLayout::ShaderDataType::Uint:   return DXGI_FORMAT_R32_UINT;
+
                 default: DL_ASSERT(false, "Unknown ShaderDatatType"); return DXGI_FORMAT_UNKNOWN;
                 }
             }

@@ -1,16 +1,20 @@
 ﻿#include "WorldLayer.h"
 
 #include "DLEngine/Core/Filesystem.h"
+#include "DLEngine/Core/Input.h"
 
 #include "DLEngine/DirectX/D3D.h"
 #include "DLEngine/DirectX/D3DStates.h"
 #include "DLEngine/DirectX/View.h"
 
+#include "DLEngine/Renderer/PostProcess.h"
+#include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Renderer/TextureManager.h"
+
+#include "DLEngine/Systems/Light/LightSystem.h"
+
 #include "DLEngine/Systems/Mesh/MeshSystem.h"
 #include "DLEngine/Systems/Mesh/ModelManager.h"
-
-#include "DLEngine/Systems/Renderer/Renderer.h"
-#include "DLEngine/Systems/Renderer/TextureManager.h"
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
@@ -35,6 +39,26 @@ struct TextureOnlyGroupMaterial
     }
 };
 
+struct EmissionGroupInstance
+{
+    DLEngine::Math::Vec3 EmissionColor{};
+};
+
+struct LitGroupMaterial
+{
+    DLEngine::ShaderResourceView AlbedoSRV{};
+
+    void Set() const noexcept
+    {
+        AlbedoSRV.Bind(0u, DLEngine::BIND_PS);
+    }
+
+    bool operator==(const LitGroupMaterial& other) const
+    {
+        return AlbedoSRV.Handle == other.AlbedoSRV.Handle;
+    }
+};
+
 WorldLayer::WorldLayer()
     : m_CameraController(DLEngine::Camera { DLEngine::Math::ToRadians(45.0f), 800.0f / 600.0f, 0.001f, 100.0f })
 {
@@ -48,121 +72,150 @@ void WorldLayer::OnAttach()
 {
     const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"cube\\cube.obj") };
     const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
+    const auto flashlight{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"flashlight\\flashlight.fbx") };
+    const auto sphere { DLEngine::ModelManager::Get(L"UNIT_SPHERE") };
     
-    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\sky.dds") };
+    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\night_street_hdr.dds") };
     DLEngine::Renderer::SetSkybox(skybox.SRV);
 
-    std::vector<DLEngine::NullMaterial> nullMaterials{};
-    uint32_t transformIndex{ 0u };
+    uint32_t transformID{ 0u };
 
     InitHologramGroup();
-
-    nullMaterials.resize(cube->GetMeshesCount());
-    HologramGroupInstance hologramGroupInstance{};
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 5.0f, 8.0f })
-    );
-    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 0.0f, 1.0f };
-    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
-
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(45.0f)) *
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -3.0f, 0.0f, 0.0f })
-    );
-    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.0f };
-    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 0.0f };
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
-
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.5f, 1.0f, 1.5f }) *
-        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(45.0f)) *
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -5.0f, 5.0f })
-    );
-    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 0.0f, 0.0f };
-    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(cube, nullMaterials, hologramGroupInstance, transformIndex);
-
-    nullMaterials.resize(samurai->GetMeshesCount());
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -3.0f, -2.0f, 4.0f })
-    );
-    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 0.0f };
-    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 0.0f };
-    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
-
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(-30.0f)) *
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 3.0f, 2.0f, 4.0f })
-    );
-    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 0.0f };
-    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 0.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
-
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 1.5f, 0.5f, 0.75f }) *
-        DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f }), DLEngine::Math::ToRadians(-30.0f)) *
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 3.0f, 5.0f })
-    );
-    hologramGroupInstance.BaseColor = DLEngine::Math::Vec3{ 0.1f, 0.3f, 0.7f };
-    hologramGroupInstance.AdditionalColor = DLEngine::Math::Vec3{ 1.0f, 1.0f, 1.0f };
-    DLEngine::MeshSystem::Get().Add<>(samurai, nullMaterials, hologramGroupInstance, transformIndex);
-
     InitTextureOnlyGroup();
+    InitEmissionGroup();
+    InitLitGroup();
+    
+    std::vector<DLEngine::NullMaterial> nullMaterials{};
     std::vector<TextureOnlyGroupMaterial> textureOnlyMaterials{};
-    textureOnlyMaterials.resize(samurai->GetMeshesCount());
+    std::vector<LitGroupMaterial> litMaterials{};
 
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.5f })
+    nullMaterials.resize(sphere->GetMeshesCount());
+    transformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.1f }) *
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 1.5f, 2.0f, 1.0f })
     );
-    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+
+    DLEngine::PointLight pointLight{};
+    pointLight.Position = DLEngine::Math::Vec3{ 0.0f };
+    pointLight.Linear = 0.7f;
+    pointLight.Luminance = DLEngine::Math::Vec3{ 0.5f, 1.0, 6.0f };
+    pointLight.Quadratic = 1.8f;
+
+    DLEngine::LightSystem::AddPointLight(pointLight, transformID);
+
+    EmissionGroupInstance emissionInstance{};
+    emissionInstance.EmissionColor = pointLight.Luminance;
+
+    DLEngine::MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance, transformID);
+
+    transformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.1f }) *
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 2.0f, 1.0f })
+    );
+
+    pointLight.Position = DLEngine::Math::Vec3{ 0.0f };
+    pointLight.Linear = 0.7f;
+    pointLight.Luminance = DLEngine::Math::Vec3{ 1.0, 6.0f, 0.5f };
+    pointLight.Quadratic = 1.8f;
+
+    DLEngine::LightSystem::AddPointLight(pointLight, transformID);
+
+    emissionInstance.EmissionColor = pointLight.Luminance;
+
+    DLEngine::MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance, transformID);
+
+    litMaterials.resize(samurai->GetMeshesCount());
+    transformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 0.0f, 3.0f })
+    );
+
+    litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_BaseColor.dds"
     ).SRV;
-    textureOnlyMaterials[1].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[1].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_BaseColor.dds"
     ).SRV;
-    textureOnlyMaterials[2].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[2].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_BaseColor.dds"
     ).SRV;
-    textureOnlyMaterials[3].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[3].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_BaseColor.dds"
     ).SRV;
-    textureOnlyMaterials[4].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[4].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_BaseColor.dds"
     ).SRV;
-    textureOnlyMaterials[5].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[5].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_BaseColor.dds"
     ).SRV;
-    textureOnlyMaterials[6].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[6].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_BaseColor.dds"
     ).SRV;
-    textureOnlyMaterials[7].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[7].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
     ).SRV;
 
-    DLEngine::MeshSystem::Get().Add<>(samurai, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(samurai, litMaterials, DLEngine::NullInstance{}, transformID);
 
-    textureOnlyMaterials.resize(cube->GetMeshesCount());
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -1.5f, 3.0f })
+    transformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -1.0f, 1.0f })
+    );
+    DLEngine::MeshSystem::Get().Add<>(samurai, litMaterials, DLEngine::NullInstance{}, transformID);
+
+    litMaterials.resize(cube->GetMeshesCount());
+    transformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 0.0f, 0.0f })
     );
 
-    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"texture_test.dds"
-    ).SRV;
-
-    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
-
-    transformIndex = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 10.0f, 10.0f, 1.0f }) *
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, 1.5f, 10.0f })
-    );
-
-    textureOnlyMaterials[0].TextureSRV = DLEngine::TextureManager::LoadTexture2D(
+    litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
         DLEngine::Filesystem::GetTextureDir() + L"cube\\stone.dds"
     ).SRV;
 
-    DLEngine::MeshSystem::Get().Add<>(cube, textureOnlyMaterials, DLEngine::NullInstance{}, transformIndex);
+    DLEngine::MeshSystem::Get().Add<>(cube, litMaterials, DLEngine::NullInstance{}, transformID);
+
+    transformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 1.5f, 0.0f, 0.0f })
+    );
+
+    litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"texture_test.dds"
+    ).SRV;
+
+    DLEngine::MeshSystem::Get().Add<>(cube, litMaterials, DLEngine::NullInstance{}, transformID);
+
+    DLEngine::DirectionalLight directionalLight{};
+    directionalLight.Direction = DLEngine::Math::Normalize(DLEngine::Math::Vec3{ -1.0f, -1.0f, 1.0f });
+    directionalLight.Luminance = DLEngine::Math::Vec3{ 0.05f, 0.06f, 0.1f };
+
+    transformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Identity()
+    );
+
+    DLEngine::LightSystem::AddDirectionalLight(directionalLight, transformID);
+
+    m_CameraTransformID = DLEngine::TransformSystem::AddTransform(
+        DLEngine::Math::Mat4x4::Identity()
+    );
+
+    DLEngine::SpotLight spotLight{};
+    spotLight.Position = DLEngine::Math::Vec3{ 0.0f, 0.0f, 0.0f };
+    spotLight.Direction = DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.0f });
+    spotLight.Luminance = DLEngine::Math::Vec3{ 2.0f, 0.5f, 7.5f };
+    spotLight.Linear = 0.35f;
+    spotLight.Quadratic = 0.44f;
+    spotLight.InnerCutoffCos = DLEngine::Math::Cos(DLEngine::Math::ToRadians(15.0f));
+    spotLight.OuterCutoffCos = DLEngine::Math::Cos(DLEngine::Math::ToRadians(25.0f));
+
+    DLEngine::LightSystem::AddSpotLight(spotLight, m_CameraTransformID);
+
+    litMaterials.resize(flashlight->GetMeshesCount());
+    litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
+    ).SRV;
+    litMaterials[1].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
+        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
+    ).SRV;
+
+    DLEngine::MeshSystem::Get().Add<>(flashlight, litMaterials, DLEngine::NullInstance{}, m_CameraTransformID);
 }
 
 void WorldLayer::OnDetach()
@@ -173,7 +226,41 @@ void WorldLayer::OnDetach()
 void WorldLayer::OnUpdate(DeltaTime dt)
 {
     m_CameraController.OnUpdate(dt);
+
+    if (m_IsFlashlightAttached)
+    {
+        DLEngine::TransformSystem::ReplaceTransform(
+            m_CameraTransformID,
+            DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.003f }) *
+            DLEngine::Math::Mat4x4::Inverse(m_CameraController.GetCamera().GetViewMatrix()) *
+            DLEngine::Math::Mat4x4::Translate(m_CameraController.GetCamera().GetForward() * 0.5f) *
+            DLEngine::Math::Mat4x4::Translate(m_CameraController.GetCamera().GetRight() * 0.2f) *
+            DLEngine::Math::Mat4x4::Translate(m_CameraController.GetCamera().GetUp() * -0.2f)
+        );
+    }
+
+    static constexpr float EV100Step{ 0.001f };
+    if (DLEngine::Input::IsKeyPressed(VK_OEM_PLUS))
+    {
+        m_EV100 += EV100Step * dt;
+        if (m_EV100 > 16.0f)
+            m_EV100 = 16.0f;
+
+        DL_LOG_INFO("EV100: {0}", m_EV100);
+    }
+    else if (DLEngine::Input::IsKeyPressed(VK_OEM_MINUS))
+    {
+        m_EV100 -= EV100Step * dt;
+        if (m_EV100 < -16.0f)
+            m_EV100 = -16.0f;
+
+        DL_LOG_INFO("EV100: {0}", m_EV100);
+    }
+
+    DLEngine::PostProcessSettings postProcessSettings{};
+    postProcessSettings.EV100 = m_EV100;
     
+    DLEngine::Renderer::SetPostProcessSettings(postProcessSettings);
     DLEngine::Renderer::BeginScene(m_CameraController.GetCamera());
 
     DLEngine::Renderer::EndScene();
@@ -184,7 +271,7 @@ void WorldLayer::OnEvent(DLEngine::Event& e)
     m_CameraController.OnEvent(e);
 
     DLEngine::EventDispatcher dispatcher{ e };
-    dispatcher.Dispatch<DLEngine::KeyPressedEvent>(DL_BIND_EVENT_FN(WorldLayer::OnKeyPressed));
+    dispatcher.Dispatch<DLEngine::KeyPressedEvent>(DL_BIND_EVENT_FN(WorldLayer::OnKeyPressedEvent));
 }
 
 void WorldLayer::InitHologramGroup() const
@@ -197,46 +284,36 @@ void WorldLayer::InitHologramGroup() const
     hologramGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
 
     hologramGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4   },
         { "BASE_COLOR", BufferLayout::ShaderDataType::Float3 },
         { "ADD_COLOR" , BufferLayout::ShaderDataType::Float3 }
     };
 
     ShaderSpecification shaderSpec{};
-
     shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
+
     shaderSpec.EntryPoint = "mainVS";
     VertexShader vs{};
     vs.Create(shaderSpec);
-
     hologramGroupDesc.PipelineDesc.VS = vs;
 
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainPS";
     PixelShader ps{};
     ps.Create(shaderSpec);
-
     hologramGroupDesc.PipelineDesc.PS = ps;
 
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainHS";
     HullShader hs{};
     hs.Create(shaderSpec);
-
     hologramGroupDesc.PipelineDesc.HS = hs;
 
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainDS";
     DomainShader ds{};
     ds.Create(shaderSpec);
-    
     hologramGroupDesc.PipelineDesc.DS = ds;
     
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
     shaderSpec.EntryPoint = "mainGS";
     GeometryShader gs{};
     gs.Create(shaderSpec);
-
     hologramGroupDesc.PipelineDesc.GS = gs;
 
     hologramGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
@@ -255,24 +332,20 @@ void WorldLayer::InitTextureOnlyGroup() const
     textureOnlyGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     textureOnlyGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4  },
-        { "_empty"    , BufferLayout::ShaderDataType::Float }
+        { "_empty", BufferLayout::ShaderDataType::Float }
     };
 
     ShaderSpecification shaderSpec{};
-
     shaderSpec.Path = Filesystem::GetShaderDir() + L"TextureOnly.hlsl";
+
     shaderSpec.EntryPoint = "mainVS";
     VertexShader vs{};
     vs.Create(shaderSpec);
-
     textureOnlyGroupDesc.PipelineDesc.VS = vs;
 
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"TextureOnly.hlsl";
     shaderSpec.EntryPoint = "mainPS";
     PixelShader ps{};
     ps.Create(shaderSpec);
-
     textureOnlyGroupDesc.PipelineDesc.PS = ps;
 
     textureOnlyGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
@@ -281,23 +354,76 @@ void WorldLayer::InitTextureOnlyGroup() const
     MeshSystem::Get().CreateShadingGroup<TextureOnlyGroupMaterial, NullInstance>(textureOnlyGroupDesc);
 }
 
-bool WorldLayer::OnKeyPressed(DLEngine::KeyPressedEvent& e)
+void WorldLayer::InitEmissionGroup() const
 {
-    switch (e.GetKeyCode())
-    {
-    case '1':
-        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::POINT_WRAP).Bind(6u, DLEngine::BIND_ALL);
-        DL_LOG_INFO("Active sampler: POINT_WRAP");
-        break;
-    case '2':
-        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::TRILINEAR_WRAP).Bind(6u, DLEngine::BIND_ALL);
-        DL_LOG_INFO("Active sampler: TRILINEAR_WRAP");
-        break;
-    case '3':
-        DLEngine::D3DStates::GetSamplerState(DLEngine::SamplerStates::ANISOTROPIC_8_WRAP).Bind(6u, DLEngine::BIND_ALL);
-        DL_LOG_INFO("Active sampler: ANISOTROPIC_8_WRAP");
-        break;
-    }
+    using namespace DLEngine;
+
+    ShadingGroupDesc emissionGroupDesc{};
+
+    emissionGroupDesc.Name = "Emission";
+
+    emissionGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    emissionGroupDesc.InstanceBufferLayout = BufferLayout{
+        { "EMISSION_LUMINANCE", BufferLayout::ShaderDataType::Float3 }
+    };
+
+    ShaderSpecification shaderSpec{};
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Emission.hlsl";
+
+    shaderSpec.EntryPoint = "mainVS";
+    VertexShader vs{};
+    vs.Create(shaderSpec);
+    emissionGroupDesc.PipelineDesc.VS = vs;
+
+    shaderSpec.EntryPoint = "mainPS";
+    PixelShader ps{};
+    ps.Create(shaderSpec);
+    emissionGroupDesc.PipelineDesc.PS = ps;
+
+    emissionGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEFAULT);
+    emissionGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
+
+    MeshSystem::Get().CreateShadingGroup<NullMaterial, EmissionGroupInstance>(emissionGroupDesc);
+}
+
+void WorldLayer::InitLitGroup() const
+{
+    using namespace DLEngine;
+
+    ShadingGroupDesc litGroupDesc{};
+
+    litGroupDesc.Name = "Lit";
+
+    litGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    litGroupDesc.InstanceBufferLayout = BufferLayout{
+        { "_empty", BufferLayout::ShaderDataType::Float }
+    };
+
+    ShaderSpecification shaderSpec{};
+    shaderSpec.Path = Filesystem::GetShaderDir() + L"Lit.hlsl";
+
+    shaderSpec.EntryPoint = "mainVS";
+    VertexShader vs{};
+    vs.Create(shaderSpec);
+    litGroupDesc.PipelineDesc.VS = vs;
+
+    shaderSpec.EntryPoint = "mainPS";
+    PixelShader ps{};
+    ps.Create(shaderSpec);
+    litGroupDesc.PipelineDesc.PS = ps;
+
+    litGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEFAULT);
+    litGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
+
+    MeshSystem::Get().CreateShadingGroup<LitGroupMaterial, NullInstance>(litGroupDesc);
+}
+
+bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)
+{
+    if (e.GetKeyCode() == 'F')
+        m_IsFlashlightAttached = !m_IsFlashlightAttached;
 
     return false;
 }

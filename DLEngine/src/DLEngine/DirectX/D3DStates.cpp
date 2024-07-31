@@ -76,11 +76,18 @@ namespace DLEngine
 
                     return depthStencilDesc;
                 }
-                case DepthStencilStates::READ_ONLY_DEPTH:
+                case DepthStencilStates::DEPTH_READ_ONLY:
                 {
                     depthStencilDesc.DepthEnable = TRUE;
                     depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
                     depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+                    depthStencilDesc.StencilEnable = FALSE;
+
+                    return depthStencilDesc;
+                }
+                case DepthStencilStates::DEPTH_DISABLED:
+                {
+                    depthStencilDesc.DepthEnable = FALSE;
                     depthStencilDesc.StencilEnable = FALSE;
 
                     return depthStencilDesc;

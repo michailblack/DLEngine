@@ -120,6 +120,7 @@ namespace DLEngine
         using namespace Microsoft::WRL;
 
         const auto& infoQueue = D3D::GetInfoQueue();
+        infoQueue->PushEmptyRetrievalFilter();
         const uint64_t messageCount{ infoQueue->GetNumStoredMessages() };
         std::unordered_set<std::string> messages{};
 

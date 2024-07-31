@@ -1,4 +1,5 @@
-#include "Global.hlsli"
+#include "Buffers.hlsli"
+#include "Samplers.hlsli"
 
 struct VertexOutput
 {
@@ -17,9 +18,9 @@ VertexOutput mainVS(uint vertexID : SV_VertexID)
     return vsOutput;
 }
 
-TextureCube<float3> g_Skybox : register(t0);
+TextureCube<float3> t_Skybox : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    return float4(g_Skybox.Sample(g_ActiveSampler, psInput.v_CubemapSample).rgb, 1.0);
+    return float4(t_Skybox.Sample(s_ActiveSampler, psInput.v_CubemapSample).rgb, 1.0);
 }

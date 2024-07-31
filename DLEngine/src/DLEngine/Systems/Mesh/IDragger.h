@@ -23,14 +23,14 @@ namespace DLEngine
         : public IDragger
     {
     public:
-        MeshDragger(Math::Vec3 startPoint, float distance, uint32_t transformIndex) noexcept
+        MeshDragger(Math::Vec3 startPoint, float distance, uint32_t transformID) noexcept
             : IDragger(startPoint, distance)
-            , m_TransformIndex(transformIndex)
+            , m_TransformID(transformID)
         {}
 
         void Drag(const Math::Ray& endRay) override;
 
     private:
-        uint32_t m_TransformIndex;
+        uint32_t m_TransformID;
     };
 }

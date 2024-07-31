@@ -7,10 +7,15 @@
 #include "DLEngine/DirectX/DXGIInfoQueue.h"
 #include "DLEngine/DirectX/Shaders.h"
 
-#include "DLEngine/Systems/Mesh/MeshSystem.h"
+#include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Renderer/TextureManager.h"
 
-#include "DLEngine/Systems/Renderer/Renderer.h"
-#include "DLEngine/Systems/Renderer/TextureManager.h"
+#include "DLEngine/Systems/Light/LightSystem.h"
+
+#include "DLEngine/Systems/Mesh/MeshSystem.h"
+#include "DLEngine/Systems/Mesh/ModelManager.h"
+
+#include "DLEngine/Systems/Transform/TransformSystem.h"
 
 namespace DLEngine
 {
@@ -38,8 +43,11 @@ namespace DLEngine
         Filesystem::Init();
         ShaderIncludeHandler::Get()->Init();
         Renderer::Init();
-        MeshSystem::Get().Init();
+        ModelManager::Init();
         TextureManager::Init();
+        MeshSystem::Get().Init();
+        TransformSystem::Init();
+        LightSystem::Init();
     }
 
     void Engine::Deinit()

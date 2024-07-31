@@ -16,6 +16,8 @@ namespace DLEngine
                 case BufferLayout::ShaderDataType::Float3:  return sizeof(float) * 3;
                 case BufferLayout::ShaderDataType::Float4:  return sizeof(float) * 4;
                 case BufferLayout::ShaderDataType::Mat4:    return sizeof(float) * 4 * 4;
+                case BufferLayout::ShaderDataType::Int:     return sizeof(int32_t);
+                case BufferLayout::ShaderDataType::Uint:    return sizeof(uint32_t);
                 default: DL_ASSERT(false, "Unknown ShaderDatatType!"); return 0;
                 }
             }
@@ -28,8 +30,15 @@ namespace DLEngine
         CalculateStride();
     }
 
+    void BufferLayout::AppendElement(const Element& element) noexcept
+    {
+        m_Elements.push_back(element);
+        CalculateStride();
+    }
+
     void BufferLayout::CalculateStride() noexcept
     {
+        m_Stride = 0u;
         for (const auto& bufferElement : m_Elements)
             m_Stride += Utils::ShaderDataTypeSize(bufferElement.DataType);
     }

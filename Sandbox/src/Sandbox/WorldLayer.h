@@ -1,7 +1,7 @@
 #pragma once
 #include "DLEngine/Core/Layer.h"
 
-#include "DLEngine/Systems/Renderer/CameraController.h"
+#include "DLEngine/Renderer/CameraController.h"
 
 class WorldLayer
     : public DLEngine::Layer
@@ -18,9 +18,16 @@ public:
 private:
     void InitHologramGroup() const;
     void InitTextureOnlyGroup() const;
+    void InitEmissionGroup() const;
+    void InitLitGroup() const;
+
+    bool OnKeyPressedEvent(DLEngine::KeyPressedEvent& e);
 
     bool OnKeyPressed(DLEngine::KeyPressedEvent& e);
 
 private:
     DLEngine::CameraController m_CameraController;
+    uint32_t m_CameraTransformID{ 0u };
+    bool m_IsFlashlightAttached{ true };
+    float m_EV100{ 1.0f };
 };

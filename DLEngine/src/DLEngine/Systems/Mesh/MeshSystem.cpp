@@ -59,7 +59,6 @@ namespace DLEngine
         normalVisGroupDesc.Name = "NormalVis";
 
         normalVisGroupDesc.InstanceBufferLayout = BufferLayout{
-            { "TRANSFORM" , BufferLayout::ShaderDataType::Mat4  },
             { "_empty"    , BufferLayout::ShaderDataType::Float }
         };
 

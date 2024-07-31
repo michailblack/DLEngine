@@ -22,7 +22,7 @@ namespace DLEngine
         {
             Mesh::IntersectInfo MeshIntersectInfo;
             Ref<Model> Model;
-            uint32_t TransformIndex{ 0u };
+            uint32_t TransformID{ 0u };
         };
 
     public:
@@ -44,7 +44,6 @@ namespace DLEngine
         // PipelineStateDesc::Layout is ignored as it is created in the ShadingGroup constructor
         PipelineStateDesc PipelineDesc;
 
-        // First entry must be model-to-world matrix with the appropriate semantics
         BufferLayout InstanceBufferLayout;
 
         bool Render{ true };
@@ -72,7 +71,7 @@ namespace DLEngine
     public:
         ShadingGroup(const ShadingGroupDesc& desc);
 
-        void AddModel(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformIndex) noexcept;
+        void AddModel(const Ref<Model>& model, std::vector<TMaterial> meshMaterials, const TInstance& instance, uint32_t transformID) noexcept;
         void Render() override;
         bool Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const noexcept override;
 
@@ -83,7 +82,7 @@ namespace DLEngine
         struct PerInstance
         {
             TInstance Instance{};
-            uint32_t TransformIndex{ 0u };
+            uint32_t TransformID{ 0u };
         };
 
         struct PerMaterial
@@ -105,8 +104,8 @@ namespace DLEngine
 
         struct InstanceBufferData
         {
-            Math::Mat4x4 Transform{};
             TInstance Instance{};
+            uint32_t TransformIndex{ 0u };
         };
 
     private:
