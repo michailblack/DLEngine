@@ -1,42 +1,49 @@
 ﻿#pragma once
-#include "DLEngine/Math/Vec3.h"
-#include "DLEngine/Utils/DeltaTime.h"
+#include "DLEngine/Renderer/Mesh/Mesh.h"
+
+#include "DLEngine/Renderer/ConstantBuffer.h"
+#include "DLEngine/Renderer/StructuredBuffer.h"
+#include "DLEngine/Renderer/Framebuffer.h"
+#include "DLEngine/Renderer/Material.h"
+#include "DLEngine/Renderer/Pipeline.h"
+#include "DLEngine/Renderer/Shader.h"
+#include "DLEngine/Renderer/Texture.h"
 
 namespace DLEngine
 {
-    class Camera;
-    class Texture2D;
-
-    struct RendererSettings
-    {
-        Math::Vec3 IndirectLightRadiance{ 0.1f };
-        uint32_t UseIBL{ static_cast<uint32_t>(true) };
-        uint32_t OverwriteRoughness{ static_cast<uint32_t>(false) };
-        float OverwrittenRoughness{ 0.5f };
-        uint32_t DiffuseReflections{ static_cast<uint32_t>(true) };
-        uint32_t SpecularReflections{ static_cast<uint32_t>(true) };
-        float EV100{ 0.0f };
-        float _padding[3u];
-    };
-
     class Renderer
     {
     public:
         static void Init();
+        static void Shutdown();
 
-        static void OnResize(uint32_t width, uint32_t height);
-
-        static void BeginFrame(DeltaTime dt);
+        static void BeginFrame();
         static void EndFrame();
 
-        static void BeginScene(const Camera& camera);
-        static void EndScene();
+        static Ref<MeshLibrary> GetMeshLibrary() noexcept;
+        static Ref<ShaderLibrary> GetShaderLibrary() noexcept;
+        static Ref<TextureLibrary> GetTextureLibrary() noexcept;
 
-        static void SetRendererSettings(const RendererSettings& settings);
-        static void SetSkybox(const Texture2D& skybox);
+        static Ref<Texture2D> GetBRDFLUT() noexcept;
+
+        static Ref<Texture2D> GetBackBufferTexture();
+        static Ref<Framebuffer> GetSwapChainTargetFramebuffer() noexcept;
+        static void RecreateSwapChainTargetFramebuffer();
+        static void InvalidateSwapChainTargetFramebuffer() noexcept;
+
+        static void SetConstantBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<ConstantBuffer>>& constantBuffers) noexcept;
+        static void SetTexture2Ds(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<Texture2D>>& textures, const std::vector<TextureViewSpecification>& viewSpecifications) noexcept;
+        static void SetTextureCubes(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<TextureCube>>& textures, const std::vector<TextureViewSpecification>& viewSpecifications) noexcept;
+        static void SetStructuredBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<StructuredBuffer>>& structuredBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept;
+        static void SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept;
+
+        static void SetPipeline(const Ref<Pipeline>& pipeline, bool clearAttachments) noexcept;
+        static void SetMaterial(const Ref<Material>& material) noexcept;
+
+        static void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<VertexBuffer>& instanceBuffer, uint32_t instanceCount) noexcept;
+        static void SubmitFullscreenQuad() noexcept;
 
     private:
-        static void InitSkyboxPipeline() noexcept;
-        static void DrawSkybox() noexcept;
+        static void InitBRDFLUT();
     };
 }

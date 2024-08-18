@@ -41,24 +41,24 @@ namespace DLEngine::Math
         void operator/=(float s) noexcept;
     };
 
-    inline float Length(const Vec3& v) noexcept;
-    inline float Dot(const Vec3& v1, const Vec3& v2) noexcept;
-    inline Vec3 Cross(const Vec3& v1, const Vec3& v2) noexcept;
-    inline Vec3 Normalize(const Vec3& v) noexcept;
-    inline Vec3 Exp(const Vec3& v) noexcept;
-    inline Vec3 Pow(const Vec3& v1, const Vec3& v2) noexcept;
-    inline Vec3 Min(const Vec3& v1, const Vec3& v2) noexcept;
-    inline Vec3 Max(const Vec3& v1, const Vec3& v2) noexcept;
+    float Length(const Vec3& v) noexcept;
+    float Dot(const Vec3& v1, const Vec3& v2) noexcept;
+    Vec3 Cross(const Vec3& v1, const Vec3& v2) noexcept;
+    Vec3 Normalize(const Vec3& v) noexcept;
+    Vec3 Exp(const Vec3& v) noexcept;
+    Vec3 Pow(const Vec3& v1, const Vec3& v2) noexcept;
+    Vec3 Min(const Vec3& v1, const Vec3& v2) noexcept;
+    Vec3 Max(const Vec3& v1, const Vec3& v2) noexcept;
 
-    inline bool operator==(const Vec3& v1, const Vec3& v2) noexcept;
+    bool operator==(const Vec3& v1, const Vec3& v2) noexcept;
 
-    inline Vec3 operator+(const Vec3& v1, const Vec3& v2) noexcept;
-    inline Vec3 operator-(const Vec3& v1, const Vec3& v2) noexcept;
-    inline Vec3 operator-(const Vec3& v) noexcept;
-    inline Vec3 operator*(const Vec3& v1, const Vec3& v2) noexcept;
-    inline Vec3 operator*(const Vec3& v, float s) noexcept;
-    inline Vec3 operator*(float s, const Vec3& v) noexcept;
-    inline Vec3 operator/(const Vec3& v, float s) noexcept;
+    Vec3 operator+(const Vec3& v1, const Vec3& v2) noexcept;
+    Vec3 operator-(const Vec3& v1, const Vec3& v2) noexcept;
+    Vec3 operator-(const Vec3& v) noexcept;
+    Vec3 operator*(const Vec3& v1, const Vec3& v2) noexcept;
+    Vec3 operator*(const Vec3& v, float s) noexcept;
+    Vec3 operator*(float s, const Vec3& v) noexcept;
+    Vec3 operator/(const Vec3& v, float s) noexcept;
+ 
+    Vec3 RotateQuaternion(const Vec3& v, const Vec3& normalizedAxis, float angle) noexcept;
 }
-
-#include "Vec3.inl"

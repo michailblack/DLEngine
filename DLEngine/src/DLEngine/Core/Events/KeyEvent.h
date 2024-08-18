@@ -24,7 +24,7 @@ namespace DLEngine
             : KeyEvent(keyCode)
         {}
 
-        EVENT_CLASS_TYPE(KeyPressed)
+        EVENT_CLASS_TYPE(EventType::KeyPressed)
     };
 
     class KeyReleasedEvent : public KeyEvent
@@ -34,6 +34,6 @@ namespace DLEngine
             : KeyEvent(keyCode)
         {}
 
-        EVENT_CLASS_TYPE(KeyReleased)
+        EVENT_CLASS_TYPE(EventType::KeyReleased)
     };
 }

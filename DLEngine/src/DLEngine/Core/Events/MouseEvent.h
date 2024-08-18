@@ -24,7 +24,7 @@ namespace DLEngine
             : MouseButtonEvent(button)
         {}
 
-        EVENT_CLASS_TYPE(MouseButtonPressed)
+        EVENT_CLASS_TYPE(EventType::MouseButtonPressed)
     };
 
     class MouseButtonReleasedEvent : public MouseButtonEvent
@@ -34,7 +34,7 @@ namespace DLEngine
             : MouseButtonEvent(button)
         {}
 
-        EVENT_CLASS_TYPE(MouseButtonReleased)
+        EVENT_CLASS_TYPE(EventType::MouseButtonReleased)
     };
 
     class MouseMovedEvent : public Event
@@ -47,7 +47,7 @@ namespace DLEngine
         int32_t GetX() const noexcept { return m_MouseX; }
         int32_t GetY() const noexcept { return m_MouseY; }
 
-        EVENT_CLASS_TYPE(MouseMoved)
+        EVENT_CLASS_TYPE(EventType::MouseMoved)
 
     private:
         int32_t m_MouseX, m_MouseY;
@@ -62,7 +62,7 @@ namespace DLEngine
 
         int32_t GetOffset() const noexcept { return m_Offset; }
 
-        EVENT_CLASS_TYPE(MouseScrolled)
+        EVENT_CLASS_TYPE(EventType::MouseScrolled)
 
     private:
         int32_t m_Offset;

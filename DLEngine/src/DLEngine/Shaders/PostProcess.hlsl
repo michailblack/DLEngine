@@ -1,5 +1,10 @@
-#include "Buffers.hlsli"
-#include "Samplers.hlsli"
+#include "Include/Samplers.hlsli"
+
+cbuffer PostProcessSettings : register(b0)
+{
+    float c_EV100;
+    float c_Gamma;
+}
 
 struct VertexOutput
 {
@@ -53,10 +58,9 @@ Texture2D<float4> t_TextureHDR : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-	const float gamma = 2.2f;
 	float3 color = t_TextureHDR.Sample(s_TrilinearClamp, psInput.v_TexCoords).rgb;
-    color = adjustExposure(color, c_RendererSettings.EV100);
+    color = adjustExposure(color, c_EV100);
     color = acesHdr2Ldr(color);
-    color = correctGamma(color, gamma);
+    color = correctGamma(color, c_Gamma);
     return float4(color, 1.0);
 }

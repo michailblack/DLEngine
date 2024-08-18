@@ -1,16 +1,12 @@
 #pragma once
 #include "DLEngine/Core/Layer.h"
 
-#include "DLEngine/Renderer/CameraController.h"
-#include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Renderer/Scene.h"
+#include "DLEngine/Renderer/SceneRenderer.h"
 
-class WorldLayer
-    : public DLEngine::Layer
+class WorldLayer : public DLEngine::Layer
 {
 public:
-    WorldLayer();
-    ~WorldLayer() override;
-
     void OnAttach() override;
     void OnDetach() override;
     void OnUpdate(DeltaTime dt) override;
@@ -18,11 +14,19 @@ public:
     void OnEvent(DLEngine::Event& e) override;
 
 private:
+    void AddObjectsToScene();
+
+private:
     bool OnKeyPressedEvent(DLEngine::KeyPressedEvent& e);
 
 private:
-    DLEngine::CameraController m_CameraController;
-    uint32_t m_CameraTransformID{ 0u };
+    DLEngine::Ref<DLEngine::Scene> m_Scene{};
+    DLEngine::Ref<DLEngine::SceneRenderer> m_SceneRenderer{};
+
+    DLEngine::PBRSettings m_PBRSettings{};
+    DLEngine::PostProcessSettings m_PostProcessSettings{};
+
+    DLEngine::Math::Mat4x4 m_FlashlightBaseTransform{};
+    DLEngine::Ref<DLEngine::Instance> m_FlashlightInstance{};
     bool m_IsFlashlightAttached{ true };
-    DLEngine::RendererSettings m_Settings{};
 };

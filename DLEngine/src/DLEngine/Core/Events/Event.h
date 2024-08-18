@@ -12,7 +12,7 @@ namespace DLEngine
         MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
     };
 
-#define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::##type; }\
+#define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return type; }\
     EventType GetEventType() const noexcept override { return GetStaticType(); }
 
     class Event

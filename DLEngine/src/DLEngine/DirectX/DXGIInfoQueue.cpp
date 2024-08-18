@@ -28,7 +28,7 @@ namespace DLEngine
 
         DL_THROW_IF_HR(dxgiGetDebugInterface(__uuidof(IDXGIInfoQueue), &m_DXGIInfoQueue));
 
-        DL_LOG_INFO("DXGI Info Queue Initialized");
+        DL_LOG_INFO_TAG("DirectX", "DXGI Info Queue Initialized");
     }
 
     std::string DXGIInfoQueue::GetMessages() const noexcept

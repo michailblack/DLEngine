@@ -10,7 +10,7 @@ public:
     using ID = uint32_t;
     using Index = uint32_t;
 
-    bool occupied(ID id) const noexcept { DL_ASSERT_NOINFO(id < static_cast<ID>(m_Occupied.size())); return m_Occupied[id]; }
+    bool occupied(ID id) const noexcept { DL_ASSERT(id < static_cast<ID>(m_Occupied.size())); return m_Occupied[id]; }
 
     Index size() const noexcept { return static_cast<Index>(m_Data.size()); }
     Index capacity() const noexcept { return static_cast<Index>(m_Data.capacity()); }
@@ -18,19 +18,19 @@ public:
     const T* data() const noexcept { return m_Data.data(); }
     T* data() noexcept { return m_Data.data(); }
 
-    const T& at(Index index) const noexcept { DL_ASSERT_NOINFO(index < size()); return m_Data[index]; }
-    T& at(Index index) noexcept { DL_ASSERT_NOINFO(index < size()); return m_Data[index]; }
+    const T& at(Index index) const noexcept { DL_ASSERT(index < size()); return m_Data[index]; }
+    T& at(Index index) noexcept { DL_ASSERT(index < size()); return m_Data[index]; }
 
-    const T& operator[](ID id) const noexcept { DL_ASSERT_NOINFO(occupied(id)); return m_Data[m_ForwardMap[id]]; }
-    T& operator[](ID id) noexcept { DL_ASSERT_NOINFO(occupied(id)); return m_Data[m_ForwardMap[id]]; }
+    const T& operator[](ID id) const noexcept { DL_ASSERT(occupied(id)); return m_Data[m_ForwardMap[id]]; }
+    T& operator[](ID id) noexcept { DL_ASSERT(occupied(id)); return m_Data[m_ForwardMap[id]]; }
 
-    Index getIndex(ID id) const noexcept { DL_ASSERT_NOINFO(occupied(id)); return m_ForwardMap[id]; }
+    Index getIndex(ID id) const noexcept { DL_ASSERT(occupied(id)); return m_ForwardMap[id]; }
 
     ID insert(const T& value) noexcept
     {
         ID id{ m_NextUsed };
 
-        DL_ASSERT_NOINFO(id <= static_cast<ID>(m_ForwardMap.size()) && m_ForwardMap.size() == m_Occupied.size());
+        DL_ASSERT(id <= static_cast<ID>(m_ForwardMap.size()) && m_ForwardMap.size() == m_Occupied.size());
 
         if (id == m_ForwardMap.size())
         {
@@ -38,7 +38,7 @@ public:
             m_Occupied.push_back(false);
         }
 
-        DL_ASSERT_NOINFO(!m_Occupied[id]);
+        DL_ASSERT(!m_Occupied[id]);
 
         m_NextUsed = m_ForwardMap[id];
         m_ForwardMap[id] = static_cast<Index>(m_Data.size());
@@ -52,8 +52,8 @@ public:
 
     void erase(ID id) noexcept
     {
-        DL_ASSERT_NOINFO(id <= static_cast<ID>(m_ForwardMap.size()) && m_ForwardMap.size() == m_Occupied.size());
-        DL_ASSERT_NOINFO(occupied(id));
+        DL_ASSERT(id <= static_cast<ID>(m_ForwardMap.size()) && m_ForwardMap.size() == m_Occupied.size());
+        DL_ASSERT(occupied(id));
 
         Index& forwardIndex{ m_ForwardMap[id] };
 

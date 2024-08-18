@@ -19,4 +19,13 @@ namespace DLEngine
 
         s_Logger = spdlog::stdout_color_mt("DLENGINE");
     }
+
+    void Log::PrintAssertMessage(std::string_view prefix)
+    {
+        auto logger{ Log::GetLogger() };
+        logger->error("{0}", prefix);
+
+        MessageBoxA(nullptr, "No message :/", "DLEngine Assert", MB_OK | MB_ICONERROR);
+    }
+
 }

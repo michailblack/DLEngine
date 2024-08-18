@@ -3,7 +3,7 @@
 
 #include "DLEngine/Core/Application.h"
 
-#include "DLEngine/DirectX/D3D.h"
+#include "DLEngine/DirectX/D3D11Context.h"
 
 #define IMGUI_IMPLEMENTATION
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -11,7 +11,6 @@
 #include <imgui/imgui.cpp>
 #include <imgui/imgui_impl_win32.cpp>
 #include <imgui/imgui_impl_dx11.cpp>
-#include <imgui/imgui_demo.cpp>
 #include <imgui/imgui_draw.cpp>
 #include <imgui/imgui_tables.cpp>
 #include <imgui/imgui_widgets.cpp>
@@ -31,8 +30,8 @@ namespace DLEngine
 
         ImGui::StyleColorsDark();
 
-        ImGui_ImplWin32_Init(Application::Get().GetWindow()->GetHandle());
-        ImGui_ImplDX11_Init(D3D::GetDevice5().Get(), D3D::GetDeviceContext4().Get());
+        ImGui_ImplWin32_Init(Application::Get().GetWindow().GetHandle());
+        ImGui_ImplDX11_Init(D3D11Context::Get()->GetDevice5().Get(), D3D11Context::Get()->GetDeviceContext4().Get());
     }
 
     void ImGuiLayer::OnDetach()

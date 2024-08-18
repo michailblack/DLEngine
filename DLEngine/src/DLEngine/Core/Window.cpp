@@ -7,6 +7,8 @@
 #include "DLEngine/Core/Events/KeyEvent.h"
 #include "DLEngine/Core/Events/MouseEvent.h"
 
+#include "DLEngine/DirectX/D3D11Context.h"
+
 #include <imgui/imgui.h>
 
 #pragma comment(lib, "dxgi.lib")
@@ -71,6 +73,14 @@ namespace DLEngine
         }
 
         ShowWindow(m_hWnd, SW_SHOW);
+
+        // Create RendererContext
+        m_RendererContext = RendererContext::Create();
+        m_RendererContext->Init();
+
+        const auto& d3d11Context{ std::static_pointer_cast<D3D11Context>(m_RendererContext) };
+
+        m_SwapChain = CreateScope<D3D11SwapChain>(d3d11Context->GetDevice5(), d3d11Context->GetFactory7(), m_hWnd);
     }
 
     Window::~Window()
@@ -78,10 +88,27 @@ namespace DLEngine
         DestroyWindow(m_hWnd);
     }
 
+    void Window::ProcessEvents()
+    {
+        MSG msg;
+        while (PeekMessageW(&msg, m_hWnd, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+    }
+
+    void Window::SwapBuffers()
+    {
+        m_SwapChain->Present();
+    }
+
     void Window::OnResize(uint32_t width, uint32_t height)
     {
         m_Data.Width = width;
         m_Data.Height = height;
+
+        m_SwapChain->OnResize(width, height);
     }
 
     LRESULT Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)

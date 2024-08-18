@@ -11,14 +11,15 @@
 
 #include "DLEngine/Renderer/Camera.h"
 
-#include "DLEngine/Systems/Mesh/IDragger.h"
-
 namespace DLEngine
 {
     class CameraController
     {
     public:
-        CameraController(const Camera& camera) noexcept;
+        using CameraResizeCallbackFn = std::function<void(Camera&, uint32_t, uint32_t)>;
+
+    public:
+        CameraController() noexcept = default;
         ~CameraController() = default;
 
         CameraController(const CameraController&) = delete;
@@ -28,6 +29,8 @@ namespace DLEngine
 
         void OnUpdate(float dt);
         void OnEvent(Event& e);
+
+        void SetCameraResizeCallback(const CameraResizeCallbackFn& callback) noexcept { m_CameraResizeCallbackFn = callback; }
 
         const Camera& GetCamera() const noexcept { return m_Camera; }
 
@@ -42,6 +45,8 @@ namespace DLEngine
     private:
         Camera m_Camera;
 
+        CameraResizeCallbackFn m_CameraResizeCallbackFn;
+
         float m_Velocity{ 0.003f };
         float m_VelocityScale{ 5.0f };
         float m_DeltaVelocityPercents{ 10.0f };
@@ -55,7 +60,5 @@ namespace DLEngine
         bool m_IsRotating{ false };
 
         Math::Vec2 m_MouseStartPosition{ 0.0f };
-
-        Scope<IDragger> m_Dragger{};
     };
 }

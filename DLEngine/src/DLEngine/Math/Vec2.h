@@ -39,16 +39,14 @@ namespace DLEngine::Math
         void operator/=(float s) noexcept;
     };
 
-    inline float Length(const Vec2& v) noexcept;
-    inline float Dot(const Vec2& v1, const Vec2& v2) noexcept;
-    inline Vec2 Cross(const Vec2& v1, const Vec2& v2) noexcept;
-    inline Vec2 Normalize(const Vec2& v) noexcept;
+    float Length(const Vec2& v) noexcept;
+    float Dot(const Vec2& v1, const Vec2& v2) noexcept;
+    Vec2 Cross(const Vec2& v1, const Vec2& v2) noexcept;
+    Vec2 Normalize(const Vec2& v) noexcept;
 
-    inline Vec2 operator+(const Vec2& v1, const Vec2& v2) noexcept;
-    inline Vec2 operator-(const Vec2& v1, const Vec2& v2) noexcept;
-    inline Vec2 operator*(const Vec2& v, float s) noexcept;
-    inline Vec2 operator*(float s, const Vec2& v) noexcept;
-    inline Vec2 operator/(const Vec2& v, float s) noexcept;
+    Vec2 operator+(const Vec2& v1, const Vec2& v2) noexcept;
+    Vec2 operator-(const Vec2& v1, const Vec2& v2) noexcept;
+    Vec2 operator*(const Vec2& v, float s) noexcept;
+    Vec2 operator*(float s, const Vec2& v) noexcept;
+    Vec2 operator/(const Vec2& v, float s) noexcept;
 }
-
-#include "Vec2.inl"

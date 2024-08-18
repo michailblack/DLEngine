@@ -1,11 +1,11 @@
 ﻿#include "dlpch.h"
 #include "DLException.h"
 
+#include "DLEngine/DirectX/D3D11Context.h"
+#include "DLEngine/DirectX/DXGIInfoQueue.h"
+
 #include <d3d11sdklayers.h>
 #include <sstream>
-
-#include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/DXGIInfoQueue.h"
 
 namespace DLEngine
 {
@@ -119,7 +119,7 @@ namespace DLEngine
     {
         using namespace Microsoft::WRL;
 
-        const auto& infoQueue = D3D::GetInfoQueue();
+        const auto& infoQueue = D3D11Context::Get()->GetInfoQueue();
         infoQueue->PushEmptyRetrievalFilter();
         const uint64_t messageCount{ infoQueue->GetNumStoredMessages() };
         std::unordered_set<std::string> messages{};

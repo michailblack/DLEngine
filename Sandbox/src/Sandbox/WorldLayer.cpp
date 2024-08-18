@@ -1,274 +1,44 @@
 ﻿#include "WorldLayer.h"
 
-#include "DLEngine/Core/Filesystem.h"
+#include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Input.h"
 
-#include "DLEngine/Renderer/TextureManager.h"
+#include "DLEngine/Math/Math.h"
 
-#include "DLEngine/Systems/Light/LightSystem.h"
-
-#include "DLEngine/Systems/Mesh/MeshSystem.h"
-#include "DLEngine/Systems/Mesh/ModelManager.h"
-
-#include "DLEngine/Systems/Transform/TransformSystem.h"
+#include "DLEngine/Renderer/Renderer.h"
 
 #include <imgui/imgui.h>
 
-WorldLayer::WorldLayer()
-    : m_CameraController(DLEngine::Camera{ DLEngine::Math::ToRadians(45.0f), 1280.0f / 720.0f, 0.001f, 100.0f })
-{
-}
-
-WorldLayer::~WorldLayer()
-{
-}
-
 void WorldLayer::OnAttach()
 {
-    using namespace DLEngine;
+    const auto& windowSize{ DLEngine::Application::Get().GetWindow().GetSize() };
 
-    const auto cube{ ModelManager::Load(Filesystem::GetModelDir() + L"cube\\cube.obj") };
-    const auto samurai{ ModelManager::Load(Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
-    const auto flashlight{ ModelManager::Load(Filesystem::GetModelDir() + L"flashlight\\flashlight.fbx") };
-    const auto sphere{ ModelManager::Get(L"UNIT_SPHERE") };
-    const auto skybox{ TextureManager::LoadTexture2D(Filesystem::GetTextureDir() + L"skybox\\night_street.dds") };
+    DLEngine::TextureSpecification skyboxSpecification{};
+    skyboxSpecification.DebugName = "Skybox Night Street";
+    skyboxSpecification.Usage = DLEngine::TextureUsage::Texture;
+    const auto& skybox{ DLEngine::Renderer::GetTextureLibrary()->LoadTextureCube(
+        skyboxSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "skybox\\night_street.dds"
+    ) };
 
-    Renderer::SetSkybox(skybox);
-
-    uint32_t transformID{ 0u };
-
-    std::vector<ShadingGroupStruct::Material::Null> nullMaterials{};
-    std::vector<ShadingGroupStruct::Material::TextureOnly> textureOnlyMaterials{};
-    std::vector<ShadingGroupStruct::Material::Lit> litMaterials{};
-
-    nullMaterials.resize(sphere->GetMeshesCount());
-
-    PointLight pointLight{};
-    pointLight.Position = Math::Vec3{ 0.0f };
-    pointLight.Radius = 0.5f;
-    pointLight.Radiance = Math::Vec3{ 9.83f, 15.67f, 3.04f };
-
-    transformID = TransformSystem::AddTransform(
-        Math::Mat4x4::Scale(Math::Vec3{ pointLight.Radius }) *
-        Math::Mat4x4::Translate(Math::Vec3{ 1.5f, 2.0f, 1.0f })
-    );
-
-    ShadingGroupStruct::Instance::Emission emissionInstance{};
-    emissionInstance.PointLightID = LightSystem::AddPointLight(pointLight, transformID);
-    emissionInstance.TransformID = transformID;
-
-    MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance);
-
-    pointLight.Position = Math::Vec3{ 0.0f };
-    pointLight.Radius = 0.1f;
-    pointLight.Radiance = Math::Vec3{ 23.1f, 41.5f, 99.9f };
-
-    transformID = TransformSystem::AddTransform(
-        Math::Mat4x4::Scale(Math::Vec3{ pointLight.Radius }) *
-        Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 2.0f, 1.0f })
-    );
-
-    emissionInstance.PointLightID = LightSystem::AddPointLight(pointLight, transformID);
-    emissionInstance.TransformID = transformID;
-
-    MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance);
-
-    litMaterials.resize(samurai->GetMeshesCount());
-    transformID = TransformSystem::AddTransform(
-        Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 0.0f, 1.5f })
-    );
-
-    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_BaseColor.dds"
-    );
-    litMaterials[0].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Normal.dds"
-    );
-    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Metallic.dds"
-    );
-    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Roughness.dds"
-    );
-
-    litMaterials[1].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Head_BaseColor.dds"
-    );
-    litMaterials[1].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Head_Normal.dds"
-    );
-    litMaterials[1].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
-    litMaterials[1].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Head_Roughness.dds"
-    );
-
-    litMaterials[2].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Eyes_BaseColor.dds"
-    );
-    litMaterials[2].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Eyes_Normal.dds"
-    );
-    litMaterials[2].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
-    litMaterials[2].Roughness = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
-
-    litMaterials[3].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_BaseColor.dds"
-    );
-    litMaterials[3].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Normal.dds"
-    );
-    litMaterials[3].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Metallic.dds"
-    );
-    litMaterials[3].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Roughness.dds"
-    );
-
-    litMaterials[4].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_BaseColor.dds"
-    );
-    litMaterials[4].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Normal.dds"
-    );
-    litMaterials[4].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Metallic.dds"
-    );
-    litMaterials[4].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Roughness.dds"
-    );
-
-    litMaterials[5].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_BaseColor.dds"
-    );
-    litMaterials[5].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Normal.dds"
-    );
-    litMaterials[5].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Metallic.dds"
-    );
-    litMaterials[5].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Roughness.dds"
-    );
-
-    litMaterials[6].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_BaseColor.dds"
-    );
-    litMaterials[6].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_Normal.dds"
-    );
-    litMaterials[6].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
-    litMaterials[6].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_Roughness.dds"
-    );
-
-    litMaterials[7].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_BaseColor.dds"
-    );
-    litMaterials[7].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Normal.dds"
-    );
-    litMaterials[7].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Metallic.dds"
-    );
-    litMaterials[7].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Roughness.dds"
-    );
-
-    ShadingGroupStruct::Instance::Null nullInstance{};
-    nullInstance.TransformID = transformID;
-
-    MeshSystem::Get().Add<>(samurai, litMaterials, nullInstance);
-
-    transformID = TransformSystem::AddTransform(
-        Math::Mat4x4::Translate(Math::Vec3{ 1.5f, 0.0f, 1.5f })
-    );
-    nullInstance.TransformID = transformID;
-    MeshSystem::Get().Add<>(samurai, litMaterials, nullInstance);
-
-    litMaterials.resize(cube->GetMeshesCount());
-    transformID = TransformSystem::AddTransform(
-        Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 0.0f, 0.0f })
-    );
-
-    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_BaseColor.dds"
-    );
-    litMaterials[0].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Normal.dds"
-    );
-    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Metallic.dds"
-    );
-    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Roughness.dds"
-    );
-
-    for (int32_t x{ -5 }; x < 5; ++x)
-    {
-        for (int32_t z{ -5 }; z < 5; ++z)
+    DLEngine::SceneSpecification sceneSpecification{};
+    sceneSpecification.CameraResizeCallback = [](DLEngine::Camera& camera, uint32_t width, uint32_t height)
         {
-            transformID = TransformSystem::AddTransform(
-                Math::Mat4x4::Translate(Math::Vec3{ static_cast<float>(x), -0.5f, static_cast<float>(z) })
-            );
-            nullInstance.TransformID = transformID;
-            MeshSystem::Get().Add<>(cube, litMaterials, nullInstance);
-        }
-    }
+            const float aspectRatio{ static_cast<float>(width) / static_cast<float>(height) };
+            camera.SetPerspectiveProjectionFov(DLEngine::Math::ToRadians(45.0f), aspectRatio, 100.0f, 0.001f);
+        };
+    sceneSpecification.ViewportWidth = static_cast<uint32_t>(windowSize.x);
+    sceneSpecification.ViewportHeight = static_cast<uint32_t>(windowSize.y);
+    m_Scene = DLEngine::CreateRef<DLEngine::Scene>(sceneSpecification);
 
-    DirectionalLight directionalLight{};
-    directionalLight.Direction = Math::Normalize(Math::Vec3{ -1.0f, -1.0f, 1.0f });
-    directionalLight.SolidAngle = 6.418e-5f;
-    directionalLight.Radiance = Math::Vec3{ 0.05f, 0.06f, 0.1f };
+    DLEngine::SceneRendererSpecification sceneRendererSpecification{};
+    sceneRendererSpecification.Skybox = skybox;
+    sceneRendererSpecification.ViewportWidth = sceneSpecification.ViewportWidth;
+    sceneRendererSpecification.ViewportHeight = sceneSpecification.ViewportHeight;
+    m_SceneRenderer = DLEngine::CreateRef<DLEngine::SceneRenderer>(sceneRendererSpecification);
 
-    transformID = TransformSystem::AddTransform(
-        Math::Mat4x4::Identity()
-    );
+    m_PostProcessSettings.EV100 = -2.0f;
 
-    LightSystem::AddDirectionalLight(directionalLight, transformID);
-
-    m_CameraTransformID = TransformSystem::AddTransform(
-        Math::Mat4x4::Identity()
-    );
-
-    SpotLight spotLight{};
-    spotLight.Position = Math::Vec3{ 0.0f, 5.0f, 0.0f };
-    spotLight.Direction = Math::Normalize(Math::Vec3{ 0.0f, 0.0f, 1.0f });
-    spotLight.Radiance = Math::Vec3{ 40.0f, 10.0f, 150.0f };
-    spotLight.Radius = 0.075f;
-    spotLight.InnerCutoffCos = Math::Cos(Math::ToRadians(15.0f));
-    spotLight.OuterCutoffCos = Math::Cos(Math::ToRadians(25.0f));
-
-    LightSystem::AddSpotLight(spotLight, m_CameraTransformID);
-
-    litMaterials.resize(flashlight->GetMeshesCount());
-    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Base_color.dds"
-    );
-    litMaterials[0].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Normal.dds"
-    );
-    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Metallic.dds"
-    );
-    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Roughness.dds"
-    );
-
-    litMaterials[1].Albedo = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Base_color.dds"
-    );
-    litMaterials[1].Normal = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Normal.dds"
-    );
-    litMaterials[1].Metallic = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Metallic.dds"
-    );
-    litMaterials[1].Roughness = TextureManager::LoadTexture2D(
-        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Roughness.dds"
-    );
-
-    nullInstance.TransformID = m_CameraTransformID;
-    MeshSystem::Get().Add<>(flashlight, litMaterials, nullInstance);
+    AddObjectsToScene();
 }
 
 void WorldLayer::OnDetach()
@@ -278,53 +48,424 @@ void WorldLayer::OnDetach()
 
 void WorldLayer::OnUpdate(DeltaTime dt)
 {
-    m_CameraController.OnUpdate(dt);
-
+    m_Scene->OnUpdate(dt);
+    
     if (m_IsFlashlightAttached)
     {
-        DLEngine::TransformSystem::ReplaceTransform(
-            m_CameraTransformID,
-            DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.003f }) *
-            DLEngine::Math::Mat4x4::Inverse(m_CameraController.GetCamera().GetViewMatrix()) *
-            DLEngine::Math::Mat4x4::Translate(m_CameraController.GetCamera().GetForward() * 0.5f) *
-            DLEngine::Math::Mat4x4::Translate(m_CameraController.GetCamera().GetRight() * 0.2f) *
-            DLEngine::Math::Mat4x4::Translate(m_CameraController.GetCamera().GetUp() * -0.2f)
-        );
+        const auto& sceneCamera{ m_Scene->GetCamera() };
+        auto newFlashlightTransform{ m_FlashlightBaseTransform *
+            DLEngine::Math::Mat4x4::Inverse(sceneCamera.GetViewMatrix()) *
+            DLEngine::Math::Mat4x4::Translate(sceneCamera.GetForward() * 0.4f) *
+            DLEngine::Math::Mat4x4::Translate(sceneCamera.GetRight() * 0.2f) *
+            DLEngine::Math::Mat4x4::Translate(sceneCamera.GetUp() * -0.15f)
+        };
+        
+        m_FlashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &newFlashlightTransform, sizeof(DLEngine::Math::Mat4x4) });
     }
 
-    DLEngine::Renderer::BeginScene(m_CameraController.GetCamera());
-
-    DLEngine::Renderer::EndScene();
+    m_SceneRenderer->RenderScene(m_Scene, m_PBRSettings, m_PostProcessSettings);
 }
 
 void WorldLayer::OnImGuiRender()
 {
     ImGui::Begin("Settings");
 
-    ImGui::Checkbox("Diffuse Reflections", reinterpret_cast<bool*>(&m_Settings.DiffuseReflections));
-    ImGui::Checkbox("Specular Reflections", reinterpret_cast<bool*>(&m_Settings.SpecularReflections));
+    if (ImGui::CollapsingHeader("PBR Settings"))
+    {
+        ImGui::Checkbox("Use IBL", reinterpret_cast<bool*>(&m_PBRSettings.UseIBL));
 
-    ImGui::Checkbox("Use IBL", reinterpret_cast<bool*>(&m_Settings.UseIBL));
-    if (!m_Settings.UseIBL)
-        ImGui::SliderFloat3("Indirect Light Radiance", &m_Settings.IndirectLightRadiance.x, 0.0f, 10.0f, "%.001f");
+        if (!m_PBRSettings.UseIBL)
+            ImGui::DragFloat3("Indirect Light Radiance", &m_PBRSettings.IndirectLightRadiance.x, 0.01f, 0.0f, 1.0f);
 
-    ImGui::Checkbox("Overwrite Roughness", reinterpret_cast<bool*>(&m_Settings.OverwriteRoughness));
-    if (m_Settings.OverwriteRoughness)
-        ImGui::SliderFloat("Overwritten Roughness", &m_Settings.OverwrittenRoughness, 0.0f, 1.0f);
+        ImGui::Checkbox("Use Diffuse Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseDiffuseReflections));
+        ImGui::Checkbox("Use Specular Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseSpecularReflections));
 
-    ImGui::SliderFloat("EV100", &m_Settings.EV100, -16.0f, 16.0f, "%.001f");
+        ImGui::Checkbox("Overwrite Roughness", reinterpret_cast<bool*>(&m_PBRSettings.OverwriteRoughness));
+            
+        if (m_PBRSettings.OverwriteRoughness)
+            ImGui::SliderFloat("Overwritten Roughness", &m_PBRSettings.OverwrittenRoughness, 0.0f, 1.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Post Process Settings"))
+    {
+        ImGui::SliderFloat("EV100", &m_PostProcessSettings.EV100, -10.0f, 10.0f);
+        ImGui::SliderFloat("Gamma", &m_PostProcessSettings.Gamma, 0.1f, 5.0f);
+    }
 
     ImGui::End();
-
-    DLEngine::Renderer::SetRendererSettings(m_Settings);
 }
 
 void WorldLayer::OnEvent(DLEngine::Event& e)
 {
-    m_CameraController.OnEvent(e);
-
     DLEngine::EventDispatcher dispatcher{ e };
     dispatcher.Dispatch<DLEngine::KeyPressedEvent>(DL_BIND_EVENT_FN(WorldLayer::OnKeyPressedEvent));
+
+    m_Scene->OnEvent(e);
+}
+
+void WorldLayer::AddObjectsToScene()
+{
+    const auto& cube{ DLEngine::Renderer::GetMeshLibrary()->Load(DLEngine::Mesh::GetMeshDirectoryPath() / "cube\\cube.obj") };
+    const auto& samurai{ DLEngine::Renderer::GetMeshLibrary()->Load(DLEngine::Mesh::GetMeshDirectoryPath() / "samurai\\samurai.fbx") };
+    const auto& flashlight{ DLEngine::Renderer::GetMeshLibrary()->Load(DLEngine::Mesh::GetMeshDirectoryPath() / "flashlight\\flashlight.fbx") };
+    const auto& pbrStaticShader{ DLEngine::Renderer::GetShaderLibrary()->Get("PBR_Static") };
+    auto pbrMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Cube Steel Material") };
+
+    // Spawning cubes
+    {
+        DLEngine::TextureSpecification textureSpecification{};
+        textureSpecification.Usage = DLEngine::TextureUsage::Texture;
+
+        textureSpecification.DebugName = "Steel Albedo";
+        const auto& steelAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Steel Normal";
+        const auto& steelNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_Normal.dds") };
+
+        textureSpecification.DebugName = "Steel Metalness";
+        const auto& steelMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_Metallic.dds") };
+
+        textureSpecification.DebugName = "Steel Roughness";
+        const auto& steelRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_Roughness.dds") };
+
+        auto steelPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial steelCBPBRMaterial{};
+        steelCBPBRMaterial.UseNormalMap = true;
+        steelCBPBRMaterial.FlipNormalMapY = false;
+        steelCBPBRMaterial.HasMetalnessMap = true;
+        steelCBPBRMaterial.HasRoughnessMap = true;
+        steelPBRCB->SetData(DLEngine::Buffer{ &steelCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        pbrMaterial->Set("t_Albedo", steelAlbedo);
+        pbrMaterial->Set("t_Normal", steelNormal);
+        pbrMaterial->Set("t_Metalness", steelMetalness);
+        pbrMaterial->Set("t_Roughness", steelRoughness);
+        pbrMaterial->Set("PBRMaterial", steelPBRCB);
+
+        const auto transform{ DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 10.0f, 0.5f, 10.0f }) *
+            DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -0.5f, 0.0f })
+        };
+        auto instance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Cube Instance") };
+        instance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
+
+        m_Scene->AddSubmesh(cube, 0u, pbrMaterial, instance);
+
+        /*for (int32_t x{ -5 }; x < 5; ++x)
+        {
+            for (int32_t z{ -5 }; z < 5; ++z)
+            {
+                const DLEngine::Math::Mat4x4 transform{ DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ static_cast<float>(x), -0.5f, static_cast<float>(z) }) };
+                const auto& instance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Instance") };
+                instance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
+
+                m_Scene->AddSubmesh(cube, 0u, pbrMaterial, instance);
+            }
+        }*/
+    }
+
+    // Spawning samurais
+    {
+        const auto baseTransform{ DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(-90.0f), 0.0f, 0.0f) };
+        std::vector<DLEngine::Math::Mat4x4> samuraiTransforms{};
+        samuraiTransforms.emplace_back(baseTransform * DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 0.0f, 2.0f }));
+        samuraiTransforms.emplace_back(baseTransform * DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 1.5f, 0.0f, 2.0f }));
+
+        std::vector<DLEngine::Ref<DLEngine::Instance>> samuraiInstances{};
+        samuraiInstances.reserve(samuraiTransforms.size());
+        for (const auto& transform : samuraiTransforms)
+        {
+            auto samuraiInstance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Samurai Instance") };
+            samuraiInstance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
+            samuraiInstances.emplace_back(samuraiInstance);
+        }
+
+        DLEngine::TextureSpecification textureSpecification{};
+        textureSpecification.Usage = DLEngine::TextureUsage::Texture;
+
+        textureSpecification.DebugName = "Sword Albedo";
+        const auto& swordAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Sword Normal";
+        const auto& swordNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_Normal.dds") };
+
+        textureSpecification.DebugName = "Sword Metalness";
+        const auto& swordMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_Metallic.dds") };
+
+        textureSpecification.DebugName = "Sword Roughness";
+        const auto& swordRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_Roughness.dds") };
+
+        auto swordPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial swordCBPBRMaterial{};
+        swordCBPBRMaterial.UseNormalMap = true;
+        swordCBPBRMaterial.FlipNormalMapY = false;
+        swordCBPBRMaterial.HasMetalnessMap = true;
+        swordCBPBRMaterial.HasRoughnessMap = true;
+        swordPBRCB->SetData(DLEngine::Buffer{ &swordCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto swordMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Sword Material") };
+        swordMaterial->Set("t_Albedo", swordAlbedo);
+        swordMaterial->Set("t_Normal", swordNormal);
+        swordMaterial->Set("t_Metalness", swordMetalness);
+        swordMaterial->Set("t_Roughness", swordRoughness);
+        swordMaterial->Set("PBRMaterial", swordPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 0u, swordMaterial, samuraiInstances[instanceIndex]);
+
+        textureSpecification.DebugName = "Head Albedo";
+        const auto& headAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Head_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Head Normal";
+        const auto& headNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Head_Normal.dds") };
+
+        textureSpecification.DebugName = "Head Roughness";
+        const auto& headRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Head_Roughness.dds") };
+
+        auto headPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial headCBPBRMaterial{};
+        headCBPBRMaterial.UseNormalMap = true;
+        headCBPBRMaterial.FlipNormalMapY = false;
+        headCBPBRMaterial.HasMetalnessMap = false;
+        headCBPBRMaterial.DefaultMetalness = 0.0f;
+        headCBPBRMaterial.HasRoughnessMap = true;
+        headPBRCB->SetData(DLEngine::Buffer{ &headCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto headMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Head Material") };
+        headMaterial->Set("t_Albedo", headAlbedo);
+        headMaterial->Set("t_Normal", headNormal);
+        headMaterial->Set("t_Roughness", headRoughness);
+        headMaterial->Set("PBRMaterial", headPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 1u, headMaterial, samuraiInstances[instanceIndex]);
+
+        textureSpecification.DebugName = "Eyes Albedo";
+        const auto& eyesAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Eyes_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Eyes Normal";
+        const auto& eyesNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Eyes_Normal.dds") };
+
+        auto eyesPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial eyesCBPBRMaterial{};
+        eyesCBPBRMaterial.UseNormalMap = true;
+        eyesCBPBRMaterial.FlipNormalMapY = false;
+        eyesCBPBRMaterial.HasMetalnessMap = false;
+        eyesCBPBRMaterial.DefaultMetalness = 0.0f;
+        eyesCBPBRMaterial.HasRoughnessMap = false;
+        eyesCBPBRMaterial.DefaultRoughness = 0.0f;
+        eyesPBRCB->SetData(DLEngine::Buffer{ &eyesCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto eyesMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Eyes Material") };
+        eyesMaterial->Set("t_Albedo", eyesAlbedo);
+        eyesMaterial->Set("t_Normal", eyesNormal);
+        eyesMaterial->Set("PBRMaterial", eyesPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 2u, eyesMaterial, samuraiInstances[instanceIndex]);
+
+        textureSpecification.DebugName = "Helmet Albedo";
+        const auto& helmetAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Helmet Normal";
+        const auto& helmetNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_Normal.dds") };
+
+        textureSpecification.DebugName = "Helmet Metalness";
+        const auto& helmetMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_Metallic.dds") };
+
+        textureSpecification.DebugName = "Helmet Roughness";
+        const auto& helmetRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_Roughness.dds") };
+
+        auto helmetPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial helmetCBPBRMaterial{};
+        helmetCBPBRMaterial.UseNormalMap = true;
+        helmetCBPBRMaterial.FlipNormalMapY = false;
+        helmetCBPBRMaterial.HasMetalnessMap = true;
+        helmetCBPBRMaterial.HasRoughnessMap = true;
+        helmetPBRCB->SetData(DLEngine::Buffer{ &helmetCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto helmetMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Helmet Material") };
+        helmetMaterial->Set("t_Albedo", helmetAlbedo);
+        helmetMaterial->Set("t_Normal", helmetNormal);
+        helmetMaterial->Set("t_Metalness", helmetMetalness);
+        helmetMaterial->Set("t_Roughness", helmetRoughness);
+        helmetMaterial->Set("PBRMaterial", helmetPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 3u, helmetMaterial, samuraiInstances[instanceIndex]);
+
+        textureSpecification.DebugName = "Decor Albedo";
+        const auto& decorAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Decor Normal";
+        const auto& decorNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_Normal.dds") };
+
+        textureSpecification.DebugName = "Decor Metalness";
+        const auto& decorMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_Metallic.dds") };
+
+        textureSpecification.DebugName = "Decor Roughness";
+        const auto& decorRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_Roughness.dds") };
+
+        auto decorPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial decorCBPBRMaterial{};
+        decorCBPBRMaterial.UseNormalMap = true;
+        decorCBPBRMaterial.FlipNormalMapY = false;
+        decorCBPBRMaterial.HasMetalnessMap = true;
+        decorCBPBRMaterial.HasRoughnessMap = true;
+        decorPBRCB->SetData(DLEngine::Buffer{ &decorCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto decorMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Decor Material") };
+        decorMaterial->Set("t_Albedo", decorAlbedo);
+        decorMaterial->Set("t_Normal", decorNormal);
+        decorMaterial->Set("t_Metalness", decorMetalness);
+        decorMaterial->Set("t_Roughness", decorRoughness);
+        decorMaterial->Set("PBRMaterial", decorPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 4u, decorMaterial, samuraiInstances[instanceIndex]);
+
+        textureSpecification.DebugName = "Pants Albedo";
+        const auto& pantsAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Pants Normal";
+        const auto& pantsNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_Normal.dds") };
+
+        textureSpecification.DebugName = "Pants Metalness";
+        const auto& pantsMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_Metallic.dds") };
+
+        textureSpecification.DebugName = "Pants Roughness";
+        const auto& pantsRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_Roughness.dds") };
+
+        auto pantsPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial pantsCBPBRMaterial{};
+        pantsCBPBRMaterial.UseNormalMap = true;
+        pantsCBPBRMaterial.FlipNormalMapY = false;
+        pantsCBPBRMaterial.HasMetalnessMap = true;
+        pantsCBPBRMaterial.HasRoughnessMap = true;
+        pantsPBRCB->SetData(DLEngine::Buffer{ &pantsCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto pantsMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Pants Material") };
+        pantsMaterial->Set("t_Albedo", pantsAlbedo);
+        pantsMaterial->Set("t_Normal", pantsNormal);
+        pantsMaterial->Set("t_Metalness", pantsMetalness);
+        pantsMaterial->Set("t_Roughness", pantsRoughness);
+        pantsMaterial->Set("PBRMaterial", pantsPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 5u, pantsMaterial, samuraiInstances[instanceIndex]);
+
+        textureSpecification.DebugName = "Hands Albedo";
+        const auto& handsAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Hands_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Hands Normal";
+        const auto& handsNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Hands_Normal.dds") };
+
+        textureSpecification.DebugName = "Hands Roughness";
+        const auto& handsRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Hands_Roughness.dds") };
+
+        auto handsPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial handsCBPBRMaterial{};
+        handsCBPBRMaterial.UseNormalMap = true;
+        handsCBPBRMaterial.FlipNormalMapY = false;
+        handsCBPBRMaterial.HasMetalnessMap = false;
+        handsCBPBRMaterial.DefaultMetalness = 0.0f;
+        handsCBPBRMaterial.HasRoughnessMap = true;
+        handsPBRCB->SetData(DLEngine::Buffer{ &handsCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto handsMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Hands Material") };
+        handsMaterial->Set("t_Albedo", handsAlbedo);
+        handsMaterial->Set("t_Normal", handsNormal);
+        handsMaterial->Set("t_Roughness", handsRoughness);
+        handsMaterial->Set("PBRMaterial", handsPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 6u, handsMaterial, samuraiInstances[instanceIndex]);
+
+        textureSpecification.DebugName = "Torso Albedo";
+        const auto& torsoAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_BaseColor.dds") };
+
+        textureSpecification.DebugName = "Torso Normal";
+        const auto& torsoNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_Normal.dds") };
+
+        textureSpecification.DebugName = "Torso Metalness";
+        const auto& torsoMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_Metallic.dds") };
+
+        textureSpecification.DebugName = "Torso Roughness";
+        const auto& torsoRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_Roughness.dds") };
+
+        auto torsoPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial torsoCBPBRMaterial{};
+        torsoCBPBRMaterial.UseNormalMap = true;
+        torsoCBPBRMaterial.FlipNormalMapY = false;
+        torsoCBPBRMaterial.HasMetalnessMap = true;
+        torsoCBPBRMaterial.HasRoughnessMap = true;
+        torsoPBRCB->SetData(DLEngine::Buffer{ &torsoCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto torsoMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Torso Material") };
+        torsoMaterial->Set("t_Albedo", torsoAlbedo);
+        torsoMaterial->Set("t_Normal", torsoNormal);
+        torsoMaterial->Set("t_Metalness", torsoMetalness);
+        torsoMaterial->Set("t_Roughness", torsoRoughness);
+        torsoMaterial->Set("PBRMaterial", torsoPBRCB);
+
+        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
+            m_Scene->AddSubmesh(samurai, 7u, torsoMaterial, samuraiInstances[instanceIndex]);
+    }
+
+    // Adding lights
+    {
+        m_Scene->AddPointLight(DLEngine::Math::Vec3{ 0.0f }, DLEngine::Math::Vec3{ 1.0f }, 0.1f, 1.0f, DLEngine::Math::Vec3{ -1.5f, 3.0f, 1.0f });
+        m_Scene->AddPointLight(DLEngine::Math::Vec3{ 0.0f }, DLEngine::Math::Vec3{ 1.0f }, 0.3f, 1.0f, DLEngine::Math::Vec3{ 1.5f, 3.0f, 1.0f });
+        m_Scene->AddPointLight(DLEngine::Math::Vec3{ 0.0f }, DLEngine::Math::Vec3{ 4.0f, 1.0f, 15.0f }, 0.3f, 1.0f, DLEngine::Math::Vec3{ 0.0f, 4.0f, 2.0f });
+
+        m_FlashlightBaseTransform = DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.003f }) *
+            DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(-90.0f), DLEngine::Math::ToRadians(180.0f), 0.0f);
+        
+        DLEngine::TextureSpecification textureSpecification{};
+        textureSpecification.Usage = DLEngine::TextureUsage::Texture;
+
+        textureSpecification.DebugName = "Flashlight Albedo";
+        const auto& flashlightAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Base_color.dds") };
+
+        textureSpecification.DebugName = "Flashlight Normal";
+        const auto& flashlightNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Normal.dds") };
+
+        textureSpecification.DebugName = "Flashlight Metalness";
+        const auto& flashlightMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Metallic.dds") };
+
+        textureSpecification.DebugName = "Flashlight Roughness";
+        const auto& flashlightRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Roughness.dds") };
+
+        auto flashlightPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial flashlightCBPBRMaterial{};
+        flashlightCBPBRMaterial.UseNormalMap = true;
+        flashlightCBPBRMaterial.FlipNormalMapY = false;
+        flashlightCBPBRMaterial.HasMetalnessMap = true;
+        flashlightCBPBRMaterial.HasRoughnessMap = true;
+        flashlightPBRCB->SetData(DLEngine::Buffer{ &flashlightCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        auto flashlightMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Flashlight Material") };
+        flashlightMaterial->Set("t_Albedo", flashlightAlbedo);
+        flashlightMaterial->Set("t_Normal", flashlightNormal);
+        flashlightMaterial->Set("t_Metalness", flashlightMetalness);
+        flashlightMaterial->Set("t_Roughness", flashlightRoughness);
+        flashlightMaterial->Set("PBRMaterial", flashlightPBRCB);
+
+        m_FlashlightInstance = DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Flashlight Instance");
+        m_FlashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &m_FlashlightBaseTransform, sizeof(DLEngine::Math::Mat4x4) });
+
+        m_Scene->AddSubmesh(flashlight, 0u, flashlightMaterial, m_FlashlightInstance);
+
+        m_Scene->AddSpotLight(
+            DLEngine::Math::Vec3{ 0.0f },
+            DLEngine::Math::Vec3{ 0.0f, -1.0f, 0.0f },
+            0.075f,
+            DLEngine::Math::Cos(DLEngine::Math::ToRadians(5.0f)),
+            DLEngine::Math::Cos(DLEngine::Math::ToRadians(7.5f)),
+            DLEngine::Math::Vec3{ 4.0f, 1.0f, 15.0f },
+            2.0f,
+            m_FlashlightInstance
+        );
+    }
 }
 
 bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)

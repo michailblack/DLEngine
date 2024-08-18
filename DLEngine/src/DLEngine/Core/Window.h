@@ -1,15 +1,20 @@
 #pragma once
 #include <cstdint>
 
+#include "DLEngine/Core/Events/Event.h"
+
 #define EXCLUDE_COMMON_WINDOWS_HEADERS
 #include "DLEngine/Core/DLWin.h"
+
+#include "DLEngine/DirectX/D3D11SwapChain.h"
+
+#include "DLEngine/Math/Vec2.h"
+
+#include "DLEngine/Renderer/RendererContext.h"
 
 #include <d3d11_4.h>
 #include <dxgi1_6.h>
 #include <wrl.h>
-
-#include "DLEngine/Core/Events/Event.h"
-#include "DLEngine/Math/Vec2.h"
 
 namespace DLEngine
 {
@@ -49,6 +54,8 @@ namespace DLEngine
         Window& operator=(const Window&) = delete;
         Window& operator=(Window&&) = delete;
 
+        void ProcessEvents();
+        void SwapBuffers();
         void OnResize(uint32_t width, uint32_t height);
 
         void SetEventCallback(const EventCallbackFn& eventCallback) noexcept { m_Data.EventCallback = eventCallback; }
@@ -58,6 +65,9 @@ namespace DLEngine
         uint32_t GetHeight() const noexcept { return m_Data.Height; }
 
         HWND GetHandle() const noexcept { return m_hWnd; }
+
+        Ref<RendererContext> GetRendererContext() const noexcept { return m_RendererContext; }
+        const Scope<D3D11SwapChain>& GetSwapChain() noexcept { return m_SwapChain; }
 
     private:
         static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -74,5 +84,8 @@ namespace DLEngine
 
             EventCallbackFn EventCallback;
         } m_Data;
+
+        Ref<RendererContext> m_RendererContext;
+        Scope<D3D11SwapChain> m_SwapChain;
     };
 }

@@ -1,23 +1,33 @@
 ﻿#include "dlpch.h"
 #include "Application.h"
 
-#include "DLEngine/Core/Engine.h"
 #include "DLEngine/Core/ImGuiLayer.h"
+
+#include "DLEngine/Math/Math.h"
 
 #include "DLEngine/Renderer/Renderer.h"
 
-#include "DLEngine/Systems/Mesh/MeshSystem.h"
-
 #include "DLEngine/Utils/DeltaTime.h"
+
+#include <DirectXTex/DirectXTex.h>
 
 namespace DLEngine
 {
+    namespace
+    {
+        void InitConsole()
+        {
+            AllocConsole();
+            FILE* dummy;
+            freopen_s(&dummy, "conout$", "w", stdout);
+            freopen_s(&dummy, "conout$", "w", stderr);
+        }
+    }
+
     Application::~Application()
     {
         for (const auto& layer : m_LayerStack)
             layer->OnDetach();
-
-        Engine::Deinit();
     }
 
     void Application::Run()
@@ -26,13 +36,13 @@ namespace DLEngine
         {
             DeltaTime dt{ static_cast<float>(m_Timer.GetDeltaTimeMS()) };
 
-            ProcessInputs();
+            m_Window->ProcessEvents();
 
             if (m_Timer.FrameElapsed(dt))
             {
                 m_Timer.Reset();
 
-                Renderer::BeginFrame(dt);
+                Renderer::BeginFrame();
 
                 for (const auto& layer : m_LayerStack)
                     layer->OnUpdate(dt);
@@ -43,6 +53,8 @@ namespace DLEngine
                 ImGuiLayer::End();
 
                 Renderer::EndFrame();
+
+                m_Window->SwapBuffers();
             }
 
             std::this_thread::yield();
@@ -97,25 +109,24 @@ namespace DLEngine
 
     Application::Application(const ApplicationSpecification& spec)
         : m_Specification(spec)
-        , m_Window(CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle))
         , m_Timer(s_TimeOfOneFrameMS)
     {
         s_Instance = this;
+
+        InitConsole();
+
+        Log::Init();
+
+        if (!DirectX::XMVerifyCPUSupport())
+            throw std::runtime_error{ "DirectXMath Library does not support the given platform" };
+        DL_THROW_IF_HR(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
+
+        m_Window = CreateScope<Window>(m_Specification.WndWidth, m_Specification.WndHeight, m_Specification.WndTitle);
         m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
 
-        Engine::Init();
+        Renderer::Init();
 
         PushOverlay(new ImGuiLayer());
-    }
-
-    void Application::ProcessInputs() const
-    {
-        MSG msg;
-        while (PeekMessageW(&msg, m_Window->GetHandle(), 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-        }
     }
 
     bool Application::OnWindowClose(WindowCloseEvent&)
@@ -126,8 +137,9 @@ namespace DLEngine
 
     bool Application::OnWindowResize(WindowResizeEvent& e)
     {
+        Renderer::InvalidateSwapChainTargetFramebuffer();
         m_Window->OnResize(e.GetWidth(), e.GetHeight());
-        Renderer::OnResize(e.GetWidth(), e.GetHeight());
+        Renderer::RecreateSwapChainTargetFramebuffer();
 
         return false;
     }
@@ -138,9 +150,6 @@ namespace DLEngine
         {
         case VK_ESCAPE:
             m_IsRunning = false;
-            break;
-        case 'N':
-            MeshSystem::Get().ToggleNormalVis();
             break;
         default:
             break;

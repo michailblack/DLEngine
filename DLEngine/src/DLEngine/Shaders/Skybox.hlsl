@@ -1,5 +1,5 @@
-#include "Buffers.hlsli"
-#include "Samplers.hlsli"
+#include "Include/Buffers.hlsli"
+#include "Include/Samplers.hlsli"
 
 struct VertexOutput
 {
@@ -22,5 +22,5 @@ TextureCube<float3> t_Skybox : register(t0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    return float4(t_Skybox.Sample(s_AnisotropicClamp, psInput.v_CubemapSample).rgb, 1.0);
+    return float4(t_Skybox.Sample(s_Anisotropic8Clamp, psInput.v_CubemapSample).rgb, 1.0);
 }

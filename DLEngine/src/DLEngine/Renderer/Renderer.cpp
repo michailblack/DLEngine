@@ -1,271 +1,211 @@
 ﻿#include "dlpch.h"
 #include "Renderer.h"
 
-#include "DLEngine/Core/Application.h"
-#include "DLEngine/Core/Input.h"
-#include "DLEngine/Core/Filesystem.h"
+#include "DLEngine/DirectX/D3D11Renderer.h"
 
-#include "DLEngine/DirectX/ConstantBuffer.h"
-#include "DLEngine/DirectX/D3DStates.h"
-#include "DLEngine/DirectX/SwapChain.h"
-#include "DLEngine/DirectX/Texture.h"
-
-#include "DLEngine/Renderer/Camera.h"
-#include "DLEngine/Renderer/PostProcess.h"
-#include "DLEngine/Renderer/ReflectionCapture.h"
-
-#include "DLEngine/Systems/Light/LightSystem.h"
-
-#include "DLEngine/Systems/Mesh/MeshSystem.h"
-
-#include "DLEngine/Systems/Transform/TransformSystem.h"
+#include "DLEngine/Renderer/RendererAPI.h"
 
 namespace DLEngine
 {
     namespace
     {
-        struct PerFrameData
+        RendererAPI* s_RendererAPI{ nullptr };
+
+        RendererAPI* InitRendererAPI()
         {
-            Math::Vec2 Resolution;
-            Math::Vec2 MousePos;
-            float TimeMS{ 0u };
-            float TimeS{ 0u };
-            float _padding[2]{};
-            RendererSettings Settings;
+            return new D3D11Renderer;
+        }
+
+        constexpr uint32_t s_BRDFLUTSize{ 2048u };
+
+        struct RendererData
+        {
+            Ref<MeshLibrary> MeshLib;
+            Ref<ShaderLibrary> ShaderLib;
+            Ref<TextureLibrary> TextureLib;
+
+            Ref<Framebuffer> SwapChainFB;
+
+            Ref<Texture2D> BRDFLUT;
         };
 
-        struct PerViewData
-        {
-            Math::Mat4x4 Projection;
-            Math::Mat4x4 InvProjection;
-            Math::Mat4x4 View;
-            Math::Mat4x4 InvView;
-            Math::Mat4x4 ViewProjection;
-            Math::Mat4x4 InvViewProjection;
-            Math::Vec4 CameraPosition;
-            Math::Vec4 BL;
-            Math::Vec4 BL2TL;
-            Math::Vec4 BL2BR;
-        };
-
-        struct
-        {
-            PerFrameData PerFrame;
-            ConstantBuffer PerFrameCB;
-
-            PerViewData PerView;
-            ConstantBuffer PerViewCB;
-
-            PipelineState SkyboxPipelineState;
-            Texture2D SkyboxTex;
-
-            Texture2D FrameTex;
-
-            PostProcess PostProcess;
-            ReflectionCapture ReflectionCapture;
-
-            SwapChain SwapChain;
-            Texture2D BackBufferTex;
-            Texture2D DepthStencilTex;
-        } s_Data;
+        RendererData* s_RendererData{ nullptr };
     }
 
     void Renderer::Init()
     {
-        const auto& window{ Application::Get().GetWindow() };
+        s_RendererAPI = InitRendererAPI();
+        s_RendererAPI->Init();
 
-        s_Data.PerFrameCB.Create(sizeof(PerFrameData));
-        s_Data.PerViewCB.Create(sizeof(PerViewData));
+        s_RendererData = new RendererData;
 
-        s_Data.SwapChain.Create(Application::Get().GetWindow()->GetHandle());
+        s_RendererData->MeshLib = CreateRef<MeshLibrary>();
+        s_RendererData->MeshLib->Init();
 
-        OnResize(window->GetWidth(), window->GetHeight());
+        s_RendererData->ShaderLib = CreateRef<ShaderLibrary>();
+        s_RendererData->ShaderLib->Init();
 
-        InitSkyboxPipeline();
+        s_RendererData->TextureLib = CreateRef<TextureLibrary>();
 
-        s_Data.PostProcess.Create();
-        s_Data.ReflectionCapture.Create(4096u);
+        FramebufferSpecification framebufferSpec{};
+        framebufferSpec.DebugName = "Swap chain target";
+        framebufferSpec.SwapChainTarget = true;
+        s_RendererData->SwapChainFB = Framebuffer::Create(framebufferSpec);
 
-        DL_LOG_INFO("Renderer Initialized");
+        InitBRDFLUT();
+
+        DL_LOG_INFO_TAG("Renderer", "Renderer Initialized");
     }
 
-    void Renderer::OnResize(uint32_t width, uint32_t height)
+    void Renderer::Shutdown()
     {
-        D3D11_VIEWPORT viewport{};
-        viewport.TopLeftX = 0.0f;
-        viewport.TopLeftY = 0.0f;
-        viewport.Width = static_cast<float>(width);
-        viewport.Height = static_cast<float>(height);
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-
-        RenderCommand::SetViewports({ viewport });
-
-        RenderCommand::SetRenderTargets();
-
-        s_Data.BackBufferTex.Reset();
-        s_Data.DepthStencilTex.Reset();
-
-        s_Data.SwapChain.Resize(width, height);
-
-        s_Data.BackBufferTex = RenderCommand::GetBackBuffer(s_Data.SwapChain);
-
-        const auto& backBufferDesk{ s_Data.BackBufferTex.GetDesc() };
-
-        D3D11_TEXTURE2D_DESC1 depthStencilDesk{};
-        depthStencilDesk.Width = backBufferDesk.Width;
-        depthStencilDesk.Height = backBufferDesk.Height;
-        depthStencilDesk.MipLevels = 1u;
-        depthStencilDesk.ArraySize = 1u;
-        depthStencilDesk.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-        depthStencilDesk.SampleDesc.Count = 1u;
-        depthStencilDesk.SampleDesc.Quality = 0u;
-        depthStencilDesk.Usage = D3D11_USAGE_DEFAULT;
-        depthStencilDesk.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-        depthStencilDesk.CPUAccessFlags = 0u;
-        depthStencilDesk.MiscFlags = 0u;
-        depthStencilDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
-
-        s_Data.DepthStencilTex.Create(depthStencilDesk);
-
-        s_Data.FrameTex.Reset();
-
-        D3D11_TEXTURE2D_DESC1 frameTexDesk{};
-        frameTexDesk.Width = width;
-        frameTexDesk.Height = height;
-        frameTexDesk.MipLevels = 1u;
-        frameTexDesk.ArraySize = 1u;
-        frameTexDesk.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-        frameTexDesk.SampleDesc.Count = 1u;
-        frameTexDesk.SampleDesc.Quality = 0u;
-        frameTexDesk.Usage = D3D11_USAGE_DEFAULT;
-        frameTexDesk.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-        frameTexDesk.CPUAccessFlags = 0u;
-        frameTexDesk.MiscFlags = 0u;
-        frameTexDesk.TextureLayout = D3D11_TEXTURE_LAYOUT_UNDEFINED;
-
-        s_Data.FrameTex.Create(frameTexDesk);
+        delete s_RendererData;
+        s_RendererAPI->Shutdown();
     }
 
-    void Renderer::BeginFrame(DeltaTime dt)
+    void Renderer::BeginFrame()
     {
-        s_Data.PerFrame.TimeMS += dt.GetMilliseconds();
-        s_Data.PerFrame.TimeS += dt.GetSeconds();
-        s_Data.PerFrame.Resolution = Application::Get().GetWindow()->GetSize();
-        s_Data.PerFrame.MousePos = Input::GetCursorPosition();
-
-        s_Data.PerFrameCB.Set(&s_Data.PerFrame);
-
-        RenderCommand::SetConstantBuffers(
-            0u,
-            ShaderStage::All,
-            { s_Data.PerFrameCB, s_Data.PerViewCB }
-        );
-
-        RenderCommand::SetSamplers(
-            0u,
-            ShaderStage::All,
-            {
-                D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP),
-                D3DStates::GetSamplerState(SamplerStates::POINT_WRAP),
-                D3DStates::GetSamplerState(SamplerStates::POINT_CLAMP),
-                D3DStates::GetSamplerState(SamplerStates::TRILINEAR_WRAP),
-                D3DStates::GetSamplerState(SamplerStates::TRILINEAR_CLAMP),
-                D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_WRAP),
-                D3DStates::GetSamplerState(SamplerStates::ANISOTROPIC_8_CLAMP)
-            }
-        );
-
-        RenderCommand::SetShaderResources(
-            5u,
-            ShaderStage::Pixel,
-            {
-                s_Data.ReflectionCapture.GetDiffuseIrradiance().GetSRV(),
-                s_Data.ReflectionCapture.GetSpecularIrradiance().GetSRV(),
-                s_Data.ReflectionCapture.GetSpecularFactor().GetSRV()
-            }
-        );
+        s_RendererAPI->BeginFrame();
     }
 
     void Renderer::EndFrame()
     {
-        RenderCommand::SetRenderTargets();
-        s_Data.SwapChain.Present();
+        s_RendererAPI->EndFrame();
     }
 
-    void Renderer::BeginScene(const Camera& camera)
+    Ref<MeshLibrary> Renderer::GetMeshLibrary() noexcept
     {
-        s_Data.PerView.Projection = camera.GetProjectionMatrix();
-        s_Data.PerView.InvProjection = Math::Mat4x4::Inverse(s_Data.PerView.Projection);
-        s_Data.PerView.View = camera.GetViewMatrix();
-        s_Data.PerView.InvView = Math::Mat4x4::Inverse(s_Data.PerView.View);
-        s_Data.PerView.ViewProjection = s_Data.PerView.View * s_Data.PerView.Projection;
-        s_Data.PerView.InvViewProjection = Math::Mat4x4::Inverse(s_Data.PerView.ViewProjection);
-        s_Data.PerView.CameraPosition = Math::Vec4{ camera.GetPosition(), 1.0f };
-
-        const auto& windowSize{ Application::Get().GetWindow()->GetSize() };
-        s_Data.PerView.BL = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ 0.0f, windowSize.y }), 1.0f };
-        s_Data.PerView.BL2TL = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ 0.0f, 0.0f }), 1.0f } - s_Data.PerView.BL;
-        s_Data.PerView.BL2BR = Math::Vec4{ camera.ConstructFrustumPosRotOnly(Math::Vec2{ windowSize.x, windowSize.y }), 1.0f } - s_Data.PerView.BL;
-
-        s_Data.PerViewCB.Set(&s_Data.PerView);
+        return s_RendererData->MeshLib;
     }
 
-    void Renderer::EndScene()
+    Ref<ShaderLibrary> Renderer::GetShaderLibrary() noexcept
     {
-        RenderCommand::SetRenderTargets(
-            { s_Data.FrameTex.GetRTV() },
-            s_Data.DepthStencilTex.GetDSV()
-        );
-
-        RenderCommand::ClearRenderTargetView(s_Data.FrameTex.GetRTV());
-        RenderCommand::ClearDepthStencilView(s_Data.DepthStencilTex.GetDSV());
-
-        TransformSystem::Update();
-        LightSystem::Update();
-        MeshSystem::Get().Render();
-
-        DrawSkybox();
-
-        RenderCommand::SetRenderTargets();
-
-        s_Data.PostProcess.Resolve(s_Data.FrameTex, s_Data.BackBufferTex);
+        return s_RendererData->ShaderLib;
     }
 
-    void Renderer::SetRendererSettings(const RendererSettings& settings)
+    Ref<TextureLibrary> Renderer::GetTextureLibrary() noexcept
     {
-        s_Data.PerFrame.Settings = settings;
+        return s_RendererData->TextureLib;
     }
 
-    void Renderer::SetSkybox(const Texture2D& skybox)
+    Ref<Texture2D> Renderer::GetBRDFLUT() noexcept
     {
-        s_Data.SkyboxTex = skybox;
-
-        s_Data.ReflectionCapture.Build(s_Data.SkyboxTex);
+        return s_RendererData->BRDFLUT;
     }
 
-    void Renderer::InitSkyboxPipeline() noexcept
+    Ref<Texture2D> Renderer::GetBackBufferTexture()
     {
-        s_Data.SkyboxPipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-        ShaderSpecification shaderSpec{};
-        shaderSpec.Path = Filesystem::GetShaderDir() + L"Skybox.hlsl";
-
-        shaderSpec.EntryPoint = "mainVS";
-        s_Data.SkyboxPipelineState.VS.Create(shaderSpec);
-
-        shaderSpec.EntryPoint = "mainPS";
-        s_Data.SkyboxPipelineState.PS.Create(shaderSpec);
-
-        s_Data.SkyboxPipelineState.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
-        s_Data.SkyboxPipelineState.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEPTH_READ_ONLY);
+        return s_RendererAPI->GetBackBufferTexture();
     }
 
-    void Renderer::DrawSkybox() noexcept
+    Ref<Framebuffer> Renderer::GetSwapChainTargetFramebuffer() noexcept
     {
-        RenderCommand::SetPipelineState(s_Data.SkyboxPipelineState);
-        RenderCommand::SetShaderResources(0u, ShaderStage::Pixel, { s_Data.SkyboxTex.GetSRV() });
-
-        RenderCommand::Draw(3u);
+        return s_RendererData->SwapChainFB;
     }
+
+    void Renderer::RecreateSwapChainTargetFramebuffer()
+    {
+        s_RendererData->SwapChainFB->Resize(0u, 0u, true);
+    }
+
+    void Renderer::InvalidateSwapChainTargetFramebuffer() noexcept
+    {
+        s_RendererData->SwapChainFB->Invalidate();
+    }
+
+    void Renderer::SetConstantBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<ConstantBuffer>>& constantBuffers) noexcept
+    {
+        s_RendererAPI->SetConstantBuffers(startSlot, shaderStageFlags, constantBuffers);
+    }
+
+    void Renderer::SetTexture2Ds(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<Texture2D>>& textures, const std::vector<TextureViewSpecification>& viewSpecifications) noexcept
+    {
+        s_RendererAPI->SetTexture2Ds(startSlot, shaderStageFlags, textures, viewSpecifications);
+    }
+
+    void Renderer::SetTextureCubes(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<TextureCube>>& textures, const std::vector<TextureViewSpecification>& viewSpecifications) noexcept
+    {
+        s_RendererAPI->SetTextureCubes(startSlot, shaderStageFlags, textures, viewSpecifications);
+    }
+
+    void Renderer::SetStructuredBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<StructuredBuffer>>& structuredBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept
+    {
+        s_RendererAPI->SetStructuredBuffers(startSlot, shaderStageFlags, structuredBuffers, viewSpecifications);
+    }
+
+    void Renderer::SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept
+    {
+        s_RendererAPI->SetSamplerStates(startSlot, shaderStageFlags, samplerStates);
+    }
+
+    void Renderer::SetPipeline(const Ref<Pipeline>& pipeline, bool clearAttachments) noexcept
+    {
+        s_RendererAPI->SetPipeline(pipeline, clearAttachments);
+    }
+
+    void Renderer::SetMaterial(const Ref<Material>& material) noexcept
+    {
+        s_RendererAPI->SetMaterial(material);
+    }
+
+    void Renderer::SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<VertexBuffer>& instanceBuffer, uint32_t instanceCount) noexcept
+    {
+        s_RendererAPI->SubmitStaticMeshInstanced(mesh, submeshIndex, instanceBuffer, instanceCount);
+    }
+
+    void Renderer::SubmitFullscreenQuad() noexcept
+    {
+        s_RendererAPI->SubmitFullscreenQuad();
+    }
+
+    void Renderer::InitBRDFLUT()
+    {
+        TextureSpecification brdfLUTSpec{};
+        brdfLUTSpec.DebugName = "BRDF LUT";
+        brdfLUTSpec.Format = TextureFormat::RG16F;
+        brdfLUTSpec.Usage = TextureUsage::TextureAttachment;
+        brdfLUTSpec.Width = s_BRDFLUTSize;
+        brdfLUTSpec.Height = s_BRDFLUTSize;
+        s_RendererData->BRDFLUT = Texture2D::Create(brdfLUTSpec);
+
+        ShaderSpecification brdfLUTShaderSpec{};
+        brdfLUTShaderSpec.Path = Shader::GetShaderDirectoryPath() / "BRDFLUT.hlsl";
+        brdfLUTShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        brdfLUTShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        brdfLUTShaderSpec.VertexLayout = VertexBufferLayout{};
+        brdfLUTShaderSpec.InstanceLayout = VertexBufferLayout{};
+        const Ref<Shader> brdfLUTShader{ Shader::Create(brdfLUTShaderSpec) };
+
+        FramebufferSpecification brdfLUTFBSpec{};
+        brdfLUTFBSpec.DebugName = "BRDF LUT Framebuffer";
+        brdfLUTFBSpec.ExistingAttachments[0] = s_RendererData->BRDFLUT;
+        brdfLUTFBSpec.ClearColor = Math::Vec4{ 0.0f, 0.0f, 0.0f, 0.0f };
+        brdfLUTFBSpec.Width = s_BRDFLUTSize;
+        brdfLUTFBSpec.Height = s_BRDFLUTSize;
+        const Ref<Framebuffer> brdfLUTFB{ Framebuffer::Create(brdfLUTFBSpec) };
+
+        PipelineSpecification brdfLUTPipelineSpec{};
+        brdfLUTPipelineSpec.DebugName = "BRDF LUT Pipeline";
+        brdfLUTPipelineSpec.Shader = brdfLUTShader;
+        brdfLUTPipelineSpec.TargetFramebuffer = brdfLUTFB;
+        brdfLUTPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Always;
+        brdfLUTPipelineSpec.DepthStencilState.DepthTest = false;
+        brdfLUTPipelineSpec.DepthStencilState.DepthWrite = false;
+        const Ref<Pipeline> brdfLUTPipeline{ Pipeline::Create(brdfLUTPipelineSpec) };
+
+        struct
+        {
+            uint32_t EnvMapSize{ s_BRDFLUTSize };
+            uint32_t SamplesCount{ s_BRDFLUTSize };
+            float _padding[2];
+        } CBEnvironmentMapping;
+
+        Ref<ConstantBuffer> cbEnvironmentMapping{ ConstantBuffer::Create(sizeof(CBEnvironmentMapping)) };
+        cbEnvironmentMapping->SetData(Buffer{ &CBEnvironmentMapping, sizeof(CBEnvironmentMapping) });
+
+        SetPipeline(brdfLUTPipeline, true);
+        SetConstantBuffers(0u, ShaderStage::DL_PIXEL_SHADER_BIT, { cbEnvironmentMapping });
+        SubmitFullscreenQuad();
+    }
+
 }

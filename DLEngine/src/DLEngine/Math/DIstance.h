@@ -3,7 +3,5 @@
 
 namespace DLEngine::Math
 {
-    inline float Distance(const Vec3& point, const Plane& plane);
+    float Distance(const Vec3& point, const Plane& plane);
 }
-
-#include "Distance.inl"
