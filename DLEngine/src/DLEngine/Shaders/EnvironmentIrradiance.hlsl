@@ -33,16 +33,6 @@ struct GeometryOutput
     uint   v_RenderTargetArrayIndex : SV_RenderTargetArrayIndex;
 };
 
-static const float3 FaceNormals[6] =
-{
-    float3( 1.0,  0.0,  0.0), // +X
-    float3(-1.0,  0.0,  0.0), // -X
-    float3( 0.0,  1.0,  0.0), // +Y
-    float3( 0.0, -1.0,  0.0), // -Y
-    float3( 0.0,  0.0,  1.0), // +Z
-    float3( 0.0,  0.0, -1.0)  // -Z
-};
-
 [maxvertexcount(18)]
 void mainGS(triangle VertexOutput input[3], inout TriangleStream<GeometryOutput> output)
 {
@@ -52,18 +42,17 @@ void mainGS(triangle VertexOutput input[3], inout TriangleStream<GeometryOutput>
         {
             GeometryOutput outputVertex;
             outputVertex.v_Position = input[vertexIndex].v_Position;
-            outputVertex.v_CubemapSample = RotateToNewBasis(input[vertexIndex].v_CubemapSample, FaceNormals[faceIndex]);
+            outputVertex.v_CubemapSample = RotateToNewBasis(input[vertexIndex].v_CubemapSample, CubeFaceNormals[faceIndex]);
             outputVertex.v_RenderTargetArrayIndex = faceIndex;
             output.Append(outputVertex);
         }
         output.RestartStrip();
     }
 
-    // When rotating for -Z face, the texture is upside down
-    // So it is handled separately
+    // When rotating for -Z face, BranchlessONB gives the basis that has mirrored in the X ans Y axes
     for (uint vertexIndex = 0; vertexIndex < 3; ++vertexIndex)
     {
-        const float3 rotatedCubemapSample = RotateToNewBasis(input[vertexIndex].v_CubemapSample, FaceNormals[5]);
+        const float3 rotatedCubemapSample = RotateToNewBasis(input[vertexIndex].v_CubemapSample, CubeFaceNormals[5]);
         GeometryOutput outputVertex;
         outputVertex.v_Position = input[vertexIndex].v_Position;
         outputVertex.v_CubemapSample = float3(-rotatedCubemapSample.x, -rotatedCubemapSample.y, rotatedCubemapSample.z);

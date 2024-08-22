@@ -1,8 +1,8 @@
 #include "Include/Buffers.hlsli"
-#include "Include/Common.hlsli"
 #include "Include/PBR.hlsli"
 #include "Include/PBR_Resources.hlsli"
 #include "Include/Samplers.hlsli"
+#include "Include/ShadowMapping.hlsli"
 
 struct VertexInput
 {
@@ -12,7 +12,6 @@ struct VertexInput
     float3 a_Bitangent : BITANGENT;  
     float2 a_TexCoords : TEXCOORDS;
 };
-
 
 struct InstanceInput
 {
@@ -158,16 +157,11 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
     if (!c_UseIBL)
         indirectLighting = c_IndirectLightingRadiance * albedo;
 
-    float3 outputColor = indirectLighting;
+    float3 directLighting = float3(0.0, 0.0, 0.0);
 
-    uint stride = 0;
-    uint lightsCount = 0;
-
-    t_DirectionalLights.GetDimensions(lightsCount, stride);
-    uint i = 0;
-    for (; i < lightsCount; ++i)
+    for (uint directionalLightIndex = 0; directionalLightIndex < c_DirectionalLightsCount; ++directionalLightIndex)
     {
-        const DirectionalLight directionalLight = t_DirectionalLights[i];
+        const DirectionalLight directionalLight = t_DirectionalLights[directionalLightIndex];
 
         const float3 lightDir = normalize(-directionalLight.Direction);
         const float3 halfDir = normalize(view.ViewDir + lightDir);
@@ -177,14 +171,17 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
         view.VoL = max(dot(view.ViewDir, lightDir), Epsilon);
         view.VoH = max(dot(view.ViewDir, halfDir), Epsilon);
 
-        outputColor += RenderingEquation(view, surface, directionalLight.Radiance, directionalLight.SolidAngle);
+        float3 lightContribution = RenderingEquation(view, surface, directionalLight.Radiance, directionalLight.SolidAngle);
+
+        if (c_UseDirectionalShadows)
+            lightContribution *= VisibilityForDirectionalLight(directionalLightIndex, psInput.v_WorldPos);
+
+        directLighting += lightContribution;
     }
 
-    t_PointLights.GetDimensions(lightsCount, stride);
-    i = 0;
-    for (; i < lightsCount; ++i)
+    for (uint pointLightIndex = 0; pointLightIndex < c_PointLightsCount; ++pointLightIndex)
     {
-        const PointLight pointLight = t_PointLights[i];
+        const PointLight pointLight = t_PointLights[pointLightIndex];
 
         const float3 lightWorldPos = pointLight.Position;
 
@@ -214,14 +211,19 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
         const float surfacePlaneH = dot(lightWorldPos, surface.SurfaceNormal) + surfacePlaneD;
         const float surfaceFalloff = saturate((surfacePlaneH + pointLight.Radius) / (2.0 * pointLight.Radius));
 
-        outputColor += RenderingEquation(view, surface, pointLight.Radiance, solidAngle) * geometryFalloff * surfaceFalloff;
+        const float falloff = geometryFalloff * surfaceFalloff;
+
+        float3 lightContribution = RenderingEquation(view, surface, pointLight.Radiance, solidAngle) * falloff;
+        
+        if (c_UseOmnidirectionalShadows)
+            lightContribution *= VisibilityForPointLight(pointLightIndex, psInput.v_WorldPos);
+
+        directLighting += lightContribution;
     }
 
-    t_SpotLights.GetDimensions(lightsCount, stride);
-    i = 0;
-    for (; i < lightsCount; ++i)
+    for (uint spotLightIndex = 0; spotLightIndex < c_SpotLightsCount; ++spotLightIndex)
     {
-        const SpotLight spotLight = t_SpotLights[i];
+        const SpotLight spotLight = t_SpotLights[spotLightIndex];
 
         const float3 lightWorldPos = spotLight.Position;
         const float3 lightWorldDir = spotLight.Direction;
@@ -243,9 +245,14 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
             const float spotLightFactor = spotLight.InnerCutoffCos - spotLight.OuterCutoffCos;
             const float intensity = saturate((angle - spotLight.OuterCutoffCos) / spotLightFactor);
 
-            outputColor += RenderingEquation(view, surface, spotLight.Radiance, solidAngle) * intensity;
+            float3 lightContribution = RenderingEquation(view, surface, spotLight.Radiance, solidAngle) * intensity;
+
+            if (c_UseSpotShadows)
+                lightContribution *= VisibilityForSpotLight(spotLightIndex, psInput.v_WorldPos);
+
+            directLighting += lightContribution;
         }
     }
 
-    return float4(outputColor, 1.0);
+    return float4(indirectLighting + directLighting, 1.0);
 }

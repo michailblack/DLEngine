@@ -27,6 +27,8 @@ namespace DLEngine
     public:
         D3D11Pipeline(const PipelineSpecification& specificaton);
 
+        void SetFramebuffer(const Ref<Framebuffer>& framebuffer) noexcept override { m_Specification.TargetFramebuffer = framebuffer; }
+
         const PipelineSpecification& GetSpecification() const noexcept override { return m_Specification; }
 
         D3D11_PRIMITIVE_TOPOLOGY GetD3D11PrimitiveTopology() const noexcept { return Utils::D3D11TopologyFromPrimitiveTopology(m_Specification.Topology); }

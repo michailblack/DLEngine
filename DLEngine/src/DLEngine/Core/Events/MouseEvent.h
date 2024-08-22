@@ -8,6 +8,8 @@ namespace DLEngine
     public:
         uint8_t GetButton() const noexcept { return m_Button; }
 
+        EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouseButton)
+
     protected:
         MouseButtonEvent(uint8_t button)
             : m_Button(button)
@@ -48,6 +50,7 @@ namespace DLEngine
         int32_t GetY() const noexcept { return m_MouseY; }
 
         EVENT_CLASS_TYPE(EventType::MouseMoved)
+        EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse)
 
     private:
         int32_t m_MouseX, m_MouseY;
@@ -63,6 +66,7 @@ namespace DLEngine
         int32_t GetOffset() const noexcept { return m_Offset; }
 
         EVENT_CLASS_TYPE(EventType::MouseScrolled)
+        EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse)
 
     private:
         int32_t m_Offset;

@@ -1,3 +1,8 @@
+#ifndef _PBR_HLSLI_
+#define _PBR_HLSLI_
+
+#include "Include/Common.hlsli"
+
 // GGX/Towbridge-Reitz normal distribution function.
 // Uses Disney's reparametrization of alpha = roughness^2
 float NDF_GGX(float NdotH, float roughness)
@@ -29,3 +34,5 @@ float3 FresnelSchlick(float3 F0, float cosTheta)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
+
+#endif

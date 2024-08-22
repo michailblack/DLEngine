@@ -24,6 +24,7 @@ namespace DLEngine
         RGBA,
         RGBA16F,
         RGBA32F,
+        R24X8,
 
         BC1U,
         BC2U,
@@ -37,6 +38,7 @@ namespace DLEngine
         BC7U,
 
         DEPTH24STENCIL8,
+        DEPTH_R24G8T,
     };
 
     enum class TextureUsage
@@ -60,7 +62,6 @@ namespace DLEngine
 
         TextureFormat Format;
         TextureUsage Usage;
-        SamplerSpecification Sampler; // Not implemented
 
         uint32_t Width{ 1u };
         uint32_t Height{ 1u };
@@ -81,6 +82,7 @@ namespace DLEngine
         virtual Math::Vec2 GetSize() const noexcept = 0;
 
         virtual uint32_t GetMipsCount() const noexcept = 0;
+        virtual uint32_t GetLayersCount() const noexcept = 0;
 
         virtual const TextureSpecification& GetSpecification() const noexcept = 0;
 
@@ -126,7 +128,7 @@ namespace DLEngine
         uint32_t BaseMip{ 0u };
         uint32_t MipsCount{ static_cast<uint32_t>(-1) };
         uint32_t BaseLayer{ 0u };
-        uint32_t LayersCount{ static_cast<uint32_t>(-1) };
+        uint32_t LayersCount{ 1u };
 
         bool operator==(const TextureSubresource& other) const noexcept
         {
@@ -164,7 +166,8 @@ namespace DLEngine
     {
         inline bool IsDepthFormat(TextureFormat format)
         {
-            return format == TextureFormat::DEPTH24STENCIL8;
+            return format == TextureFormat::DEPTH24STENCIL8 ||
+                format == TextureFormat::DEPTH_R24G8T;
         }
     }
 }

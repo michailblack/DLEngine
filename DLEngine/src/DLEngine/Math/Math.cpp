@@ -133,4 +133,24 @@ namespace DLEngine::Math
         return result;
     }
 
+    void BranchlessONB(const Vec3& n, Vec3& b1, Vec3& b2) noexcept
+    {
+        const float s{ std::copysignf(1.0f, n.z) };
+        const float a{ -1.0f / (s + n.z) };
+        const float b{ n.x * n.y * a };
+
+        b1 = Vec3{ 1.0f + s * n.x * n.x * a, s * b, -s * n.x };
+        b2 = Vec3{ b, s + n.y * n.y * a, -n.y };
+    }
+
+    float Acos(float x) noexcept
+    {
+        return DirectX::XMScalarACos(x);
+    }
+
+    float AcosEst(float x) noexcept
+    {
+        return DirectX::XMScalarACosEst(x);
+    }
+
 }

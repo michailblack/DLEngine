@@ -11,13 +11,14 @@ namespace DLEngine
 {
     struct FramebufferTextureSpecification
     {
-        FramebufferTextureSpecification(TextureFormat format, TextureUsage usage, SamplerSpecification sampler)
-            : Format(format), Usage(usage), Sampler(sampler)
+        FramebufferTextureSpecification(TextureFormat format, TextureUsage usage, uint32_t mips, uint32_t layers)
+            : Format(format), Usage(usage), Mips(mips), Layers(layers)
         {}
 
         TextureFormat Format;
         TextureUsage Usage;
-        SamplerSpecification Sampler;
+        uint32_t Mips{ 1u };
+        uint32_t Layers{ 1u };
     };
 
     struct FramebufferAttachmentSpecification

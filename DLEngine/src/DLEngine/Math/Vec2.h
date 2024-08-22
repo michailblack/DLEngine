@@ -43,6 +43,8 @@ namespace DLEngine::Math
     float Dot(const Vec2& v1, const Vec2& v2) noexcept;
     Vec2 Cross(const Vec2& v1, const Vec2& v2) noexcept;
     Vec2 Normalize(const Vec2& v) noexcept;
+    Vec2 Min(const Vec2& v1, const Vec2& v2) noexcept;
+    Vec2 Max(const Vec2& v1, const Vec2& v2) noexcept;
 
     Vec2 operator+(const Vec2& v1, const Vec2& v2) noexcept;
     Vec2 operator-(const Vec2& v1, const Vec2& v2) noexcept;

@@ -85,6 +85,34 @@ namespace DLEngine
         prefilteredEnvironmentShaderSpec.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
         prefilteredEnvironmentShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
         Load(prefilteredEnvironmentShaderSpec);
+
+        ShaderSpecification directionalLightShadowMapShaderSpec{};
+        directionalLightShadowMapShaderSpec.Path = Shader::GetShaderDirectoryPath() / "DirectionalLightShadowMap.hlsl";
+        directionalLightShadowMapShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
+        directionalLightShadowMapShaderSpec.InstanceLayout = VertexBufferLayout{
+            { "TRANSFORM", ShaderDataType::Mat4 }
+        };
+        directionalLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        Load(directionalLightShadowMapShaderSpec);
+
+        ShaderSpecification pointLightShadowMapShaderSpec{};
+        pointLightShadowMapShaderSpec.Path = Shader::GetShaderDirectoryPath() / "OmnidirectionalLightShadowMap.hlsl";
+        pointLightShadowMapShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
+        pointLightShadowMapShaderSpec.InstanceLayout = VertexBufferLayout{
+            { "TRANSFORM", ShaderDataType::Mat4 }
+        };
+        pointLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        pointLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
+        Load(pointLightShadowMapShaderSpec);
+
+        ShaderSpecification spotLightShadowMapShaderSpec{};
+        spotLightShadowMapShaderSpec.Path = Shader::GetShaderDirectoryPath() / "SpotLightShadowMap.hlsl";
+        spotLightShadowMapShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
+        spotLightShadowMapShaderSpec.InstanceLayout = VertexBufferLayout{
+            { "TRANSFORM", ShaderDataType::Mat4 }
+        };
+        spotLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        Load(spotLightShadowMapShaderSpec);
     }
 
     void ShaderLibrary::Add(const Ref<Shader>& shader) noexcept

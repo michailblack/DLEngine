@@ -1,6 +1,7 @@
 #pragma once
 #include "DLEngine/Renderer/DepthStencil.h"
 #include "DLEngine/Renderer/Framebuffer.h"
+#include "DLEngine/Renderer/Rasterizer.h"
 #include "DLEngine/Renderer/Shader.h"
 
 namespace DLEngine
@@ -20,13 +21,15 @@ namespace DLEngine
         Ref<Framebuffer> TargetFramebuffer;
         PrimitiveTopology Topology{ PrimitiveTopology::TrianglesList };
         DepthStencilSpecification DepthStencilState;
-        bool BackFaceCulling{ true };        
+        RasterizerSpecification RasterizerState;
     };
     
     class Pipeline
     {
     public:
         virtual ~Pipeline() = default;
+
+        virtual void SetFramebuffer(const Ref<Framebuffer>& framebuffer) noexcept = 0;
 
         virtual const PipelineSpecification& GetSpecification() const noexcept = 0;
 

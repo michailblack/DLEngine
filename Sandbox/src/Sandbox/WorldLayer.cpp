@@ -24,7 +24,7 @@ void WorldLayer::OnAttach()
     sceneSpecification.CameraResizeCallback = [](DLEngine::Camera& camera, uint32_t width, uint32_t height)
         {
             const float aspectRatio{ static_cast<float>(width) / static_cast<float>(height) };
-            camera.SetPerspectiveProjectionFov(DLEngine::Math::ToRadians(45.0f), aspectRatio, 100.0f, 0.001f);
+            camera.SetPerspectiveProjectionFov(DLEngine::Math::ToRadians(60.0f), aspectRatio, 20.0f, 0.001f);
         };
     sceneSpecification.ViewportWidth = static_cast<uint32_t>(windowSize.x);
     sceneSpecification.ViewportHeight = static_cast<uint32_t>(windowSize.y);
@@ -63,19 +63,22 @@ void WorldLayer::OnUpdate(DeltaTime dt)
         m_FlashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &newFlashlightTransform, sizeof(DLEngine::Math::Mat4x4) });
     }
 
-    m_SceneRenderer->RenderScene(m_Scene, m_PBRSettings, m_PostProcessSettings);
+    m_SceneRenderer->RenderScene(m_Scene);
 }
 
 void WorldLayer::OnImGuiRender()
 {
-    ImGui::Begin("Settings");
+    ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-    if (ImGui::CollapsingHeader("PBR Settings"))
+    if (ImGui::CollapsingHeader("PBR"))
     {
         ImGui::Checkbox("Use IBL", reinterpret_cast<bool*>(&m_PBRSettings.UseIBL));
 
         if (!m_PBRSettings.UseIBL)
-            ImGui::DragFloat3("Indirect Light Radiance", &m_PBRSettings.IndirectLightRadiance.x, 0.01f, 0.0f, 1.0f);
+        {
+            ImGui::Text("Indirect Light Radiance");
+            ImGui::DragFloat3("##indirect_light_radiance", &m_PBRSettings.IndirectLightRadiance.x, 0.01f, 0.0f, 1.0f);
+        }
 
         ImGui::Checkbox("Use Diffuse Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseDiffuseReflections));
         ImGui::Checkbox("Use Specular Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseSpecularReflections));
@@ -83,16 +86,52 @@ void WorldLayer::OnImGuiRender()
         ImGui::Checkbox("Overwrite Roughness", reinterpret_cast<bool*>(&m_PBRSettings.OverwriteRoughness));
             
         if (m_PBRSettings.OverwriteRoughness)
-            ImGui::SliderFloat("Overwritten Roughness", &m_PBRSettings.OverwrittenRoughness, 0.0f, 1.0f);
+        {
+            ImGui::Text("Overwritten Roughness");
+            ImGui::SliderFloat("##overwritten_roughness", &m_PBRSettings.OverwrittenRoughness, 0.0f, 1.0f);
+        }
     }
 
-    if (ImGui::CollapsingHeader("Post Process Settings"))
+    if (ImGui::CollapsingHeader("Shadow Mapping"))
     {
-        ImGui::SliderFloat("EV100", &m_PostProcessSettings.EV100, -10.0f, 10.0f);
-        ImGui::SliderFloat("Gamma", &m_PostProcessSettings.Gamma, 0.1f, 5.0f);
+        static constexpr int32_t mapSizes[]{ 512, 1024, 2048, 4096 };
+        static const char* mapSizeNames[]{ "512", "1024", "2048", "4096" };
+        static int32_t index{ 2 };
+
+        ImGui::Text("Map Size");
+        if (ImGui::Combo("##map_size", &index, mapSizeNames, IM_ARRAYSIZE(mapSizeNames)))
+            m_ShadowMapSettings.MapSize = static_cast<uint32_t>(mapSizes[index]);
+
+        ImGui::Checkbox("Use Directional Shadows", &m_ShadowMapSettings.UseDirectionalShadows);
+
+        if (m_ShadowMapSettings.UseDirectionalShadows)
+        {
+            ImGui::Text("Directional Light Shadow Margin");
+            ImGui::SliderFloat("##directional_light_shadow_margin", &m_ShadowMapSettings.DirectionalLightShadowMargin, 0.0f, 50.0f);
+
+            ImGui::Text("Directional Light Shadow Distance");
+            ImGui::SliderFloat("##directional_light_shadow_distance", &m_ShadowMapSettings.DirectionalLightShadowDistance, 0.0f, 50.0f);
+        }
+        
+        ImGui::Checkbox("Use Omnidirectional Shadows", &m_ShadowMapSettings.UseOmnidirectionalShadows);
+        ImGui::Checkbox("Use Spot Shadows", &m_ShadowMapSettings.UseSpotShadows);
+        ImGui::Checkbox("Use PCF", &m_ShadowMapSettings.UsePCF);
+    }
+
+    if (ImGui::CollapsingHeader("Post Processing"))
+    {
+        ImGui::Text("EV100");
+        ImGui::SliderFloat("##ev100", &m_PostProcessSettings.EV100, -10.0f, 10.0f);
+
+        ImGui::Text("Gamma");
+        ImGui::SliderFloat("##gamma", &m_PostProcessSettings.Gamma, 0.1f, 5.0f);
     }
 
     ImGui::End();
+
+    m_SceneRenderer->SetPBRSettings(m_PBRSettings);
+    m_SceneRenderer->SetPostProcessSettings(m_PostProcessSettings);
+    m_SceneRenderer->SetShadowMapSettings(m_ShadowMapSettings);
 }
 
 void WorldLayer::OnEvent(DLEngine::Event& e)
@@ -116,32 +155,27 @@ void WorldLayer::AddObjectsToScene()
         DLEngine::TextureSpecification textureSpecification{};
         textureSpecification.Usage = DLEngine::TextureUsage::Texture;
 
-        textureSpecification.DebugName = "Steel Albedo";
-        const auto& steelAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_BaseColor.dds") };
+        textureSpecification.DebugName = "Cobblestone Albedo";
+        const auto& cobblestoneAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\cobblestone\\Cobblestone_albedo.dds") };
 
-        textureSpecification.DebugName = "Steel Normal";
-        const auto& steelNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_Normal.dds") };
-
-        textureSpecification.DebugName = "Steel Metalness";
-        const auto& steelMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_Metallic.dds") };
-
-        textureSpecification.DebugName = "Steel Roughness";
-        const auto& steelRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\metal_steel\\MetalSteelBrushed_Roughness.dds") };
+        textureSpecification.DebugName = "Cobblestone Normal";
+        const auto& cobblestoneNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\cobblestone\\Cobblestone_normal.dds") };
 
         auto steelPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
         DLEngine::CBPBRMaterial steelCBPBRMaterial{};
         steelCBPBRMaterial.UseNormalMap = true;
         steelCBPBRMaterial.FlipNormalMapY = false;
-        steelCBPBRMaterial.HasMetalnessMap = true;
-        steelCBPBRMaterial.HasRoughnessMap = true;
+        steelCBPBRMaterial.HasMetalnessMap = false;
+        steelCBPBRMaterial.DefaultMetalness = 0.0f;
+        steelCBPBRMaterial.HasRoughnessMap = false;
+        steelCBPBRMaterial.DefaultRoughness = 1.0f;
         steelPBRCB->SetData(DLEngine::Buffer{ &steelCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
 
-        pbrMaterial->Set("t_Albedo", steelAlbedo);
-        pbrMaterial->Set("t_Normal", steelNormal);
-        pbrMaterial->Set("t_Metalness", steelMetalness);
-        pbrMaterial->Set("t_Roughness", steelRoughness);
+        pbrMaterial->Set("t_Albedo", cobblestoneAlbedo);
+        pbrMaterial->Set("t_Normal", cobblestoneNormal);
         pbrMaterial->Set("PBRMaterial", steelPBRCB);
 
+#if 0
         const auto transform{ DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 10.0f, 0.5f, 10.0f }) *
             DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 0.0f, -0.5f, 0.0f })
         };
@@ -149,18 +183,19 @@ void WorldLayer::AddObjectsToScene()
         instance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
 
         m_Scene->AddSubmesh(cube, 0u, pbrMaterial, instance);
+#endif
 
-        /*for (int32_t x{ -5 }; x < 5; ++x)
+        for (int32_t x{ -5 }; x < 5; ++x)
         {
             for (int32_t z{ -5 }; z < 5; ++z)
             {
-                const DLEngine::Math::Mat4x4 transform{ DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ static_cast<float>(x), -0.5f, static_cast<float>(z) }) };
-                const auto& instance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Instance") };
+                const DLEngine::Math::Mat4x4 transform{ DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ static_cast<float>(x), -1.0f, static_cast<float>(z) }) };
+                const auto& instance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Cube Instance") };
                 instance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
 
                 m_Scene->AddSubmesh(cube, 0u, pbrMaterial, instance);
             }
-        }*/
+        }
     }
 
     // Spawning samurais
@@ -413,9 +448,10 @@ void WorldLayer::AddObjectsToScene()
 
     // Adding lights
     {
+        m_Scene->AddDirectionalLight(DLEngine::Math::Normalize(DLEngine::Math::Vec3{ -1.0f, -1.0f, 1.0f }), DLEngine::Math::Vec3{ 3.66e+3f, 3.66e+3f, 4.08e+3f }, 6.8e-5f);
         m_Scene->AddPointLight(DLEngine::Math::Vec3{ 0.0f }, DLEngine::Math::Vec3{ 1.0f }, 0.1f, 1.0f, DLEngine::Math::Vec3{ -1.5f, 3.0f, 1.0f });
         m_Scene->AddPointLight(DLEngine::Math::Vec3{ 0.0f }, DLEngine::Math::Vec3{ 1.0f }, 0.3f, 1.0f, DLEngine::Math::Vec3{ 1.5f, 3.0f, 1.0f });
-        m_Scene->AddPointLight(DLEngine::Math::Vec3{ 0.0f }, DLEngine::Math::Vec3{ 4.0f, 1.0f, 15.0f }, 0.3f, 1.0f, DLEngine::Math::Vec3{ 0.0f, 4.0f, 2.0f });
+        m_Scene->AddPointLight(DLEngine::Math::Vec3{ 0.0f }, DLEngine::Math::Vec3{ 2.0f, 15.0f, 4.0f }, 0.3f, 0.7f, DLEngine::Math::Vec3{ 0.0f, 4.0f, 2.0f });
 
         m_FlashlightBaseTransform = DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.003f }) *
             DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(-90.0f), DLEngine::Math::ToRadians(180.0f), 0.0f);

@@ -30,10 +30,15 @@ namespace DLEngine::Math
     float Cos(float angle) noexcept;
     float Sin(float angle) noexcept;
 
+    float Acos(float x) noexcept;
+    float AcosEst(float x) noexcept;
+
     Vec3 DirectionToSpace(const Vec3& direction, const Mat4x4& spaceTransformation) noexcept;
     Vec3 PointToSpace(const Vec3& point, const Mat4x4& spaceTransformation) noexcept;
     Ray RayToSpace(const Ray& ray, const Mat4x4& spaceTransformation) noexcept;
     AABB AABBToSpace(const AABB& aabb, const Mat4x4& spaceTransformation) noexcept;
+
+    void BranchlessONB(const Vec3& n, Vec3& b1, Vec3& b2) noexcept;
     
     std::vector<Vec3> GenerateFibonacciHemispherePoints(uint32_t numPoints);
 

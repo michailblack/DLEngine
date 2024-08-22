@@ -1,4 +1,7 @@
-cbuffer PBRMaterial : register(b2)
+#ifndef _PBR_RESOURCES_HLSLI_
+#define _PBR_RESOURCES_HLSLI_
+
+cbuffer PBRMaterial : register(b4)
 {
     bool  c_UseNormalMap;
     bool  c_FlipNormalMapY;
@@ -8,14 +11,13 @@ cbuffer PBRMaterial : register(b2)
     float c_DefaultRoughness;
 };
 
-Texture2D<float3> t_Albedo    : register(t4);
-Texture2D<float2> t_Normal    : register(t5);
-Texture2D<float>  t_Metalness : register(t6);
-Texture2D<float>  t_Roughness : register(t7);
+Texture2D<float3> t_Albedo    : register(t9);
+Texture2D<float2> t_Normal    : register(t10);
+Texture2D<float>  t_Metalness : register(t11);
+Texture2D<float>  t_Roughness : register(t12);
 
-TextureCube<float3> t_EnvironmentIrradiance  : register(t8);
-TextureCube<float3> t_PrefilteredEnvironment : register(t9);
-Texture2D<float3>   t_BRDFLUT                : register(t10);
+TextureCube<float3> t_EnvironmentIrradiance  : register(t13);
+TextureCube<float3> t_PrefilteredEnvironment : register(t14);
+Texture2D<float3>   t_BRDFLUT                : register(t15);
 
-Texture2DArray<float>   t_DirectionalShadowMaps     : register(t11);
-TextureCubeArray<float> t_OmnidirectionalShadowMaps : register(t12);
+#endif

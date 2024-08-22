@@ -8,6 +8,8 @@ namespace DLEngine
     public:
         uint8_t GetKeyCode() const noexcept { return m_KeyCode; }
 
+        EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryKeyboard)
+
     protected:
         KeyEvent(uint8_t keyCode)
             : m_KeyCode(keyCode)

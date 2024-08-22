@@ -31,7 +31,7 @@ namespace DLEngine
         struct D3D11RendererData
         {
             std::unordered_map<SamplerSpecification, Microsoft::WRL::ComPtr<ID3D11SamplerState>, SamplerSpecificationHash> SamplersCache;
-            std::unordered_map<bool, Microsoft::WRL::ComPtr<ID3D11RasterizerState2>> RasterizerStatesCache;
+            std::unordered_map<RasterizerSpecification, Microsoft::WRL::ComPtr<ID3D11RasterizerState2>, RasterizerSpecificationHash> RasterizerStatesCache;
             std::unordered_map<DepthStencilSpecification, Microsoft::WRL::ComPtr<ID3D11DepthStencilState>, DepthStencilSpecificationHash> DepthStencilStatesCache;
         };
 
@@ -61,7 +61,8 @@ namespace DLEngine
             SamplerSpecification{ TextureAddress::Wrap, TextureFilter::Trilinear, CompareOperator::Never },
             SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Trilinear, CompareOperator::Never },
             SamplerSpecification{ TextureAddress::Wrap, TextureFilter::Anisotropic8, CompareOperator::Never },
-            SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Anisotropic8, CompareOperator::Never }
+            SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Anisotropic8, CompareOperator::Never },
+            SamplerSpecification{ TextureAddress::Border, TextureFilter::BilinearCmp, CompareOperator::GreaterOrEqual },
         };
 
         SetSamplerStates(0u, DL_PIXEL_SHADER_BIT, globalSamplers);
@@ -213,7 +214,7 @@ namespace DLEngine
         d3d11DeviceContext->GSSetShader(d3d11Shader->GetD3D11GeometryShader().Get(), nullptr, 0u);
 
         d3d11DeviceContext->OMSetDepthStencilState(GetDepthStencilState(d3d11Pipeline->GetSpecification().DepthStencilState).Get(), 0u);
-        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11Pipeline->GetSpecification().BackFaceCulling).Get());
+        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11Pipeline->GetSpecification().RasterizerState).Get());
 
         const uint32_t colorAttachmentCount{ d3d11Framebuffer->GetColorAttachmentCount() };
 
@@ -428,6 +429,10 @@ namespace DLEngine
         samplerDesc.MipLODBias = 0.0f;
         samplerDesc.MaxAnisotropy = specification.Filter == TextureFilter::Anisotropic8 ? 8u : 1u;
         samplerDesc.ComparisonFunc = Utils::D3D11ComparisonFuncFromCompareOp(specification.CompareOp);
+        samplerDesc.BorderColor[0] = specification.BorderColor.x;
+        samplerDesc.BorderColor[1] = specification.BorderColor.y;
+        samplerDesc.BorderColor[2] = specification.BorderColor.z;
+        samplerDesc.BorderColor[3] = specification.BorderColor.w;
         samplerDesc.MinLOD = 0.0f;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
@@ -439,19 +444,43 @@ namespace DLEngine
         return samplerState;
     }
 
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState2> D3D11Renderer::GetRasterizerState(bool backFaceCulling)
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState2> D3D11Renderer::GetRasterizerState(const RasterizerSpecification& specification)
     {
-        const auto it{ s_Data->RasterizerStatesCache.find(backFaceCulling) };
+        const auto it{ s_Data->RasterizerStatesCache.find(specification) };
         if (it != s_Data->RasterizerStatesCache.end())
             return it->second;
 
         D3D11_RASTERIZER_DESC2 rasterizerDesc{};
-        rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-        rasterizerDesc.CullMode = backFaceCulling ? D3D11_CULL_BACK : D3D11_CULL_NONE;
+
+        switch (specification.Fill)
+        {
+        case FillMode::Solid:
+            rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+            break;
+        case FillMode::Wireframe:
+            rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
+            break;
+        }
+
+        switch (specification.Cull)
+        {
+        case CullMode::None:
+            rasterizerDesc.CullMode = D3D11_CULL_NONE;
+            break;
+        case CullMode::Front:
+            rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+            break;
+        case CullMode::Back:
+            rasterizerDesc.CullMode = D3D11_CULL_BACK;
+            break;
+        default:
+            break;
+        }
+        
         rasterizerDesc.FrontCounterClockwise = FALSE;
-        rasterizerDesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+        rasterizerDesc.DepthBias = specification.DepthBias;
         rasterizerDesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
-        rasterizerDesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+        rasterizerDesc.SlopeScaledDepthBias = specification.SlopeScaledDepthBias;
         rasterizerDesc.DepthClipEnable = TRUE;
         rasterizerDesc.ScissorEnable = FALSE;
         rasterizerDesc.MultisampleEnable = FALSE;
@@ -462,7 +491,7 @@ namespace DLEngine
         Microsoft::WRL::ComPtr<ID3D11RasterizerState2> rasterizerState{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateRasterizerState2(&rasterizerDesc, & rasterizerState));
 
-        s_Data->RasterizerStatesCache[backFaceCulling] = rasterizerState;
+        s_Data->RasterizerStatesCache[specification] = rasterizerState;
 
         return rasterizerState;
     }
@@ -518,9 +547,10 @@ namespace DLEngine
             {
                 switch (address)
                 {
-                case DLEngine::TextureAddress::Wrap:  return D3D11_TEXTURE_ADDRESS_WRAP;
-                case DLEngine::TextureAddress::Clamp: return D3D11_TEXTURE_ADDRESS_CLAMP;
-                case DLEngine::TextureAddress::None:
+                case TextureAddress::Wrap:  return D3D11_TEXTURE_ADDRESS_WRAP;
+                case TextureAddress::Clamp: return D3D11_TEXTURE_ADDRESS_CLAMP;
+                case TextureAddress::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
+                case TextureAddress::None:
                 default: DL_ASSERT(false); return D3D11_TEXTURE_ADDRESS_WRAP;
                 }
             }
@@ -529,10 +559,11 @@ namespace DLEngine
             {
                 switch (filter)
                 {
-                case DLEngine::TextureFilter::Nearest:      return D3D11_FILTER_MIN_MAG_MIP_POINT;
-                case DLEngine::TextureFilter::Trilinear:    return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-                case DLEngine::TextureFilter::Anisotropic8: return D3D11_FILTER_ANISOTROPIC;
-                case DLEngine::TextureFilter::None:
+                case TextureFilter::Nearest:      return D3D11_FILTER_MIN_MAG_MIP_POINT;
+                case TextureFilter::Trilinear:    return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+                case TextureFilter::Anisotropic8: return D3D11_FILTER_ANISOTROPIC;
+                case TextureFilter::BilinearCmp:  return D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+                case TextureFilter::None:
                 default: DL_ASSERT(false); return D3D11_FILTER_MIN_MAG_MIP_POINT;
                 }
             }

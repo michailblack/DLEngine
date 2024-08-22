@@ -36,6 +36,14 @@ namespace DLEngine
         m_ProjectionType = ProjectionType::Orthographic;
     }
 
+    void Camera::SetView(const Math::Vec3& position, const Math::Vec3& forward, const Math::Vec3& up, const Math::Vec3& right) noexcept
+    {
+        m_Position = position;
+        m_Forward = forward;
+        m_Up = up;
+        m_Right = right;
+    }
+
     void Camera::RotateForward(float angle) noexcept
     {
         m_Right = Math::Normalize(Math::RotateQuaternion(m_Right, m_Forward, angle));
@@ -80,29 +88,17 @@ namespace DLEngine
         return Math::Mat4x4::LookTo(m_Position, m_Forward, m_Up);
     }
 
-    Math::Vec3 Camera::ConstructFrustumPos(Math::Vec2 cursorPos) const noexcept
+    Math::Vec3 Camera::ConstructFrustumPos(const Math::Vec3& ndc) const noexcept
     {
         const auto& InvViewProjection = Math::Mat4x4::Inverse(GetViewMatrix() * GetProjectionMatrix());
-        const auto& windowSize{ Application::Get().GetWindow().GetSize() };
 
-        Math::Vec4 BL = Math::Vec4{ -1.0f, -1.0f, 1.0f, 1.0f } * InvViewProjection;
-        BL /= BL.w;
-
-        Math::Vec4 BR = Math::Vec4{  1.0f, -1.0f, 1.0f, 1.0f } * InvViewProjection;
-        BR /= BR.w;
-
-        Math::Vec4 TL = Math::Vec4{ -1.0f,  1.0f, 1.0f, 1.0f } * InvViewProjection;
-        TL /= TL.w;
-
-        const Math::Vec4 Up = TL - BL;
-        const Math::Vec4 Right = BR - BL;
-
-        const Math::Vec4 P = BL + Right * (cursorPos.x / windowSize.x) + Up * (1.0f - cursorPos.y / windowSize.y);
+        Math::Vec4 P{ Math::Vec4{ ndc.x, ndc.y, ndc.z, 1.0f } * InvViewProjection };
+        P /= P.w;
 
         return Math::Vec3{ P.x, P.y, P.z };
     }
 
-    Math::Vec3 Camera::ConstructFrustumPosRotOnly(Math::Vec2 cursorPos) const noexcept
+    Math::Vec3 Camera::ConstructFrustumPosNoTranslation(const Math::Vec3& ndc) const noexcept
     {
         auto viewMatrix{ GetViewMatrix() };
 
@@ -112,22 +108,30 @@ namespace DLEngine
         viewMatrix._43 = 0.0f;
 
         const auto& InvViewProjection = Math::Mat4x4::Inverse(viewMatrix * GetProjectionMatrix());
-        const auto& windowSize{ Application::Get().GetWindow().GetSize() };
 
-        Math::Vec4 BL = Math::Vec4{ -1.0f, -1.0f, 1.0f, 1.0f } * InvViewProjection;
-        BL /= BL.w;
-
-        Math::Vec4 BR = Math::Vec4{  1.0f, -1.0f, 1.0f, 1.0f } * InvViewProjection;
-        BR /= BR.w;
-
-        Math::Vec4 TL = Math::Vec4{ -1.0f,  1.0f, 1.0f, 1.0f } * InvViewProjection;
-        TL /= TL.w;
-
-        const Math::Vec4 Up = TL - BL;
-        const Math::Vec4 Right = BR - BL;
-
-        const Math::Vec4 P = BL + Right * (cursorPos.x / windowSize.x) + Up * (1.0f - cursorPos.y / windowSize.y);
+        Math::Vec4 P{ Math::Vec4{ ndc.x, ndc.y, ndc.z, 1.0f } *InvViewProjection };
+        P /= P.w;
 
         return Math::Vec3{ P.x, P.y, P.z };
     }
+
+    Camera::Frustum Camera::ConstructFrustum() const noexcept
+    {
+        Frustum frustum;
+
+        // Near plane
+        frustum.Positions.NearBottomLeft  = ConstructFrustumPos(Math::Vec3{ -1.0f, -1.0f, 1.0f });
+        frustum.Positions.NearBottomRight = ConstructFrustumPos(Math::Vec3{  1.0f, -1.0f, 1.0f });
+        frustum.Positions.NearTopLeft     = ConstructFrustumPos(Math::Vec3{ -1.0f,  1.0f, 1.0f });
+        frustum.Positions.NearTopRight    = ConstructFrustumPos(Math::Vec3{  1.0f,  1.0f, 1.0f });
+
+        // Far plane
+        frustum.Positions.FarBottomLeft  = ConstructFrustumPos(Math::Vec3{ -1.0f, -1.0f, 0.0f });
+        frustum.Positions.FarBottomRight = ConstructFrustumPos(Math::Vec3{  1.0f, -1.0f, 0.0f });
+        frustum.Positions.FarTopLeft     = ConstructFrustumPos(Math::Vec3{ -1.0f,  1.0f, 0.0f });
+        frustum.Positions.FarTopRight    = ConstructFrustumPos(Math::Vec3{  1.0f,  1.0f, 0.0f });
+
+        return frustum;
+    }
+
 }

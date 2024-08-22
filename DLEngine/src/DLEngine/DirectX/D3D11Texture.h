@@ -35,6 +35,7 @@ namespace DLEngine
         }
 
         uint32_t GetMipsCount() const noexcept override { return m_Specification.Mips; }
+        uint32_t GetLayersCount() const noexcept override { return m_Specification.Layers; }
 
         const TextureSpecification& GetSpecification() const noexcept override { return m_Specification; }
 
@@ -77,6 +78,7 @@ namespace DLEngine
         }
 
         uint32_t GetMipsCount() const noexcept override { return m_Specification.Mips; }
+        uint32_t GetLayersCount() const noexcept override { return m_Specification.Layers; }
 
         const TextureSpecification& GetSpecification() const noexcept override { return m_Specification; }
 
@@ -109,6 +111,7 @@ namespace DLEngine
             case TextureFormat::RGBA:            return DXGI_FORMAT_R8G8B8A8_UNORM;
             case TextureFormat::RGBA16F:         return DXGI_FORMAT_R16G16B16A16_FLOAT;
             case TextureFormat::RGBA32F:         return DXGI_FORMAT_R32G32B32A32_FLOAT;
+            case TextureFormat::R24X8:           return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
             case TextureFormat::BC1U:            return DXGI_FORMAT_BC1_UNORM;
             case TextureFormat::BC2U:            return DXGI_FORMAT_BC2_UNORM;
             case TextureFormat::BC3U:            return DXGI_FORMAT_BC3_UNORM;
@@ -120,6 +123,7 @@ namespace DLEngine
             case TextureFormat::BC6S:            return DXGI_FORMAT_BC6H_SF16;
             case TextureFormat::BC7U:            return DXGI_FORMAT_BC7_UNORM;
             case TextureFormat::DEPTH24STENCIL8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+            case TextureFormat::DEPTH_R24G8T:    return DXGI_FORMAT_R24G8_TYPELESS;
             default: DL_ASSERT(false);           return DXGI_FORMAT_UNKNOWN;
             }
         }

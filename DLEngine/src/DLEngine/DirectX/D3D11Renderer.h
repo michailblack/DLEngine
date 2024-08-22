@@ -34,7 +34,7 @@ namespace DLEngine
         void SubmitFullscreenQuad() noexcept override;
 
         static Microsoft::WRL::ComPtr<ID3D11SamplerState> GetSamplerState(const SamplerSpecification& specification);
-        static Microsoft::WRL::ComPtr<ID3D11RasterizerState2> GetRasterizerState(bool backFaceCulling);
+        static Microsoft::WRL::ComPtr<ID3D11RasterizerState2> GetRasterizerState(const RasterizerSpecification& specification);
         static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> GetDepthStencilState(const DepthStencilSpecification& specification);
 
     private:

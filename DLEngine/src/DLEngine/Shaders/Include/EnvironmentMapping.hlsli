@@ -1,3 +1,8 @@
+#ifndef _ENVIRONMENTMAPPING_HLSLI_
+#define _ENVIRONMENTMAPPING_HLSLI_
+
+#include "Include/Common.hlsli"
+
 static const float GoldenRatio = (1.0 + sqrt(5)) / 2.0;
 
 float3 FibonacciHemispherePoint(uint index, uint pointsCount)
@@ -51,3 +56,5 @@ float HemisphereMip(float sampleProbability, float cubemapSize)
     float log4 = 0.5 * log2(sampleProbability * hemisphereTexels);
     return log4;
 }
+
+#endif

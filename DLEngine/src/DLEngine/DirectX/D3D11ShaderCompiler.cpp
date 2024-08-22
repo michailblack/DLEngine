@@ -146,9 +146,6 @@ namespace DLEngine
         DL_ASSERT(!m_D3D11Shader->m_Specification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT].empty(),
             "Vertex shader entry point not specified"
         );
-        DL_ASSERT(!m_D3D11Shader->m_Specification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT].empty(),
-            "Pixel shader entry point not specified"
-        );
 
         const auto& specification{ m_D3D11Shader->m_Specification };
 

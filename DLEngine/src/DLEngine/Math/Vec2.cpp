@@ -67,4 +67,15 @@ namespace DLEngine::Math
     {
         return static_cast<Vec2>(DirectX::XMVectorScale(static_cast<DirectX::XMVECTOR>(v), 1.0f / s));
     }
+
+    Vec2 Min(const Vec2& v1, const Vec2& v2) noexcept
+    {
+        return static_cast<Vec2>(DirectX::XMVectorMin(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
+    }
+
+    Vec2 Max(const Vec2& v1, const Vec2& v2) noexcept
+    {
+        return static_cast<Vec2>(DirectX::XMVectorMax(static_cast<DirectX::XMVECTOR>(v1), static_cast<DirectX::XMVECTOR>(v2)));
+    }
+
 }

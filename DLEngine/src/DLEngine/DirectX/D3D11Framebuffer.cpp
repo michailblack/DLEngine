@@ -119,8 +119,6 @@ namespace DLEngine
         TextureSpecification textureSpec{};
         textureSpec.Width = m_Specification.Width;
         textureSpec.Height = m_Specification.Height;
-        textureSpec.Mips = 1u;
-        textureSpec.Layers = 1u;
 
         for (uint32_t i{ 0u }; i < m_Specification.Attachments.Attachments.size(); ++i)
         {
@@ -132,14 +130,15 @@ namespace DLEngine
 
             textureSpec.Usage = attachmentSpec.Usage;
             textureSpec.Format = attachmentSpec.Format;
-            textureSpec.Sampler = attachmentSpec.Sampler;
+            textureSpec.Mips = attachmentSpec.Mips;
+            textureSpec.Layers = attachmentSpec.Layers;
 
             if (Utils::IsDepthFormat(attachmentSpec.Format))
             {
                 DL_ASSERT(!m_DepthAttachment,
                     "Framebuffer [{0}] has more than one depth attachment", m_Specification.DebugName
                 );
-                textureSpec.DebugName = m_Specification.DebugName + " Depth Attachment " + std::to_string(i);
+                textureSpec.DebugName = m_Specification.DebugName + " Depth Attachment";
                 switch (m_Specification.AttachmentsType)
                 {
                 case TextureType::Texture2D:
@@ -219,7 +218,7 @@ namespace DLEngine
                 m_ColorAttachmentViewSpecifications.emplace_back(TextureViewSpecification{});
             }
 
-            m_Specification.Attachments.Attachments.emplace_back(attachmentSpec.Format, attachmentSpec.Usage, attachmentSpec.Sampler);
+            m_Specification.Attachments.Attachments.emplace_back(attachmentSpec.Format, attachmentSpec.Usage, attachmentSpec.Mips, attachmentSpec.Layers);
         }
         m_Specification.ExistingAttachments.clear();
     }

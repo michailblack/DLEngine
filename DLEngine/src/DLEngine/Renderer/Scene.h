@@ -77,6 +77,7 @@ namespace DLEngine
         const Camera& GetCamera() const { return m_SceneCameraController.GetCamera(); }
 
     private:
+        bool OnWindowResize(WindowResizeEvent& e);
         bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
         bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
 
@@ -101,5 +102,8 @@ namespace DLEngine
     namespace Utils
     {
         Math::Vec3 SphereLightRadianceFromIrradiance(const Math::Vec3& irradiance, float radius, float distance);
+        
+        // Threshold is basically irradiance / radiance
+        float SphereLightContributionDistance(float threshold, float radius);
     }
 }

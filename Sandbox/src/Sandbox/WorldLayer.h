@@ -23,8 +23,9 @@ private:
     DLEngine::Ref<DLEngine::Scene> m_Scene{};
     DLEngine::Ref<DLEngine::SceneRenderer> m_SceneRenderer{};
 
-    DLEngine::PBRSettings m_PBRSettings{};
-    DLEngine::PostProcessSettings m_PostProcessSettings{};
+    DLEngine::CBPBRSettings m_PBRSettings{};
+    DLEngine::CBPostProcessSettings m_PostProcessSettings{};
+    DLEngine::ShadowMapSettings m_ShadowMapSettings{};
 
     DLEngine::Math::Mat4x4 m_FlashlightBaseTransform{};
     DLEngine::Ref<DLEngine::Instance> m_FlashlightInstance{};

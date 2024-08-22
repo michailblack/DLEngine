@@ -24,9 +24,16 @@ namespace DLEngine
         if (m_Dragger)
         {
             const auto& camera{ m_SceneCameraController.GetCamera() };
+            const auto& cursorPos{ Input::GetCursorPosition() };
+            Math::Vec3 cursorPosNDC{
+                cursorPos.x / static_cast<float>(m_ViewportWidth) * 2.0f - 1.0f,
+                (1.0f - cursorPos.y / static_cast<float>(m_ViewportHeight)) * 2.0f - 1.0f,
+                1.0f
+            };
+
             Math::Ray ray{};
-            ray.Origin = camera.ConstructFrustumPos(Input::GetCursorPosition());
-            ray.Direction = Math::Normalize(camera.ConstructFrustumPosRotOnly(Input::GetCursorPosition()));
+            ray.Origin = camera.ConstructFrustumPos(cursorPosNDC);
+            ray.Direction = Math::Normalize(camera.ConstructFrustumPosNoTranslation(cursorPosNDC));
 
             m_Dragger->Drag(ray);
         }
@@ -37,6 +44,7 @@ namespace DLEngine
         m_SceneCameraController.OnEvent(e);
 
         EventDispatcher dispatcher(e);
+        dispatcher.Dispatch<WindowResizeEvent>(DL_BIND_EVENT_FN(Scene::OnWindowResize));
         dispatcher.Dispatch<MouseButtonPressedEvent>(DL_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
         dispatcher.Dispatch<MouseButtonReleasedEvent>(DL_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
     }
@@ -122,6 +130,14 @@ namespace DLEngine
         m_LightEnvironment.SpotLights.emplace_back(spotLight, meshInstance);
     }
 
+    bool Scene::OnWindowResize(WindowResizeEvent& e)
+    {
+        m_ViewportWidth = e.GetWidth();
+        m_ViewportHeight = e.GetHeight();
+
+        return false;
+    }
+
     bool Scene::OnMouseButtonPressed(MouseButtonPressedEvent& e)
     {
         switch (e.GetButton())
@@ -129,9 +145,16 @@ namespace DLEngine
         case VK_RBUTTON:
         {
             const auto& camera{ m_SceneCameraController.GetCamera() };
+            const auto& cursorPos{ Input::GetCursorPosition() };
+            Math::Vec3 cursorPosNDC{
+                cursorPos.x / static_cast<float>(m_ViewportWidth) * 2.0f - 1.0f,
+                (1.0f - cursorPos.y / static_cast<float>(m_ViewportHeight)) * 2.0f - 1.0f,
+                1.0f
+            };
+
             Math::Ray ray{};
-            ray.Origin = camera.ConstructFrustumPos(Input::GetCursorPosition());
-            ray.Direction = Math::Normalize(camera.ConstructFrustumPosRotOnly(Input::GetCursorPosition()));
+            ray.Origin = camera.ConstructFrustumPos(cursorPosNDC);
+            ray.Direction = Math::Normalize(camera.ConstructFrustumPosNoTranslation(cursorPosNDC));
 
             MeshRegistry::IntersectInfo intersectInfo{};
             if (Math::Intersects(ray, m_MeshRegistry, intersectInfo))
@@ -173,6 +196,15 @@ namespace DLEngine
             
             return irradiance / denom;
         }
+
+        float SphereLightContributionDistance(float threshold, float radius)
+        {
+            const float a{ 1.0f - threshold };
+            const float denom{ Math::Sqrt(1.0f - a * a) };
+
+            return radius / denom;
+        }
+
     }
 
 }

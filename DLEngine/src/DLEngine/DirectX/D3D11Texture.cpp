@@ -339,7 +339,7 @@ namespace DLEngine
         textureDesc.Width = specification.Width;
         textureDesc.Height = specification.Height;
         textureDesc.MipLevels = specification.Mips;
-        textureDesc.ArraySize = specification.Layers;
+        textureDesc.ArraySize = specification.Layers * 6u;
         textureDesc.Format = Utils::DXGIFormatFromTextureFormat(specification.Format);
         textureDesc.SampleDesc.Count = 1u;
         textureDesc.SampleDesc.Quality = 0u;
@@ -430,7 +430,7 @@ namespace DLEngine
         m_Specification.Width = static_cast<uint32_t>(metadata.width);
         m_Specification.Height = static_cast<uint32_t>(metadata.height);
         m_Specification.Mips = static_cast<uint32_t>(metadata.mipLevels);
-        m_Specification.Layers = static_cast<uint32_t>(metadata.arraySize);
+        m_Specification.Layers = static_cast<uint32_t>(metadata.arraySize) / 6u;
         m_Specification.Format = Utils::TextureFormatFromDXGIFormat(metadata.format);
 
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateTexture2D1(&textureDesc, initData.data(), &m_D3D11Texture2D));
@@ -450,7 +450,7 @@ namespace DLEngine
         D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc{};
         srvDesc.Format = Utils::DXGIFormatFromTextureFormat(viewSpecification.Format);
 
-        if (m_Specification.Layers == 6u)
+        if (m_Specification.Layers == 1u)
         {
             srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
             srvDesc.TextureCube.MostDetailedMip = viewSpecification.Subresource.BaseMip;
@@ -461,7 +461,7 @@ namespace DLEngine
             srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
             srvDesc.TextureCubeArray.MostDetailedMip = viewSpecification.Subresource.BaseMip;
             srvDesc.TextureCubeArray.MipLevels = viewSpecification.Subresource.MipsCount;
-            srvDesc.TextureCubeArray.First2DArrayFace = viewSpecification.Subresource.BaseLayer;
+            srvDesc.TextureCubeArray.First2DArrayFace = viewSpecification.Subresource.BaseLayer * 6u;
             srvDesc.TextureCubeArray.NumCubes = viewSpecification.Subresource.LayersCount;
         }
 
@@ -490,8 +490,8 @@ namespace DLEngine
         rtvDesc.Format = Utils::DXGIFormatFromTextureFormat(viewSpecification.Format);
         rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
         rtvDesc.Texture2DArray.MipSlice = viewSpecification.Subresource.BaseMip;
-        rtvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
-        rtvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
+        rtvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer * 6u;
+        rtvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount * 6u;
 
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> d3d11RenderTargetView{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateRenderTargetView1(m_D3D11Texture2D.Get(), &rtvDesc, &d3d11RenderTargetView));
@@ -518,8 +518,8 @@ namespace DLEngine
         dsvDesc.Format = Utils::DXGIFormatFromTextureFormat(viewSpecification.Format);
         dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
         dsvDesc.Texture2DArray.MipSlice = viewSpecification.Subresource.BaseMip;
-        dsvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
-        dsvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
+        dsvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer * 6u;
+        dsvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount * 6u;
 
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView> d3d11DepthStencilView{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateDepthStencilView(m_D3D11Texture2D.Get(), &dsvDesc, &d3d11DepthStencilView));

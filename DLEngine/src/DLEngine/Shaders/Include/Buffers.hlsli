@@ -1,3 +1,6 @@
+#ifndef _BUFFERS_HLSLI_
+#define _BUFFERS_HLSLI_
+
 cbuffer Camera : register(b0)
 {
     float4x4 c_Projection;
@@ -6,10 +9,10 @@ cbuffer Camera : register(b0)
     float4x4 c_InvView;
     float4x4 c_ViewProjection;
     float4x4 c_InvViewProjection;
-    float3 c_CameraPosition;
-    float3 c_BL;
-    float3 c_BL2TL;
-    float3 c_BL2BR;
+    float3   c_CameraPosition;
+    float3   c_BL;
+    float3   c_BL2TL;
+    float3   c_BL2BR;
 };
 
 cbuffer PBRSettings : register(b1)
@@ -23,13 +26,28 @@ cbuffer PBRSettings : register(b1)
     
 }
 
+cbuffer ShadowMappingData : register(b2)
+{
+    uint c_ShadowMapSize;
+    bool c_UseDirectionalShadows;
+    bool c_UseOmnidirectionalShadows;
+    bool c_UseSpotShadows;
+    bool c_UsePCF;
+};
+
+cbuffer LightsCount : register(b3)
+{
+    uint c_DirectionalLightsCount;
+    uint c_PointLightsCount;
+    uint c_SpotLightsCount;
+};
+
 struct DirectionalLight
 {
     float3 Direction;
     float3 Radiance;
     float SolidAngle;
 };
-
 StructuredBuffer<DirectionalLight> t_DirectionalLights : register(t0);
 
 struct PointLight
@@ -38,7 +56,6 @@ struct PointLight
     float3 Radiance;
     float Radius;
 };
-
 StructuredBuffer<PointLight> t_PointLights : register(t1);
 
 struct SpotLight
@@ -50,7 +67,14 @@ struct SpotLight
     float InnerCutoffCos;
     float OuterCutoffCos;
 };
-
 StructuredBuffer<SpotLight> t_SpotLights : register(t2);
 
-StructuredBuffer<float4x4> t_LightsViewProjection : register(t3);
+StructuredBuffer<float4x4> t_DirectionalLightsPOVs : register(t3);
+StructuredBuffer<float4x4> t_PointLightsPOVs       : register(t4); // x6 matrices for each cube face per light
+StructuredBuffer<float4x4> t_SpotLightsPOVs        : register(t5);
+
+Texture2DArray<float>   t_DirectionalShadowMaps     : register(t6);
+TextureCubeArray<float> t_OmnidirectionalShadowMaps : register(t7);
+Texture2DArray<float>   t_SpotShadowMaps            : register(t8);
+
+#endif
