@@ -7,6 +7,8 @@
 
 #include "DLEngine/Renderer/Renderer.h"
 
+#include "DLEngine/Utils/RandomGenerator.h"
+
 #include <imgui/imgui.h>
 
 void WorldLayer::OnAttach()
@@ -36,8 +38,10 @@ void WorldLayer::OnAttach()
     sceneRendererSpecification.ViewportHeight = sceneSpecification.ViewportHeight;
     m_SceneRenderer = DLEngine::CreateRef<DLEngine::SceneRenderer>(sceneRendererSpecification);
 
-    m_PostProcessSettings.EV100 = -2.0f;
+    m_PostProcessingSettings.EV100 = -0.5f;
 
+    LoadMeshes();
+    LoadTextures();
     AddObjectsToScene();
 }
 
@@ -46,8 +50,11 @@ void WorldLayer::OnDetach()
 
 }
 
-void WorldLayer::OnUpdate(DeltaTime dt)
+void WorldLayer::OnUpdate(DLEngine::DeltaTime dt)
 {
+    m_Time += dt.GetSeconds();
+    m_DeltaTime = dt;
+
     m_Scene->OnUpdate(dt);
     
     if (m_IsFlashlightAttached)
@@ -68,70 +75,121 @@ void WorldLayer::OnUpdate(DeltaTime dt)
 
 void WorldLayer::OnImGuiRender()
 {
-    ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+    const ImVec2 mainWindowSize{ ImGui::GetMainViewport()->Size };
 
-    if (ImGui::CollapsingHeader("PBR"))
+    constexpr float relativeWidth{ 0.25f };
+
+    static float s_PrevWidth{ mainWindowSize.x * relativeWidth };
+
+    const ImVec2 minWindowSize{ mainWindowSize.x * relativeWidth, mainWindowSize.y };
+    const ImVec2 windowPos{ mainWindowSize.x - s_PrevWidth, 0.0f };
+
+    ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSizeConstraints(minWindowSize, ImVec2{ mainWindowSize.x, minWindowSize.y });
+
+    constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoMove };
+
+    ImGui::Begin("Scene", nullptr, windowFlags);
+
+    const ImVec2 windowSize{ ImGui::GetWindowSize() };
+    s_PrevWidth = windowSize.x;
+
+    if (ImGui::CollapsingHeader("Info"))
     {
-        ImGui::Checkbox("Use IBL", reinterpret_cast<bool*>(&m_PBRSettings.UseIBL));
-
-        if (!m_PBRSettings.UseIBL)
-        {
-            ImGui::Text("Indirect Light Radiance");
-            ImGui::DragFloat3("##indirect_light_radiance", &m_PBRSettings.IndirectLightRadiance.x, 0.01f, 0.0f, 1.0f);
-        }
-
-        ImGui::Checkbox("Use Diffuse Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseDiffuseReflections));
-        ImGui::Checkbox("Use Specular Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseSpecularReflections));
-
-        ImGui::Checkbox("Overwrite Roughness", reinterpret_cast<bool*>(&m_PBRSettings.OverwriteRoughness));
-            
-        if (m_PBRSettings.OverwriteRoughness)
-        {
-            ImGui::Text("Overwritten Roughness");
-            ImGui::SliderFloat("##overwritten_roughness", &m_PBRSettings.OverwrittenRoughness, 0.0f, 1.0f);
-        }
+        ImGui::Text(std::format("Time (s): {0:.2f}", m_Time).c_str());
+        ImGui::Text(std::format("Delta time (ms): {0:.2f}", m_DeltaTime).c_str());
     }
 
-    if (ImGui::CollapsingHeader("Shadow Mapping"))
+    if (ImGui::CollapsingHeader("Settings"))
     {
-        static constexpr int32_t mapSizes[]{ 512, 1024, 2048, 4096 };
-        static const char* mapSizeNames[]{ "512", "1024", "2048", "4096" };
-        static int32_t index{ 2 };
+        ImGui::Indent();
 
-        ImGui::Text("Map Size");
-        if (ImGui::Combo("##map_size", &index, mapSizeNames, IM_ARRAYSIZE(mapSizeNames)))
-            m_ShadowMapSettings.MapSize = static_cast<uint32_t>(mapSizes[index]);
-
-        ImGui::Checkbox("Use Directional Shadows", &m_ShadowMapSettings.UseDirectionalShadows);
-
-        if (m_ShadowMapSettings.UseDirectionalShadows)
+        if (ImGui::CollapsingHeader("PBR"))
         {
-            ImGui::Text("Directional Light Shadow Margin");
-            ImGui::SliderFloat("##directional_light_shadow_margin", &m_ShadowMapSettings.DirectionalLightShadowMargin, 0.0f, 50.0f);
+            ImGui::Checkbox("Use IBL", reinterpret_cast<bool*>(&m_PBRSettings.UseIBL));
 
-            ImGui::Text("Directional Light Shadow Distance");
-            ImGui::SliderFloat("##directional_light_shadow_distance", &m_ShadowMapSettings.DirectionalLightShadowDistance, 0.0f, 50.0f);
+            if (!m_PBRSettings.UseIBL)
+            {
+                ImGui::Text("Indirect Light Radiance");
+                ImGui::DragFloat3("##indirect_light_radiance", &m_PBRSettings.IndirectLightRadiance.x, 0.01f, 0.0f, 1.0f);
+            }
+
+            ImGui::Checkbox("Use Diffuse Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseDiffuseReflections));
+            ImGui::Checkbox("Use Specular Reflections", reinterpret_cast<bool*>(&m_PBRSettings.UseSpecularReflections));
+
+            ImGui::Checkbox("Overwrite Roughness", reinterpret_cast<bool*>(&m_PBRSettings.OverwriteRoughness));
+
+            if (m_PBRSettings.OverwriteRoughness)
+            {
+                ImGui::Text("Overwritten Roughness");
+                ImGui::SliderFloat("##overwritten_roughness", &m_PBRSettings.OverwrittenRoughness, 0.0f, 1.0f);
+            }
         }
-        
-        ImGui::Checkbox("Use Omnidirectional Shadows", &m_ShadowMapSettings.UseOmnidirectionalShadows);
-        ImGui::Checkbox("Use Spot Shadows", &m_ShadowMapSettings.UseSpotShadows);
-        ImGui::Checkbox("Use PCF", &m_ShadowMapSettings.UsePCF);
+
+        if (ImGui::CollapsingHeader("Shadow Mapping"))
+        {
+            static constexpr int32_t mapSizes[]{ 512, 1024, 2048, 4096 };
+            static const char* mapSizeNames[]{ "512", "1024", "2048", "4096" };
+            static int32_t index{ 2 };
+
+            ImGui::Text("Map Size");
+            if (ImGui::Combo("##map_size", &index, mapSizeNames, IM_ARRAYSIZE(mapSizeNames)))
+                m_ShadowMappingSettings.MapSize = static_cast<uint32_t>(mapSizes[index]);
+
+            ImGui::Checkbox("Use Directional Shadows", &m_ShadowMappingSettings.UseDirectionalShadows);
+
+            if (m_ShadowMappingSettings.UseDirectionalShadows)
+            {
+                ImGui::Text("Directional Light Shadow Margin");
+                ImGui::SliderFloat("##directional_light_shadow_margin", &m_ShadowMappingSettings.DirectionalLightShadowMargin, 0.0f, 50.0f);
+
+                ImGui::Text("Directional Light Shadow Distance");
+                ImGui::SliderFloat("##directional_light_shadow_distance", &m_ShadowMappingSettings.DirectionalLightShadowDistance, 0.0f, 50.0f);
+            }
+
+            ImGui::Checkbox("Use Omnidirectional Shadows", &m_ShadowMappingSettings.UseOmnidirectionalShadows);
+            ImGui::Checkbox("Use Spot Shadows", &m_ShadowMappingSettings.UseSpotShadows);
+            ImGui::Checkbox("Use PCF", &m_ShadowMappingSettings.UsePCF);
+
+            ImGui::Text("Shadow Bias");
+            ImGui::SliderFloat("##shadow_bias", &m_ShadowMappingSettings.ShadowBias, 0.0f, 0.1f);
+        }
+
+        if (ImGui::CollapsingHeader("Post Processing"))
+        {
+            ImGui::Text("EV100");
+            ImGui::SliderFloat("##ev100", &m_PostProcessingSettings.EV100, -10.0f, 10.0f);
+
+            ImGui::Text("Gamma");
+            ImGui::SliderFloat("##gamma", &m_PostProcessingSettings.Gamma, 0.1f, 5.0f);
+        }
+
+        ImGui::Unindent();
     }
 
-    if (ImGui::CollapsingHeader("Post Processing"))
+    if (ImGui::CollapsingHeader("Dissolution Group Spawning"))
     {
-        ImGui::Text("EV100");
-        ImGui::SliderFloat("##ev100", &m_PostProcessSettings.EV100, -10.0f, 10.0f);
+        ImGui::Text("Distance To Camera");
+        ImGui::SliderFloat("##distance_to_camera", &m_DissolutionGroupSpawnSettings.DistanceToCamera, 0.0f, 10.0f);
 
-        ImGui::Text("Gamma");
-        ImGui::SliderFloat("##gamma", &m_PostProcessSettings.Gamma, 0.1f, 5.0f);
+        ImGui::Text("Min Dissolution Duration (s)");
+        ImGui::SliderFloat("##min_dissolution_duration", &m_DissolutionGroupSpawnSettings.MinDissolutionDuration, 0.0f, 10.0f);
+
+        m_DissolutionGroupSpawnSettings.MaxDissolutionDuration = DLEngine::Math::Clamp(
+            m_DissolutionGroupSpawnSettings.MaxDissolutionDuration,
+            m_DissolutionGroupSpawnSettings.MinDissolutionDuration,
+            m_DissolutionGroupSpawnSettings.MinDissolutionDuration + 10.0f
+        );
+
+        ImGui::Text("Max Dissolution Duration (s)");
+        ImGui::SliderFloat("##max_dissolution_duration", &m_DissolutionGroupSpawnSettings.MaxDissolutionDuration, m_DissolutionGroupSpawnSettings.MinDissolutionDuration, m_DissolutionGroupSpawnSettings.MinDissolutionDuration + 10.0f);
     }
 
     ImGui::End();
 
     m_SceneRenderer->SetPBRSettings(m_PBRSettings);
-    m_SceneRenderer->SetPostProcessSettings(m_PostProcessSettings);
-    m_SceneRenderer->SetShadowMapSettings(m_ShadowMapSettings);
+    m_SceneRenderer->SetPostProcessingSettings(m_PostProcessingSettings);
+    m_SceneRenderer->SetShadowMappingSettings(m_ShadowMappingSettings);
 }
 
 void WorldLayer::OnEvent(DLEngine::Event& e)
@@ -142,26 +200,385 @@ void WorldLayer::OnEvent(DLEngine::Event& e)
     m_Scene->OnEvent(e);
 }
 
+void WorldLayer::LoadMeshes()
+{
+    auto meshLibrary{ DLEngine::Renderer::GetMeshLibrary() };
+    const auto& meshDirectoryPath{ DLEngine::Mesh::GetMeshDirectoryPath() };
+
+    meshLibrary->Load(meshDirectoryPath / "samurai\\samurai.fbx");
+    meshLibrary->Load(meshDirectoryPath / "cube\\cube.obj");
+    meshLibrary->Load(meshDirectoryPath / "flashlight\\flashlight.fbx");
+}
+
+void WorldLayer::LoadTextures()
+{
+    auto textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
+    const auto& textureDirectoryPath{ DLEngine::Texture::GetTextureDirectoryPath() };
+
+    DLEngine::TextureSpecification textureSpecification{};
+    textureSpecification.Usage = DLEngine::TextureUsage::Texture;
+
+    // Cube textures
+    textureSpecification.DebugName = "Cobblestone Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\cobblestone\\Cobblestone_albedo.dds");
+
+    textureSpecification.DebugName = "Cobblestone Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\cobblestone\\Cobblestone_normal.dds");
+
+
+    textureSpecification.DebugName = "Metal Steel Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_BaseColor.dds");
+
+    textureSpecification.DebugName = "Metal Steel Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_Normal.dds");
+
+    textureSpecification.DebugName = "Metal Steel Metalness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_Metallic.dds");
+
+    textureSpecification.DebugName = "Metal Steel Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_Roughness.dds");
+
+
+    textureSpecification.DebugName = "Mudroad Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\mudroad\\MudRoad_albedo.dds");
+
+    textureSpecification.DebugName = "Mudroad Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\mudroad\\MudRoad_normal.dds");
+
+
+    textureSpecification.DebugName = "Crystall Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\crystall\\Crystal_COLOR.dds");
+
+    textureSpecification.DebugName = "Crystall Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\cube\\crystall\\Crystal_NORM.dds");
+
+    // Flashlight textures
+    textureSpecification.DebugName = "Flashlight Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\flashlight\\Flashlight_Base_color.dds");
+
+    textureSpecification.DebugName = "Flashlight Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\flashlight\\Flashlight_Normal.dds");
+
+    textureSpecification.DebugName = "Flashlight Metalness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\flashlight\\Flashlight_Metallic.dds");
+
+    textureSpecification.DebugName = "Flashlight Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\flashlight\\Flashlight_Roughness.dds");
+
+    // Samurai textures
+    textureSpecification.DebugName = "Sword Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Sword_BaseColor.dds");
+
+    textureSpecification.DebugName = "Sword Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Sword_Normal.dds");
+
+    textureSpecification.DebugName = "Sword Metalness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Sword_Metallic.dds");
+
+    textureSpecification.DebugName = "Sword Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Sword_Roughness.dds");
+
+    textureSpecification.DebugName = "Head Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Head_BaseColor.dds");
+
+    textureSpecification.DebugName = "Head Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Head_Normal.dds");
+
+    textureSpecification.DebugName = "Head Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Head_Roughness.dds");
+
+    textureSpecification.DebugName = "Eyes Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Eyes_BaseColor.dds");
+
+    textureSpecification.DebugName = "Eyes Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Eyes_Normal.dds");
+
+    textureSpecification.DebugName = "Helmet Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Helmet_BaseColor.dds");
+
+    textureSpecification.DebugName = "Helmet Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Helmet_Normal.dds");
+
+    textureSpecification.DebugName = "Helmet Metalness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Helmet_Metallic.dds");
+
+    textureSpecification.DebugName = "Helmet Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Helmet_Roughness.dds");
+
+    textureSpecification.DebugName = "Decor Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Decor_BaseColor.dds");
+
+    textureSpecification.DebugName = "Decor Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Decor_Normal.dds");
+
+    textureSpecification.DebugName = "Decor Metalness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Decor_Metallic.dds");
+
+    textureSpecification.DebugName = "Decor Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Decor_Roughness.dds");
+
+    textureSpecification.DebugName = "Pants Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Pants_BaseColor.dds");
+
+    textureSpecification.DebugName = "Pants Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Pants_Normal.dds");
+
+    textureSpecification.DebugName = "Pants Metalness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Pants_Metallic.dds");
+
+    textureSpecification.DebugName = "Pants Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Pants_Roughness.dds");
+
+    textureSpecification.DebugName = "Hands Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Hands_BaseColor.dds");
+
+    textureSpecification.DebugName = "Hands Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Hands_Normal.dds");
+
+    textureSpecification.DebugName = "Hands Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Hands_Roughness.dds");
+
+    textureSpecification.DebugName = "Torso Albedo";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Torso_BaseColor.dds");
+
+    textureSpecification.DebugName = "Torso Normal";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Torso_Normal.dds");
+
+    textureSpecification.DebugName = "Torso Metalness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Torso_Metallic.dds");
+
+    textureSpecification.DebugName = "Torso Roughness";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Torso_Roughness.dds");
+
+    textureSpecification.DebugName = "Dissolution Noise Map";
+    textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "Noise_2.dds");
+}
+
+void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::initializer_list<std::pair<std::string, DLEngine::Buffer>>& instanceData)
+{
+    const auto& textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
+    const auto& textureDirectoryPath{ DLEngine::Texture::GetTextureDirectoryPath() };
+
+    const auto& samurai{ DLEngine::Renderer::GetMeshLibrary()->Get("samurai") };
+    const auto& shader{ DLEngine::Renderer::GetShaderLibrary()->Get(shaderName) };
+
+    const auto baseTransform{ DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(-90.0f), 0.0f, 0.0f) };
+
+    auto samuraiInstance{ DLEngine::Instance::Create(shader, std::format("{0} Samurai Instance", shaderName).c_str()) };
+    for (const auto& [name, buffer] : instanceData)
+    {
+        auto setBuffer{ buffer };
+
+        if (name == "TRANSFORM")
+        {
+            const DLEngine::Math::Mat4x4 transform{ baseTransform * buffer.Read<DLEngine::Math::Mat4x4>() };
+            setBuffer = DLEngine::Buffer::Copy(&transform, sizeof(DLEngine::Math::Mat4x4));
+        }
+
+        samuraiInstance->Set(name, setBuffer);
+    }
+
+    auto baseSamuraiMaterial{ DLEngine::Material::Create(shader, std::format("{0} Base Samurai Material", shaderName).c_str()) };
+    if (shaderName == "PBR_Static_Dissolution")
+    {
+        const auto& dissolutionMap{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "Noise_2.dds")) };
+        baseSamuraiMaterial->Set("t_DissolutionNoiseMap", dissolutionMap);
+    }
+
+    const auto& swordAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Sword_BaseColor.dds")) };
+    const auto& swordNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Sword_Normal.dds")) };
+    const auto& swordMetalness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Sword_Metallic.dds")) };
+    const auto& swordRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Sword_Roughness.dds")) };
+
+    auto swordPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial swordCBPBRMaterial{};
+    swordCBPBRMaterial.UseNormalMap = true;
+    swordCBPBRMaterial.FlipNormalMapY = false;
+    swordCBPBRMaterial.HasMetalnessMap = true;
+    swordCBPBRMaterial.HasRoughnessMap = true;
+    swordPBRCB->SetData(DLEngine::Buffer{ &swordCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto swordMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Sword Material", shaderName).c_str()) };
+    swordMaterial->Set("t_Albedo", swordAlbedo);
+    swordMaterial->Set("t_Normal", swordNormal);
+    swordMaterial->Set("t_Metalness", swordMetalness);
+    swordMaterial->Set("t_Roughness", swordRoughness);
+    swordMaterial->Set("PBRMaterial", swordPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 0u, swordMaterial, samuraiInstance);
+
+    const auto& headAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Head_BaseColor.dds")) };
+    const auto& headNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Head_Normal.dds")) };
+    const auto& headRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Head_Roughness.dds")) };
+
+    auto headPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial headCBPBRMaterial{};
+    headCBPBRMaterial.UseNormalMap = true;
+    headCBPBRMaterial.FlipNormalMapY = false;
+    headCBPBRMaterial.HasMetalnessMap = false;
+    headCBPBRMaterial.DefaultMetalness = 0.0f;
+    headCBPBRMaterial.HasRoughnessMap = true;
+    headPBRCB->SetData(DLEngine::Buffer{ &headCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto headMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Head Material", shaderName).c_str()) };
+    headMaterial->Set("t_Albedo", headAlbedo);
+    headMaterial->Set("t_Normal", headNormal);
+    headMaterial->Set("t_Roughness", headRoughness);
+    headMaterial->Set("PBRMaterial", headPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 1u, headMaterial, samuraiInstance);
+
+    const auto& eyesAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Eyes_BaseColor.dds")) };
+    const auto& eyesNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Eyes_Normal.dds")) };
+
+    auto eyesPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial eyesCBPBRMaterial{};
+    eyesCBPBRMaterial.UseNormalMap = true;
+    eyesCBPBRMaterial.FlipNormalMapY = false;
+    eyesCBPBRMaterial.HasMetalnessMap = false;
+    eyesCBPBRMaterial.DefaultMetalness = 0.0f;
+    eyesCBPBRMaterial.HasRoughnessMap = false;
+    eyesCBPBRMaterial.DefaultRoughness = 0.0f;
+    eyesPBRCB->SetData(DLEngine::Buffer{ &eyesCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto eyesMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Eyes Material", shaderName).c_str()) };
+    eyesMaterial->Set("t_Albedo", eyesAlbedo);
+    eyesMaterial->Set("t_Normal", eyesNormal);
+    eyesMaterial->Set("PBRMaterial", eyesPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 2u, eyesMaterial, samuraiInstance);
+
+    const auto& helmetAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Helmet_BaseColor.dds")) };
+    const auto& helmetNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Helmet_Normal.dds")) };
+    const auto& helmetMetalness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Helmet_Metallic.dds")) };
+    const auto& helmetRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Helmet_Roughness.dds")) };
+
+    auto helmetPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial helmetCBPBRMaterial{};
+    helmetCBPBRMaterial.UseNormalMap = true;
+    helmetCBPBRMaterial.FlipNormalMapY = false;
+    helmetCBPBRMaterial.HasMetalnessMap = true;
+    helmetCBPBRMaterial.HasRoughnessMap = true;
+    helmetPBRCB->SetData(DLEngine::Buffer{ &helmetCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto helmetMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Helmet Material", shaderName).c_str()) };
+    helmetMaterial->Set("t_Albedo", helmetAlbedo);
+    helmetMaterial->Set("t_Normal", helmetNormal);
+    helmetMaterial->Set("t_Metalness", helmetMetalness);
+    helmetMaterial->Set("t_Roughness", helmetRoughness);
+    helmetMaterial->Set("PBRMaterial", helmetPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 3u, helmetMaterial, samuraiInstance);
+
+    const auto& decorAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Decor_BaseColor.dds")) };
+    const auto& decorNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Decor_Normal.dds")) };
+    const auto& decorMetalness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Decor_Metallic.dds")) };
+    const auto& decorRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Decor_Roughness.dds")) };
+
+    auto decorPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial decorCBPBRMaterial{};
+    decorCBPBRMaterial.UseNormalMap = true;
+    decorCBPBRMaterial.FlipNormalMapY = false;
+    decorCBPBRMaterial.HasMetalnessMap = true;
+    decorCBPBRMaterial.HasRoughnessMap = true;
+    decorPBRCB->SetData(DLEngine::Buffer{ &decorCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto decorMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Decor Material", shaderName).c_str()) };
+    decorMaterial->Set("t_Albedo", decorAlbedo);
+    decorMaterial->Set("t_Normal", decorNormal);
+    decorMaterial->Set("t_Metalness", decorMetalness);
+    decorMaterial->Set("t_Roughness", decorRoughness);
+    decorMaterial->Set("PBRMaterial", decorPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 4u, decorMaterial, samuraiInstance);
+
+    const auto& pantsAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Pants_BaseColor.dds")) };
+    const auto& pantsNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Pants_Normal.dds")) };
+    const auto& pantsMetalness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Pants_Metallic.dds")) };
+    const auto& pantsRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Pants_Roughness.dds")) };
+
+    auto pantsPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial pantsCBPBRMaterial{};
+    pantsCBPBRMaterial.UseNormalMap = true;
+    pantsCBPBRMaterial.FlipNormalMapY = false;
+    pantsCBPBRMaterial.HasMetalnessMap = true;
+    pantsCBPBRMaterial.HasRoughnessMap = true;
+    pantsPBRCB->SetData(DLEngine::Buffer{ &pantsCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto pantsMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Pants Material", shaderName).c_str()) };
+    pantsMaterial->Set("t_Albedo", pantsAlbedo);
+    pantsMaterial->Set("t_Normal", pantsNormal);
+    pantsMaterial->Set("t_Metalness", pantsMetalness);
+    pantsMaterial->Set("t_Roughness", pantsRoughness);
+    pantsMaterial->Set("PBRMaterial", pantsPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 5u, pantsMaterial, samuraiInstance);
+
+    const auto& handsAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Hands_BaseColor.dds")) };
+    const auto& handsNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Hands_Normal.dds")) };
+    const auto& handsRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Hands_Roughness.dds")) };
+
+    auto handsPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial handsCBPBRMaterial{};
+    handsCBPBRMaterial.UseNormalMap = true;
+    handsCBPBRMaterial.FlipNormalMapY = false;
+    handsCBPBRMaterial.HasMetalnessMap = false;
+    handsCBPBRMaterial.DefaultMetalness = 0.0f;
+    handsCBPBRMaterial.HasRoughnessMap = true;
+    handsPBRCB->SetData(DLEngine::Buffer{ &handsCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto handsMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Hands Material", shaderName).c_str()) };
+    handsMaterial->Set("t_Albedo", handsAlbedo);
+    handsMaterial->Set("t_Normal", handsNormal);
+    handsMaterial->Set("t_Roughness", handsRoughness);
+    handsMaterial->Set("PBRMaterial", handsPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 6u, handsMaterial, samuraiInstance);
+
+    const auto& torsoAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Torso_BaseColor.dds")) };
+    const auto& torsoNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Torso_Normal.dds")) };
+    const auto& torsoMetalness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Torso_Metallic.dds")) };
+    const auto& torsoRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Torso_Roughness.dds")) };
+
+    auto torsoPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+    DLEngine::CBPBRMaterial torsoCBPBRMaterial{};
+    torsoCBPBRMaterial.UseNormalMap = true;
+    torsoCBPBRMaterial.FlipNormalMapY = false;
+    torsoCBPBRMaterial.HasMetalnessMap = true;
+    torsoCBPBRMaterial.HasRoughnessMap = true;
+    torsoPBRCB->SetData(DLEngine::Buffer{ &torsoCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+    auto torsoMaterial{ DLEngine::Material::Copy(baseSamuraiMaterial, std::format("{0} Samurai Torso Material", shaderName).c_str()) };
+    torsoMaterial->Set("t_Albedo", torsoAlbedo);
+    torsoMaterial->Set("t_Normal", torsoNormal);
+    torsoMaterial->Set("t_Metalness", torsoMetalness);
+    torsoMaterial->Set("t_Roughness", torsoRoughness);
+    torsoMaterial->Set("PBRMaterial", torsoPBRCB);
+
+    m_Scene->AddSubmesh(samurai, 7u, torsoMaterial, samuraiInstance);
+}
+
 void WorldLayer::AddObjectsToScene()
 {
-    const auto& cube{ DLEngine::Renderer::GetMeshLibrary()->Load(DLEngine::Mesh::GetMeshDirectoryPath() / "cube\\cube.obj") };
-    const auto& samurai{ DLEngine::Renderer::GetMeshLibrary()->Load(DLEngine::Mesh::GetMeshDirectoryPath() / "samurai\\samurai.fbx") };
-    const auto& flashlight{ DLEngine::Renderer::GetMeshLibrary()->Load(DLEngine::Mesh::GetMeshDirectoryPath() / "flashlight\\flashlight.fbx") };
+    const auto& meshLibrary{ DLEngine::Renderer::GetMeshLibrary() };
+    
+    const auto& textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
+    const auto& textureDirectoryPath{ DLEngine::Texture::GetTextureDirectoryPath() };
+    
     const auto& pbrStaticShader{ DLEngine::Renderer::GetShaderLibrary()->Get("PBR_Static") };
-    auto pbrMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Cube Steel Material") };
 
+    const auto& cube{ meshLibrary->Get("cube") };
+    const auto& flashlight{ meshLibrary->Get("flashlight") };
+    
     // Spawning cubes
     {
-        DLEngine::TextureSpecification textureSpecification{};
-        textureSpecification.Usage = DLEngine::TextureUsage::Texture;
+        // Cobblestone cube material
+        auto pbrCobblestoneMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Cube Cobblestone Material") };
+    
+        const auto& cobblestoneAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\cobblestone\\Cobblestone_albedo.dds")) };
+        const auto& cobblestoneNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\cobblestone\\Cobblestone_normal.dds")) };
 
-        textureSpecification.DebugName = "Cobblestone Albedo";
-        const auto& cobblestoneAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\cobblestone\\Cobblestone_albedo.dds") };
-
-        textureSpecification.DebugName = "Cobblestone Normal";
-        const auto& cobblestoneNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\cube\\cobblestone\\Cobblestone_normal.dds") };
-
-        auto steelPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        auto cobblestionePBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
         DLEngine::CBPBRMaterial steelCBPBRMaterial{};
         steelCBPBRMaterial.UseNormalMap = true;
         steelCBPBRMaterial.FlipNormalMapY = false;
@@ -169,11 +586,73 @@ void WorldLayer::AddObjectsToScene()
         steelCBPBRMaterial.DefaultMetalness = 0.0f;
         steelCBPBRMaterial.HasRoughnessMap = false;
         steelCBPBRMaterial.DefaultRoughness = 1.0f;
-        steelPBRCB->SetData(DLEngine::Buffer{ &steelCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+        cobblestionePBRCB->SetData(DLEngine::Buffer{ &steelCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
 
-        pbrMaterial->Set("t_Albedo", cobblestoneAlbedo);
-        pbrMaterial->Set("t_Normal", cobblestoneNormal);
-        pbrMaterial->Set("PBRMaterial", steelPBRCB);
+        pbrCobblestoneMaterial->Set("t_Albedo", cobblestoneAlbedo);
+        pbrCobblestoneMaterial->Set("t_Normal", cobblestoneNormal);
+        pbrCobblestoneMaterial->Set("PBRMaterial", cobblestionePBRCB);
+
+        // Metal steel cube material
+        auto pbrMetalSteelMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Cube Metal Steel Material") };
+
+        const auto& metalSteelAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_BaseColor.dds")) };
+        const auto& metalSteelNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_Normal.dds")) };
+        const auto& metalSteelMetalness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_Metallic.dds")) };
+        const auto& metalSteelRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\metal_steel\\MetalSteelBrushed_Roughness.dds")) };
+
+        auto metalSteelPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial metalSteelCBPBRMaterial{};
+        metalSteelCBPBRMaterial.UseNormalMap = true;
+        metalSteelCBPBRMaterial.FlipNormalMapY = false;
+        metalSteelCBPBRMaterial.HasMetalnessMap = true;
+        metalSteelCBPBRMaterial.HasRoughnessMap = true;
+        metalSteelPBRCB->SetData(DLEngine::Buffer{ &metalSteelCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        pbrMetalSteelMaterial->Set("t_Albedo", metalSteelAlbedo);
+        pbrMetalSteelMaterial->Set("t_Normal", metalSteelNormal);
+        pbrMetalSteelMaterial->Set("t_Metalness", metalSteelMetalness);
+        pbrMetalSteelMaterial->Set("t_Roughness", metalSteelRoughness);
+        pbrMetalSteelMaterial->Set("PBRMaterial", metalSteelPBRCB);
+
+        // Mudroad cube material
+        auto pbrMudroadMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Cube Mudroad Material") };
+
+        const auto& mudroadAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\mudroad\\MudRoad_albedo.dds")) };
+        const auto& mudroadNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\mudroad\\MudRoad_normal.dds")) };
+
+        auto mudroadPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial mudroadCBPBRMaterial{};
+        mudroadCBPBRMaterial.UseNormalMap = true;
+        mudroadCBPBRMaterial.FlipNormalMapY = false;
+        mudroadCBPBRMaterial.HasMetalnessMap = false;
+        mudroadCBPBRMaterial.DefaultMetalness = 0.0f;
+        mudroadCBPBRMaterial.HasRoughnessMap = false;
+        mudroadCBPBRMaterial.DefaultRoughness = 1.0f;
+        mudroadPBRCB->SetData(DLEngine::Buffer{ &mudroadCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        pbrMudroadMaterial->Set("t_Albedo", mudroadAlbedo);
+        pbrMudroadMaterial->Set("t_Normal", mudroadNormal);
+        pbrMudroadMaterial->Set("PBRMaterial", mudroadPBRCB);
+
+        // Crystall cube material
+        auto pbrCrystallMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Cube Crystall Material") };
+
+        const auto& crystallAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\crystall\\Crystal_COLOR.dds")) };
+        const auto& crystallNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\cube\\crystall\\Crystal_NORM.dds")) };
+
+        auto crystallPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
+        DLEngine::CBPBRMaterial crystallCBPBRMaterial{};
+        crystallCBPBRMaterial.UseNormalMap = true;
+        crystallCBPBRMaterial.FlipNormalMapY = false;
+        crystallCBPBRMaterial.HasMetalnessMap = false;
+        crystallCBPBRMaterial.DefaultMetalness = 0.0f;
+        crystallCBPBRMaterial.HasRoughnessMap = false;
+        crystallCBPBRMaterial.DefaultRoughness = 0.2f;
+        crystallPBRCB->SetData(DLEngine::Buffer{ &crystallCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
+
+        pbrCrystallMaterial->Set("t_Albedo", crystallAlbedo);
+        pbrCrystallMaterial->Set("t_Normal", crystallNormal);
+        pbrCrystallMaterial->Set("PBRMaterial", crystallPBRCB);
 
 #if 0
         const auto transform{ DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 10.0f, 0.5f, 10.0f }) *
@@ -182,8 +661,8 @@ void WorldLayer::AddObjectsToScene()
         auto instance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Cube Instance") };
         instance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
 
-        m_Scene->AddSubmesh(cube, 0u, pbrMaterial, instance);
-#endif
+        m_Scene->AddSubmesh(cube, 0u, pbrCobblestoneMaterial, instance);
+#else
 
         for (int32_t x{ -5 }; x < 5; ++x)
         {
@@ -193,258 +672,38 @@ void WorldLayer::AddObjectsToScene()
                 const auto& instance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Cube Instance") };
                 instance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
 
+                DLEngine::Ref<DLEngine::Material> pbrMaterial;
+                if (x < 0 && z < 0)
+                    pbrMaterial = pbrCobblestoneMaterial;
+                else if (x < 0 && z >= 0)
+                    pbrMaterial = pbrMudroadMaterial;
+                else if (x >= 0 && z < 0)
+                    pbrMaterial = pbrCrystallMaterial;
+                else
+                    pbrMaterial = pbrMetalSteelMaterial;
+
                 m_Scene->AddSubmesh(cube, 0u, pbrMaterial, instance);
             }
         }
+#endif
+
     }
 
-    // Spawning samurais
-    {
-        const auto baseTransform{ DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(-90.0f), 0.0f, 0.0f) };
-        std::vector<DLEngine::Math::Mat4x4> samuraiTransforms{};
-        samuraiTransforms.emplace_back(baseTransform * DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 0.0f, 2.0f }));
-        samuraiTransforms.emplace_back(baseTransform * DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 1.5f, 0.0f, 2.0f }));
+    // Adding samurais
+    const auto& transforms{ std::vector<DLEngine::Math::Mat4x4>{
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 0.0f, 2.0f }),
+        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{  1.5f, 0.0f, 2.0f }),
+    } };
 
-        std::vector<DLEngine::Ref<DLEngine::Instance>> samuraiInstances{};
-        samuraiInstances.reserve(samuraiTransforms.size());
-        for (const auto& transform : samuraiTransforms)
+    AddPBRSamuraiToScene("PBR_Static",
         {
-            auto samuraiInstance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Samurai Instance") };
-            samuraiInstance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
-            samuraiInstances.emplace_back(samuraiInstance);
-        }
+            { "TRANSFORM", DLEngine::Buffer{ &transforms[0u], sizeof(DLEngine::Math::Mat4x4) } },
+        });
 
-        DLEngine::TextureSpecification textureSpecification{};
-        textureSpecification.Usage = DLEngine::TextureUsage::Texture;
-
-        textureSpecification.DebugName = "Sword Albedo";
-        const auto& swordAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Sword Normal";
-        const auto& swordNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_Normal.dds") };
-
-        textureSpecification.DebugName = "Sword Metalness";
-        const auto& swordMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_Metallic.dds") };
-
-        textureSpecification.DebugName = "Sword Roughness";
-        const auto& swordRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Sword_Roughness.dds") };
-
-        auto swordPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial swordCBPBRMaterial{};
-        swordCBPBRMaterial.UseNormalMap = true;
-        swordCBPBRMaterial.FlipNormalMapY = false;
-        swordCBPBRMaterial.HasMetalnessMap = true;
-        swordCBPBRMaterial.HasRoughnessMap = true;
-        swordPBRCB->SetData(DLEngine::Buffer{ &swordCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto swordMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Sword Material") };
-        swordMaterial->Set("t_Albedo", swordAlbedo);
-        swordMaterial->Set("t_Normal", swordNormal);
-        swordMaterial->Set("t_Metalness", swordMetalness);
-        swordMaterial->Set("t_Roughness", swordRoughness);
-        swordMaterial->Set("PBRMaterial", swordPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 0u, swordMaterial, samuraiInstances[instanceIndex]);
-
-        textureSpecification.DebugName = "Head Albedo";
-        const auto& headAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Head_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Head Normal";
-        const auto& headNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Head_Normal.dds") };
-
-        textureSpecification.DebugName = "Head Roughness";
-        const auto& headRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Head_Roughness.dds") };
-
-        auto headPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial headCBPBRMaterial{};
-        headCBPBRMaterial.UseNormalMap = true;
-        headCBPBRMaterial.FlipNormalMapY = false;
-        headCBPBRMaterial.HasMetalnessMap = false;
-        headCBPBRMaterial.DefaultMetalness = 0.0f;
-        headCBPBRMaterial.HasRoughnessMap = true;
-        headPBRCB->SetData(DLEngine::Buffer{ &headCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto headMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Head Material") };
-        headMaterial->Set("t_Albedo", headAlbedo);
-        headMaterial->Set("t_Normal", headNormal);
-        headMaterial->Set("t_Roughness", headRoughness);
-        headMaterial->Set("PBRMaterial", headPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 1u, headMaterial, samuraiInstances[instanceIndex]);
-
-        textureSpecification.DebugName = "Eyes Albedo";
-        const auto& eyesAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Eyes_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Eyes Normal";
-        const auto& eyesNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Eyes_Normal.dds") };
-
-        auto eyesPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial eyesCBPBRMaterial{};
-        eyesCBPBRMaterial.UseNormalMap = true;
-        eyesCBPBRMaterial.FlipNormalMapY = false;
-        eyesCBPBRMaterial.HasMetalnessMap = false;
-        eyesCBPBRMaterial.DefaultMetalness = 0.0f;
-        eyesCBPBRMaterial.HasRoughnessMap = false;
-        eyesCBPBRMaterial.DefaultRoughness = 0.0f;
-        eyesPBRCB->SetData(DLEngine::Buffer{ &eyesCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto eyesMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Eyes Material") };
-        eyesMaterial->Set("t_Albedo", eyesAlbedo);
-        eyesMaterial->Set("t_Normal", eyesNormal);
-        eyesMaterial->Set("PBRMaterial", eyesPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 2u, eyesMaterial, samuraiInstances[instanceIndex]);
-
-        textureSpecification.DebugName = "Helmet Albedo";
-        const auto& helmetAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Helmet Normal";
-        const auto& helmetNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_Normal.dds") };
-
-        textureSpecification.DebugName = "Helmet Metalness";
-        const auto& helmetMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_Metallic.dds") };
-
-        textureSpecification.DebugName = "Helmet Roughness";
-        const auto& helmetRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Helmet_Roughness.dds") };
-
-        auto helmetPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial helmetCBPBRMaterial{};
-        helmetCBPBRMaterial.UseNormalMap = true;
-        helmetCBPBRMaterial.FlipNormalMapY = false;
-        helmetCBPBRMaterial.HasMetalnessMap = true;
-        helmetCBPBRMaterial.HasRoughnessMap = true;
-        helmetPBRCB->SetData(DLEngine::Buffer{ &helmetCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto helmetMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Helmet Material") };
-        helmetMaterial->Set("t_Albedo", helmetAlbedo);
-        helmetMaterial->Set("t_Normal", helmetNormal);
-        helmetMaterial->Set("t_Metalness", helmetMetalness);
-        helmetMaterial->Set("t_Roughness", helmetRoughness);
-        helmetMaterial->Set("PBRMaterial", helmetPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 3u, helmetMaterial, samuraiInstances[instanceIndex]);
-
-        textureSpecification.DebugName = "Decor Albedo";
-        const auto& decorAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Decor Normal";
-        const auto& decorNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_Normal.dds") };
-
-        textureSpecification.DebugName = "Decor Metalness";
-        const auto& decorMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_Metallic.dds") };
-
-        textureSpecification.DebugName = "Decor Roughness";
-        const auto& decorRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Decor_Roughness.dds") };
-
-        auto decorPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial decorCBPBRMaterial{};
-        decorCBPBRMaterial.UseNormalMap = true;
-        decorCBPBRMaterial.FlipNormalMapY = false;
-        decorCBPBRMaterial.HasMetalnessMap = true;
-        decorCBPBRMaterial.HasRoughnessMap = true;
-        decorPBRCB->SetData(DLEngine::Buffer{ &decorCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto decorMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Decor Material") };
-        decorMaterial->Set("t_Albedo", decorAlbedo);
-        decorMaterial->Set("t_Normal", decorNormal);
-        decorMaterial->Set("t_Metalness", decorMetalness);
-        decorMaterial->Set("t_Roughness", decorRoughness);
-        decorMaterial->Set("PBRMaterial", decorPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 4u, decorMaterial, samuraiInstances[instanceIndex]);
-
-        textureSpecification.DebugName = "Pants Albedo";
-        const auto& pantsAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Pants Normal";
-        const auto& pantsNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_Normal.dds") };
-
-        textureSpecification.DebugName = "Pants Metalness";
-        const auto& pantsMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_Metallic.dds") };
-
-        textureSpecification.DebugName = "Pants Roughness";
-        const auto& pantsRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Pants_Roughness.dds") };
-
-        auto pantsPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial pantsCBPBRMaterial{};
-        pantsCBPBRMaterial.UseNormalMap = true;
-        pantsCBPBRMaterial.FlipNormalMapY = false;
-        pantsCBPBRMaterial.HasMetalnessMap = true;
-        pantsCBPBRMaterial.HasRoughnessMap = true;
-        pantsPBRCB->SetData(DLEngine::Buffer{ &pantsCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto pantsMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Pants Material") };
-        pantsMaterial->Set("t_Albedo", pantsAlbedo);
-        pantsMaterial->Set("t_Normal", pantsNormal);
-        pantsMaterial->Set("t_Metalness", pantsMetalness);
-        pantsMaterial->Set("t_Roughness", pantsRoughness);
-        pantsMaterial->Set("PBRMaterial", pantsPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 5u, pantsMaterial, samuraiInstances[instanceIndex]);
-
-        textureSpecification.DebugName = "Hands Albedo";
-        const auto& handsAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Hands_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Hands Normal";
-        const auto& handsNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Hands_Normal.dds") };
-
-        textureSpecification.DebugName = "Hands Roughness";
-        const auto& handsRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Hands_Roughness.dds") };
-
-        auto handsPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial handsCBPBRMaterial{};
-        handsCBPBRMaterial.UseNormalMap = true;
-        handsCBPBRMaterial.FlipNormalMapY = false;
-        handsCBPBRMaterial.HasMetalnessMap = false;
-        handsCBPBRMaterial.DefaultMetalness = 0.0f;
-        handsCBPBRMaterial.HasRoughnessMap = true;
-        handsPBRCB->SetData(DLEngine::Buffer{ &handsCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto handsMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Hands Material") };
-        handsMaterial->Set("t_Albedo", handsAlbedo);
-        handsMaterial->Set("t_Normal", handsNormal);
-        handsMaterial->Set("t_Roughness", handsRoughness);
-        handsMaterial->Set("PBRMaterial", handsPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 6u, handsMaterial, samuraiInstances[instanceIndex]);
-
-        textureSpecification.DebugName = "Torso Albedo";
-        const auto& torsoAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_BaseColor.dds") };
-
-        textureSpecification.DebugName = "Torso Normal";
-        const auto& torsoNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_Normal.dds") };
-
-        textureSpecification.DebugName = "Torso Metalness";
-        const auto& torsoMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_Metallic.dds") };
-
-        textureSpecification.DebugName = "Torso Roughness";
-        const auto& torsoRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\samurai\\Torso_Roughness.dds") };
-
-        auto torsoPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
-        DLEngine::CBPBRMaterial torsoCBPBRMaterial{};
-        torsoCBPBRMaterial.UseNormalMap = true;
-        torsoCBPBRMaterial.FlipNormalMapY = false;
-        torsoCBPBRMaterial.HasMetalnessMap = true;
-        torsoCBPBRMaterial.HasRoughnessMap = true;
-        torsoPBRCB->SetData(DLEngine::Buffer{ &torsoCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
-
-        auto torsoMaterial{ DLEngine::Material::Create(pbrStaticShader, "PBR_Static Samurai Torso Material") };
-        torsoMaterial->Set("t_Albedo", torsoAlbedo);
-        torsoMaterial->Set("t_Normal", torsoNormal);
-        torsoMaterial->Set("t_Metalness", torsoMetalness);
-        torsoMaterial->Set("t_Roughness", torsoRoughness);
-        torsoMaterial->Set("PBRMaterial", torsoPBRCB);
-
-        for (uint32_t instanceIndex{ 0u }; instanceIndex < samuraiInstances.size(); ++instanceIndex)
-            m_Scene->AddSubmesh(samurai, 7u, torsoMaterial, samuraiInstances[instanceIndex]);
-    }
+    AddPBRSamuraiToScene("PBR_Static",
+        {
+            { "TRANSFORM", DLEngine::Buffer{ &transforms[1u], sizeof(DLEngine::Math::Mat4x4) } },
+        });
 
     // Adding lights
     {
@@ -456,20 +715,10 @@ void WorldLayer::AddObjectsToScene()
         m_FlashlightBaseTransform = DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ 0.003f }) *
             DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(-90.0f), DLEngine::Math::ToRadians(180.0f), 0.0f);
         
-        DLEngine::TextureSpecification textureSpecification{};
-        textureSpecification.Usage = DLEngine::TextureUsage::Texture;
-
-        textureSpecification.DebugName = "Flashlight Albedo";
-        const auto& flashlightAlbedo{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Base_color.dds") };
-
-        textureSpecification.DebugName = "Flashlight Normal";
-        const auto& flashlightNormal{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Normal.dds") };
-
-        textureSpecification.DebugName = "Flashlight Metalness";
-        const auto& flashlightMetalness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Metallic.dds") };
-
-        textureSpecification.DebugName = "Flashlight Roughness";
-        const auto& flashlightRoughness{ DLEngine::Texture2D::Create(textureSpecification, DLEngine::Texture::GetTextureDirectoryPath() / "models\\flashlight\\Flashlight_Roughness.dds") };
+        const auto& flashlightAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\flashlight\\Flashlight_Base_color.dds")) };
+        const auto& flashlightNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\flashlight\\Flashlight_Normal.dds")) };
+        const auto& flashlightMetalness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\flashlight\\Flashlight_Metallic.dds")) };
+        const auto& flashlightRoughness{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\flashlight\\Flashlight_Roughness.dds")) };
 
         auto flashlightPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
         DLEngine::CBPBRMaterial flashlightCBPBRMaterial{};
@@ -506,8 +755,32 @@ void WorldLayer::AddObjectsToScene()
 
 bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)
 {
-    if (e.GetKeyCode() == 'F')
+    switch (e.GetKeyCode())
+    {
+    case 'F':
         m_IsFlashlightAttached = !m_IsFlashlightAttached;
+        break;
+    case 'M':
+        {
+            const auto& sceneCamera{ m_Scene->GetCamera() };
+            const auto& sceneCameraPosition{ sceneCamera.GetPosition() };
+            const auto& sceneCameraForward{ sceneCamera.GetForward() };
+            const auto& samuraiPosition{ sceneCameraPosition + sceneCameraForward * m_DissolutionGroupSpawnSettings.DistanceToCamera };
+
+            const auto& transform{ DLEngine::Math::Mat4x4::Inverse(DLEngine::Math::Mat4x4::LookTo(samuraiPosition, sceneCameraForward, sceneCamera.GetUp())) };
+            const float duration{ DLEngine::RandomGenerator::GenerateRandomInRange(m_DissolutionGroupSpawnSettings.MinDissolutionDuration, m_DissolutionGroupSpawnSettings.MaxDissolutionDuration) * 1.0e3f }; // Seconds to milliseconds
+            const float elapsedTime{ 0.0f };
+
+            AddPBRSamuraiToScene("PBR_Static_Dissolution",
+                {
+                    { "TRANSFORM"           , DLEngine::Buffer{ &transform  , sizeof(DLEngine::Math::Mat4x4) } },
+                    { "DISSOLUTION_DURATION", DLEngine::Buffer{ &duration   , sizeof(float)                  } },
+                    { "ELAPSED_TIME"        , DLEngine::Buffer{ &elapsedTime, sizeof(float)                  } },
+                });
+        } break;
+    default:
+        break;
+    }
 
     return false;
 }

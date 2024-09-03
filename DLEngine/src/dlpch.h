@@ -38,3 +38,7 @@
 #include "DLEngine/Core/Buffer.h"
 #include "DLEngine/Core/DLException.h"
 #include "DLEngine/Core/Input.h"
+
+#include "DLEngine/Utils/DeltaTime.h"
+#include "DLEngine/Utils/RandomGenerator.h"
+#include "DLEngine/Utils/Timer.h"

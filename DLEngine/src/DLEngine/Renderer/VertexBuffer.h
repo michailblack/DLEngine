@@ -20,6 +20,8 @@ namespace DLEngine
         virtual Buffer Map() = 0;
         virtual void Unmap() = 0;
 
+        virtual const VertexBufferLayout& GetLayout() const noexcept = 0;
+
         static Ref<VertexBuffer> Create(const VertexBufferLayout& layout, const Buffer& buffer, VertexBufferUsage usage = VertexBufferUsage::Static);
         static Ref<VertexBuffer> Create(const VertexBufferLayout& layout, size_t size, VertexBufferUsage usage = VertexBufferUsage::Dynamic);
     };

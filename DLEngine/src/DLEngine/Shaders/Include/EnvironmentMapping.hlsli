@@ -1,7 +1,7 @@
 #ifndef _ENVIRONMENTMAPPING_HLSLI_
 #define _ENVIRONMENTMAPPING_HLSLI_
 
-#include "Include/Common.hlsli"
+#include "Common.hlsli"
 
 static const float GoldenRatio = (1.0 + sqrt(5)) / 2.0;
 

@@ -103,6 +103,69 @@ namespace DLEngine
         return AsRef<TextureCube>(m_TextureCubes.at(shaderTexture.BindPoint));
     }
 
+    std::size_t D3D11Material::GetHash() const noexcept
+    {
+        std::size_t hash{ std::hash<Ref<Shader>>{}(m_Shader) };
+
+        for (const auto& [bindPoint, buffer] : m_ConstantBuffers)
+        {
+            const Buffer& bufferData{ buffer->GetLocalData() };
+            hash ^= std::hash<std::string_view>{}(std::string_view{ reinterpret_cast<char*>(bufferData.Data), bufferData.Size });
+        }
+
+        for (const auto& [bindPoint, shaderStage] : m_ConstantBuffersShaderStages)
+            hash ^= std::hash<uint8_t>{}(shaderStage);
+
+        for (const auto& [bindPoint, texture] : m_Texture2Ds)
+            hash ^= std::hash<Ref<Texture2D>>{}(texture);
+
+        for (const auto& [bindPoint, textureCube] : m_TextureCubes)
+            hash ^= std::hash<Ref<TextureCube>>{}(textureCube);
+
+        for (const auto& [bindPoint, view] : m_TextureViews)
+            hash ^= TextureViewSpecificationHash{}(view);
+
+        for (const auto& [bindPoint, shaderStage] : m_TextureShaderStages)
+            hash ^= std::hash<uint8_t>{}(shaderStage);
+
+        return hash;
+    }
+
+    bool D3D11Material::operator==(const Material& other) const noexcept
+    {
+        if (m_Shader != other.GetShader())
+            return false;
+
+        const auto& otherD3D11Material{ static_cast<const D3D11Material&>(other) };
+
+        const bool cbsEqual{
+            std::ranges::equal(m_ConstantBuffers, otherD3D11Material.m_ConstantBuffers, [](const auto& a, const auto& b)
+            {
+                return a.second->GetLocalData() == b.second->GetLocalData();
+            })
+        };
+
+        if (!cbsEqual)
+            return false;
+
+        if (m_ConstantBuffersShaderStages != otherD3D11Material.m_ConstantBuffersShaderStages)
+            return false;
+
+        if (m_Texture2Ds != otherD3D11Material.m_Texture2Ds)
+            return false;
+
+        if (m_TextureCubes != otherD3D11Material.m_TextureCubes)
+            return false;
+
+        if (m_TextureViews != otherD3D11Material.m_TextureViews)
+            return false;
+
+        if (m_TextureShaderStages != otherD3D11Material.m_TextureShaderStages)
+            return false;
+
+        return true;
+    }
+
     void D3D11Material::SetShaderStageFlags() noexcept
     {
         const auto& shaderReflectionData{ AsRef<D3D11Shader>(m_Shader)->GetReflectionData() };

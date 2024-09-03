@@ -68,6 +68,8 @@ namespace DLEngine
         
         uint32_t Mips{ 1u };
         uint32_t Layers{ 1u };
+
+        uint32_t Samples{ 1u };
     };
 
     class Texture
@@ -83,6 +85,7 @@ namespace DLEngine
 
         virtual uint32_t GetMipsCount() const noexcept = 0;
         virtual uint32_t GetLayersCount() const noexcept = 0;
+        virtual uint32_t GetSamplesCount() const noexcept = 0;
 
         virtual const TextureSpecification& GetSpecification() const noexcept = 0;
 

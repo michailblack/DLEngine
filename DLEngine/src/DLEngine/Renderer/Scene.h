@@ -41,11 +41,18 @@ namespace DLEngine
         std::vector<std::pair<SpotLight, Ref<Instance>>> SpotLights;
     };
 
-    struct Environment
+    struct SmokeParticle
     {
-        Ref<TextureCube> Skybox;
-        Ref<TextureCube> DiffuseIrradianceMap;
-        Ref<TextureCube> SpecularIrradianceMap;
+    };
+
+    struct SmokeEmitter
+    {
+        std::vector<SmokeParticle> Particles;
+        Math::Vec3 Position;
+        Math::Vec3 SpawnedParticleColor;
+        float ParticleSpawnRatePerSecond;
+        float ParticleSpawnRadius;
+
     };
 
     struct SceneSpecification

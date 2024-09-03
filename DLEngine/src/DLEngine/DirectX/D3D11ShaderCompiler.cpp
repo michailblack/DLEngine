@@ -92,9 +92,14 @@ namespace DLEngine
         {
             switch (dimension)
             {
-            case D3D_SRV_DIMENSION_TEXTURE2D:        return ShaderTextureType::Texture2D;
-            case D3D_SRV_DIMENSION_TEXTURE2DARRAY:   return ShaderTextureType::Texture2DArray;
+            case D3D_SRV_DIMENSION_TEXTURE2D:
+            case D3D_SRV_DIMENSION_TEXTURE2DMS:      return ShaderTextureType::Texture2D;
+            
+            case D3D_SRV_DIMENSION_TEXTURE2DARRAY:
+            case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: return ShaderTextureType::Texture2DArray;
+            
             case D3D_SRV_DIMENSION_TEXTURECUBE:      return ShaderTextureType::TextureCube;
+            
             case D3D_SRV_DIMENSION_TEXTURECUBEARRAY: return ShaderTextureType::TextureCubeArray;
             default: DL_ASSERT(false); return ShaderTextureType::None;
             }
@@ -133,10 +138,48 @@ namespace DLEngine
         }
     }
 
-    D3D11ShaderCompiler::D3D11ShaderCompiler(D3D11Shader* const shader)
-        : m_D3D11Shader(shader)
+    D3D11ShaderIncludeHandler::D3D11ShaderIncludeHandler(std::string baseDirectory)
+        : m_BaseDirectory(baseDirectory)
     {
+        m_DirectoryStack.push(m_BaseDirectory);
+    }
 
+    STDOVERRIDEMETHODIMP D3D11ShaderIncludeHandler::Open(THIS_ D3D_INCLUDE_TYPE, LPCSTR pFileName, LPCVOID, LPCVOID* ppData, UINT* pBytes)
+    {
+        std::filesystem::path filePath{ m_DirectoryStack.top() };
+        filePath /= pFileName;
+
+        std::ifstream file{ filePath, std::ios::binary | std::ios::ate };
+        if (!file.is_open())
+            return E_FAIL;
+
+        std::streamsize fileSize{ file.tellg() };
+        file.seekg(0, std::ios::beg);
+
+        char* fileData{ new char[static_cast<size_t>(fileSize)] };
+        file.read(fileData, fileSize);
+
+        *ppData = fileData;
+        *pBytes = static_cast<UINT>(fileSize);
+
+        m_DirectoryStack.push(filePath.parent_path().string());
+
+        return S_OK;
+    }
+
+    STDOVERRIDEMETHODIMP D3D11ShaderIncludeHandler::Close(THIS_ LPCVOID pData)
+    {
+        m_DirectoryStack.pop();
+
+        delete[] reinterpret_cast<const char*>(pData);
+
+        return S_OK;
+    }
+
+    D3D11ShaderCompiler::D3D11ShaderCompiler(D3D11Shader* const shader)
+        : m_D3D11ShaderIncludeHandler(CreateScope<D3D11ShaderIncludeHandler>(shader->m_Specification.Path.parent_path().string()))
+        , m_D3D11Shader(shader)
+    {
     }
 
     void D3D11ShaderCompiler::Compile()
@@ -255,7 +298,7 @@ namespace DLEngine
             m_D3D11ShaderSource->GetBufferSize(),
             m_D3D11Shader->m_Specification.Path.string().c_str(),
             m_D3D11ShaderMacros.data(),
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            m_D3D11ShaderIncludeHandler.get(),
             &m_D3D11ShaderDebugData,
             &errorBlob
         ) };
@@ -463,4 +506,5 @@ namespace DLEngine
             }
         }
     }
+
 }

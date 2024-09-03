@@ -1,8 +1,8 @@
+#include "Include/Common.hlsli"
+
 cbuffer OmnidirectionalLightShadowData : register(b4)
 {
     float4x4 c_ViewProjections[6];
-    float3   c_LightPosition;
-    float    c_ShadowMapWorldTexelSize;
 };
 
 struct VertexInput
@@ -24,23 +24,10 @@ struct VertexOutput
     float3 v_WorldPos : WORLD_POS;
 };
 
-static const float Sqrt2 = sqrt(2);
-
 VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
 {
     VertexOutput vsOutput;
-
-    const float3 vertexPos = mul(float4(vsInput.a_Position, 1.0), instInput.a_Transform).xyz;
-
-    float3 axisX = normalize(instInput.a_Transform[0].xyz);
-    float3 axizY = normalize(instInput.a_Transform[1].xyz);
-    float3 axizZ = normalize(instInput.a_Transform[2].xyz);
-    const float3 geometryNormal = normalize(vsInput.a_Normal.x * axisX + vsInput.a_Normal.y * axizY + vsInput.a_Normal.z * axizZ);
-
-    const float3 lightDir = normalize(vertexPos - c_LightPosition);
-    const float3 offset = c_ShadowMapWorldTexelSize / Sqrt2 * (geometryNormal - 0.9 * lightDir * dot(geometryNormal, lightDir));
-
-    vsOutput.v_WorldPos = vertexPos - offset;
+    vsOutput.v_WorldPos = mul(float4(vsInput.a_Position, 1.0), instInput.a_Transform).xyz;;
 
     return vsOutput;
 }

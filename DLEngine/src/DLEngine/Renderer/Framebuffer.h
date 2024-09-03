@@ -11,7 +11,7 @@ namespace DLEngine
 {
     struct FramebufferTextureSpecification
     {
-        FramebufferTextureSpecification(TextureFormat format, TextureUsage usage, uint32_t mips, uint32_t layers)
+        FramebufferTextureSpecification(TextureFormat format, TextureUsage usage, uint32_t mips = 1u, uint32_t layers = 1u)
             : Format(format), Usage(usage), Mips(mips), Layers(layers)
         {}
 
@@ -47,6 +47,8 @@ namespace DLEngine
 
         uint32_t Width;
         uint32_t Height;
+
+        uint32_t Samples{ 1u };
 
         // If true, then Attachments, ExistingAttachments, Width and Height are ignored.
         // Framebuffer is created with back buffer and depth-stencil attachments automatically

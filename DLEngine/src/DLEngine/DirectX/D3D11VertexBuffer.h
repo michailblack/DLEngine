@@ -17,6 +17,8 @@ namespace DLEngine
         Buffer Map() override;
         void Unmap() override;
 
+        const VertexBufferLayout& GetLayout() const noexcept override { return m_Layout; }
+
         Microsoft::WRL::ComPtr<ID3D11Buffer> GetD3D11VertexBuffer() const noexcept { return m_D3D11VertexBuffer; }
 
     private:

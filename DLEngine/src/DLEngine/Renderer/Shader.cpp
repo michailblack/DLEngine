@@ -105,14 +105,17 @@ namespace DLEngine
         pointLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
         Load(pointLightShadowMapShaderSpec);
 
-        ShaderSpecification spotLightShadowMapShaderSpec{};
-        spotLightShadowMapShaderSpec.Path = Shader::GetShaderDirectoryPath() / "SpotLightShadowMap.hlsl";
-        spotLightShadowMapShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
-        spotLightShadowMapShaderSpec.InstanceLayout = VertexBufferLayout{
-            { "TRANSFORM", ShaderDataType::Mat4 }
+        ShaderSpecification dissolutionShaderSpec{};
+        dissolutionShaderSpec.Path = Shader::GetShaderDirectoryPath() / "PBR_Static_Dissolution.hlsl";
+        dissolutionShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
+        dissolutionShaderSpec.InstanceLayout = VertexBufferLayout{
+            { "TRANSFORM"           , ShaderDataType::Mat4  },
+            { "DISSOLUTION_DURATION", ShaderDataType::Float },
+            { "ELAPSED_TIME"        , ShaderDataType::Float }
         };
-        spotLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        Load(spotLightShadowMapShaderSpec);
+        dissolutionShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        dissolutionShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(dissolutionShaderSpec);
     }
 
     void ShaderLibrary::Add(const Ref<Shader>& shader) noexcept

@@ -38,6 +38,8 @@ namespace DLEngine
     public:
         void UpdateOctree() { m_Octree.Rebuild(*this); }
 
+        const std::string& GetName() const noexcept { return m_Name; }
+        
         const std::vector<Vertex>& GetVertices() const noexcept { return m_Vertices; }
         const std::vector<Triangle>& GetTriangles() const noexcept { return m_Triangles; }
         const std::vector<Math::Mat4x4>& GetInstances() const noexcept { return m_Instances; }
@@ -116,9 +118,9 @@ namespace DLEngine
 
         void Add(const Ref<Mesh>& mesh);
         Ref<Mesh> Load(const std::filesystem::path& path);
-        Ref<Mesh> Get(const std::string& path);
+        Ref<Mesh> Get(const std::string_view meshName);
 
     private:
-        std::unordered_map<std::string, Ref<Mesh>> m_Meshes{};
+        std::unordered_map<std::string_view, Ref<Mesh>> m_Meshes{};
     };
 }

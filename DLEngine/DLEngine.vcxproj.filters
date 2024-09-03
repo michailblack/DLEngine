@@ -195,9 +195,6 @@
     <ClInclude Include="src\DLEngine\DirectX\D3D11Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\DepthStencil.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\Renderer\Mesh\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -229,9 +226,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\DirectX\D3D11StructuredBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\Rasterizer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -390,6 +384,7 @@
     <None Include="src\DLEngine\Shaders\Include\PBR.hlsli" />
     <None Include="src\DLEngine\Shaders\Include\PBR_Resources.hlsli" />
     <None Include="src\DLEngine\Shaders\Include\ShadowMapping.hlsli" />
+    <None Include="src\DLEngine\Shaders\Include\Lighting.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\DLEngine\Shaders\Include\Samplers.hlsli" />
@@ -403,7 +398,7 @@
     <FxCompile Include="src\DLEngine\Shaders\PrefilteredEnvironment.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\DirectionalLightShadowMap.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\OmnidirectionalLightShadowMap.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\SpotLightShadowMap.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\PBR_Static.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\PBR_Static_Dissolution.hlsl" />
   </ItemGroup>
 </Project>

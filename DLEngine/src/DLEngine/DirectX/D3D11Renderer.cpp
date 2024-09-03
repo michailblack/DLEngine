@@ -17,6 +17,8 @@
 
 namespace DLEngine
 {
+    using Microsoft::WRL::ComPtr;
+
     namespace Utils
     {
         namespace
@@ -28,11 +30,20 @@ namespace DLEngine
 
     namespace
     {
+        struct RasterizerSpecificationCacheHash
+        {
+            size_t operator()(const std::pair<RasterizerSpecification, bool>& key) const
+            {
+                return RasterizerSpecificationHash{}(key.first) ^ std::hash<bool>{}(key.second);
+            }
+        };
+
         struct D3D11RendererData
         {
-            std::unordered_map<SamplerSpecification, Microsoft::WRL::ComPtr<ID3D11SamplerState>, SamplerSpecificationHash> SamplersCache;
-            std::unordered_map<RasterizerSpecification, Microsoft::WRL::ComPtr<ID3D11RasterizerState2>, RasterizerSpecificationHash> RasterizerStatesCache;
-            std::unordered_map<DepthStencilSpecification, Microsoft::WRL::ComPtr<ID3D11DepthStencilState>, DepthStencilSpecificationHash> DepthStencilStatesCache;
+            std::unordered_map<SamplerSpecification, ComPtr<ID3D11SamplerState>, SamplerSpecificationHash> SamplersCache;
+            std::unordered_map<std::pair<RasterizerSpecification, bool>, ComPtr<ID3D11RasterizerState2>, RasterizerSpecificationCacheHash> RasterizerStatesCache;
+            std::unordered_map<DepthStencilSpecification, ComPtr<ID3D11DepthStencilState>, DepthStencilSpecificationHash> DepthStencilStatesCache;
+            std::unordered_map<BlendState, ComPtr<ID3D11BlendState1>> BlendStatesCache;
         };
 
         D3D11RendererData* s_Data{ nullptr };
@@ -85,6 +96,9 @@ namespace DLEngine
         textureSpec.Usage = TextureUsage::Attachment;
         textureSpec.Width = backBufferDesc.Width;
         textureSpec.Height = backBufferDesc.Height;
+        textureSpec.Mips = backBufferDesc.MipLevels;
+        textureSpec.Layers = backBufferDesc.ArraySize;
+        textureSpec.Samples = backBufferDesc.SampleDesc.Count;
 
         return AsRef<Texture2D>(CreateRef<D3D11Texture2D>(d3d11BackBufferTexture, textureSpec));
     }
@@ -213,8 +227,9 @@ namespace DLEngine
         d3d11DeviceContext->DSSetShader(d3d11Shader->GetD3D11DomainShader().Get(), nullptr, 0u);
         d3d11DeviceContext->GSSetShader(d3d11Shader->GetD3D11GeometryShader().Get(), nullptr, 0u);
 
+        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11Pipeline->GetSpecification().RasterizerState, d3d11FramebufferSpec.Samples > 1u).Get());
         d3d11DeviceContext->OMSetDepthStencilState(GetDepthStencilState(d3d11Pipeline->GetSpecification().DepthStencilState).Get(), 0u);
-        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11Pipeline->GetSpecification().RasterizerState).Get());
+        d3d11DeviceContext->OMSetBlendState(GetBlendState(d3d11Pipeline->GetSpecification().BlendState).Get(), nullptr, 0xFFFFFFFF);
 
         const uint32_t colorAttachmentCount{ d3d11Framebuffer->GetColorAttachmentCount() };
 
@@ -391,7 +406,10 @@ namespace DLEngine
             d3d11VertexBuffer->GetD3D11VertexBuffer().Get(),
             d3d11InstanceBuffer->GetD3D11VertexBuffer().Get()
         };
-        const std::array<uint32_t, 2u> strides{ static_cast<uint32_t>(Mesh::GetCommonVertexBufferLayout().GetStride()), 64u };
+        const std::array<uint32_t, 2u> strides{
+            static_cast<uint32_t>(d3d11VertexBuffer->GetLayout().GetStride()),
+            static_cast<uint32_t>(d3d11InstanceBuffer->GetLayout().GetStride())
+        };
         const std::array<uint32_t, 2u> offsets{ 0u, 0u };
         d3d11DeviceContext->IASetVertexBuffers(0u, 2u, d3d11VertexBuffers.data(), strides.data(), offsets.data());
         d3d11DeviceContext->IASetIndexBuffer(d3d11IndexBuffer->GetD3D11IndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
@@ -413,7 +431,7 @@ namespace DLEngine
         d3d11DeviceContext->Draw(3u, 0u);
     }
 
-    Microsoft::WRL::ComPtr<ID3D11SamplerState> D3D11Renderer::GetSamplerState(const SamplerSpecification& specification)
+    ComPtr<ID3D11SamplerState> D3D11Renderer::GetSamplerState(const SamplerSpecification& specification)
     {
         const auto it{ s_Data->SamplersCache.find(specification) };
         if (it != s_Data->SamplersCache.end())
@@ -436,7 +454,7 @@ namespace DLEngine
         samplerDesc.MinLOD = 0.0f;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-        Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState{};
+        ComPtr<ID3D11SamplerState> samplerState{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateSamplerState(&samplerDesc, &samplerState));
 
         s_Data->SamplersCache[specification] = samplerState;
@@ -444,9 +462,11 @@ namespace DLEngine
         return samplerState;
     }
 
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState2> D3D11Renderer::GetRasterizerState(const RasterizerSpecification& specification)
+    ComPtr<ID3D11RasterizerState2> D3D11Renderer::GetRasterizerState(const RasterizerSpecification& specification, bool multisampleEnabled)
     {
-        const auto it{ s_Data->RasterizerStatesCache.find(specification) };
+        const auto& cacheKey{ std::make_pair(specification, multisampleEnabled) };
+        
+        const auto it{ s_Data->RasterizerStatesCache.find(cacheKey) };
         if (it != s_Data->RasterizerStatesCache.end())
             return it->second;
 
@@ -483,20 +503,30 @@ namespace DLEngine
         rasterizerDesc.SlopeScaledDepthBias = specification.SlopeScaledDepthBias;
         rasterizerDesc.DepthClipEnable = TRUE;
         rasterizerDesc.ScissorEnable = FALSE;
-        rasterizerDesc.MultisampleEnable = FALSE;
-        rasterizerDesc.AntialiasedLineEnable = FALSE;
+
+        if (multisampleEnabled)
+        {
+            rasterizerDesc.MultisampleEnable = TRUE;
+            rasterizerDesc.AntialiasedLineEnable = TRUE;
+        }
+        else
+        {
+            rasterizerDesc.MultisampleEnable = FALSE;
+            rasterizerDesc.AntialiasedLineEnable = FALSE;
+        }
+
         rasterizerDesc.ForcedSampleCount = 0u;
         rasterizerDesc.ConservativeRaster = D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState2> rasterizerState{};
+        ComPtr<ID3D11RasterizerState2> rasterizerState{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateRasterizerState2(&rasterizerDesc, & rasterizerState));
 
-        s_Data->RasterizerStatesCache[specification] = rasterizerState;
+        s_Data->RasterizerStatesCache[cacheKey] = rasterizerState;
 
         return rasterizerState;
     }
 
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> D3D11Renderer::GetDepthStencilState(const DepthStencilSpecification& specification)
+    ComPtr<ID3D11DepthStencilState> D3D11Renderer::GetDepthStencilState(const DepthStencilSpecification& specification)
     {
         const auto it{ s_Data->DepthStencilStatesCache.find(specification) };
         if (it != s_Data->DepthStencilStatesCache.end())
@@ -508,12 +538,77 @@ namespace DLEngine
         depthStencilDesc.DepthFunc = Utils::D3D11ComparisonFuncFromCompareOp(specification.CompareOp);
         depthStencilDesc.StencilEnable = FALSE;
 
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState{};
+        ComPtr<ID3D11DepthStencilState> depthStencilState{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateDepthStencilState(&depthStencilDesc, &depthStencilState));
 
         s_Data->DepthStencilStatesCache[specification] = depthStencilState;
 
         return depthStencilState;
+    }
+
+    ComPtr<ID3D11BlendState1> D3D11Renderer::GetBlendState(BlendState blendState)
+    {
+        const auto it{ s_Data->BlendStatesCache.find(blendState) };
+        if (it != s_Data->BlendStatesCache.end())
+            return it->second;
+
+        D3D11_BLEND_DESC1 blendDesc{};
+        blendDesc.AlphaToCoverageEnable = FALSE;
+        blendDesc.IndependentBlendEnable = FALSE;
+        
+        blendDesc.RenderTarget[0u].BlendEnable = FALSE;
+        blendDesc.RenderTarget[0u].LogicOpEnable = FALSE;
+        blendDesc.RenderTarget[0u].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+        switch (blendState)
+        {
+        case BlendState::AlphaToCoverage:
+            blendDesc.AlphaToCoverageEnable = TRUE;
+            break;
+        case BlendState::General:
+            blendDesc.RenderTarget[0u].BlendEnable = TRUE;
+
+            blendDesc.RenderTarget[0u].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+            blendDesc.RenderTarget[0u].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+            blendDesc.RenderTarget[0u].BlendOp = D3D11_BLEND_OP_ADD;
+
+            blendDesc.RenderTarget[0u].SrcBlendAlpha = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0u].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+            blendDesc.RenderTarget[0u].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            break;
+        case BlendState::PremultipliedAlpha:
+            blendDesc.RenderTarget[0u].BlendEnable = TRUE;
+
+            blendDesc.RenderTarget[0u].SrcBlend = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0u].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+            blendDesc.RenderTarget[0u].BlendOp = D3D11_BLEND_OP_ADD;
+
+            blendDesc.RenderTarget[0u].SrcBlendAlpha = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0u].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+            blendDesc.RenderTarget[0u].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            break;
+        case BlendState::Additive:
+            blendDesc.RenderTarget[0u].BlendEnable = TRUE;
+
+            blendDesc.RenderTarget[0u].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+            blendDesc.RenderTarget[0u].DestBlend = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0u].BlendOp = D3D11_BLEND_OP_ADD;
+
+            blendDesc.RenderTarget[0u].SrcBlendAlpha = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0u].DestBlendAlpha = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0u].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            break;
+        case BlendState::None:
+        default:
+            break;
+        }
+
+        ComPtr<ID3D11BlendState1> d3d11BlendState{};
+        DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateBlendState1(&blendDesc, &d3d11BlendState));
+
+        s_Data->BlendStatesCache[blendState] = d3d11BlendState;
+
+        return d3d11BlendState;
     }
 
     void D3D11Renderer::SetShaderResourceViews(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<ID3D11ShaderResourceView*>& srvs) noexcept

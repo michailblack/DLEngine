@@ -32,7 +32,14 @@ namespace DLEngine
 
         virtual const std::string& GetName() const noexcept = 0;
 
+        virtual std::size_t GetHash() const noexcept = 0;
+
+        virtual bool operator==(const Material& other) const noexcept = 0;
+
         static Ref<Material> Create(const Ref<Shader>& shader, const std::string& name = "");
         static Ref<Material> Copy(const Ref<Material>& material, const std::string& name = "");
     };
+
+    struct MaterialHash { std::size_t operator()(const Ref<Material>& material) const noexcept { return material->GetHash(); }; };
+    struct MaterialEqual { bool operator()(const Ref<Material>& lhs, const Ref<Material>& rhs) const noexcept { return *lhs == *rhs; }; };
 }

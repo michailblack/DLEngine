@@ -49,33 +49,64 @@ namespace DLEngine
             BP_TEX_NEXT_FREE,
         };
 
-        struct CBDirectionalLightShadowMapData
+        struct CBCamera
         {
-            Math::Vec3 LightDirection;
-            float WorldTexelSize;
+            Math::Mat4x4 Projection;
+            Math::Mat4x4 InvProjection;
+            Math::Mat4x4 View;
+            Math::Mat4x4 InvView;
+            Math::Mat4x4 ViewProjection;
+            Math::Mat4x4 InvViewProjection;
+            Math::Vec3 CameraPosition;
+            float _padding1{ 0.0f };
+            Math::Vec3 BL;
+            float _padding2{ 0.0f };
+            Math::Vec3 BL2TL;
+            float _padding3{ 0.0f };
+            Math::Vec3 BL2BR;
+            float _padding4{ 0.0f };
+        };
+
+        struct CBLightsCount
+        {
+            uint32_t DirectionalLightsCount{ 0u };
+            uint32_t PointLightsCount{ 0u };
+            uint32_t SpotLightsCount{ 0u };
+            float _padding{ 0.0f };
+        };
+
+        struct CBPBRSettings
+        {
+            Math::Vec3 IndirectLightRadiance{ 0.1f };
+            float OverwrittenRoughness{ 0.0f };
+            uint32_t OverwriteRoughness{ static_cast<uint32_t>(false) };
+            uint32_t UseIBL{ static_cast<uint32_t>(true) };
+            uint32_t UseDiffuseReflections{ static_cast<uint32_t>(true) };
+            uint32_t UseSpecularReflections{ static_cast<uint32_t>(true) };
+        };
+
+        struct CBPostProcessingSettings
+        {
+            uint32_t SamplesCount{ 1u };
+            float EV100{ 0.0f };
+            float Gamma{ 2.2f };
+            float _padding{ 0.0f };
         };
 
         struct CBOmnidirectionalLightShadowData
         {
             std::array<Math::Mat4x4, 6u> LightViewProjections;
-            Math::Vec3 LightPosition;
-            float WorldTexelSize;
-        };
-
-        struct CBSpotLightShadowMapData
-        {
-            Math::Vec3 LightPosition;
-            float WorldTexelSize;
         };
 
         struct CBShadowMappingData
         {
             uint32_t ShadowMapSize;
+            float ShadowBias;
             uint32_t UseDirectionalShadows{ static_cast<uint32_t>(true) };
             uint32_t UseOmnidirectionalShadows{ static_cast<uint32_t>(true) };
             uint32_t UseSpotShadows{ static_cast<uint32_t>(true) };
             uint32_t UsePCF{ static_cast<uint32_t>(true) };
-            float _padding[3];
+            float _padding[2u];
         };
     }
 
@@ -91,6 +122,8 @@ namespace DLEngine
     void SceneRenderer::RenderScene(const Ref<Scene>& scene)
     {
         m_Scene = scene;
+        m_ViewportWidth = m_Scene->m_ViewportWidth;
+        m_ViewportHeight = m_Scene->m_ViewportHeight;
 
         PreRender();
 
@@ -100,7 +133,30 @@ namespace DLEngine
         PostProcessPass();
     }
 
-    void SceneRenderer::SetShadowMapSettings(const ShadowMapSettings& shadowMapSettings)
+    void SceneRenderer::SetPBRSettings(const PBRSettings& pbrSettings)
+    {
+        CBPBRSettings pbrSettingsData{};
+        pbrSettingsData.IndirectLightRadiance = pbrSettings.IndirectLightRadiance;
+        pbrSettingsData.OverwrittenRoughness = pbrSettings.OverwrittenRoughness;
+        pbrSettingsData.OverwriteRoughness = static_cast<uint32_t>(pbrSettings.OverwriteRoughness);
+        pbrSettingsData.UseIBL = static_cast<uint32_t>(pbrSettings.UseIBL);
+        pbrSettingsData.UseDiffuseReflections = static_cast<uint32_t>(pbrSettings.UseDiffuseReflections);
+        pbrSettingsData.UseSpecularReflections = static_cast<uint32_t>(pbrSettings.UseSpecularReflections);
+
+        m_CBPBRSettings->SetData(Buffer{ &pbrSettingsData, sizeof(CBPBRSettings) });
+    }
+
+    void SceneRenderer::SetPostProcessingSettings(const PostProcessingSettings& postProcessingSettings)
+    {
+        CBPostProcessingSettings postProcessingSettingsData{};
+        postProcessingSettingsData.SamplesCount = m_SamplesCount;
+        postProcessingSettingsData.EV100 = postProcessingSettings.EV100;
+        postProcessingSettingsData.Gamma = postProcessingSettings.Gamma;
+
+        m_CBPostProcessSettings->SetData(Buffer{ &postProcessingSettingsData, sizeof(CBPostProcessingSettings) });
+    }
+
+    void SceneRenderer::SetShadowMappingSettings(const ShadowMappingSettings& shadowMapSettings)
     {
         m_SceneShadowEnvironment.ForceRecreateDirectionalLightShadowMaps = m_SceneShadowEnvironment.Settings.MapSize != shadowMapSettings.MapSize ||
             m_SceneShadowEnvironment.Settings.DirectionalLightShadowMargin != shadowMapSettings.DirectionalLightShadowMargin ||
@@ -110,6 +166,7 @@ namespace DLEngine
 
         CBShadowMappingData shadowMappingData{};
         shadowMappingData.ShadowMapSize = shadowMapSettings.MapSize;
+        shadowMappingData.ShadowBias = shadowMapSettings.ShadowBias;
         shadowMappingData.UseDirectionalShadows = static_cast<uint32_t>(shadowMapSettings.UseDirectionalShadows);
         shadowMappingData.UseOmnidirectionalShadows = static_cast<uint32_t>(shadowMapSettings.UseOmnidirectionalShadows);
         shadowMappingData.UseSpotShadows = static_cast<uint32_t>(shadowMapSettings.UseSpotShadows);
@@ -122,10 +179,8 @@ namespace DLEngine
         m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
         m_CBPBRSettings = ConstantBuffer::Create(sizeof(CBPBRSettings));
         m_CBLightsCount = ConstantBuffer::Create(sizeof(CBLightsCount));
-        m_CBPostProcessSettings = ConstantBuffer::Create(sizeof(CBPostProcessSettings));
-        m_SceneShadowEnvironment.CBDirectionalLightData = ConstantBuffer::Create(sizeof(CBDirectionalLightShadowMapData));
+        m_CBPostProcessSettings = ConstantBuffer::Create(sizeof(CBPostProcessingSettings));
         m_SceneShadowEnvironment.CBPointLightData = ConstantBuffer::Create(sizeof(CBOmnidirectionalLightShadowData));
-        m_SceneShadowEnvironment.CBSpotLightData = ConstantBuffer::Create(sizeof(CBSpotLightShadowMapData));
         m_CBShadowMappingData = ConstantBuffer::Create(sizeof(CBShadowMappingData));
 
         m_SBDirectionalLights = StructuredBuffer::Create(sizeof(DirectionalLight), 100u);
@@ -138,11 +193,12 @@ namespace DLEngine
         FramebufferSpecification mainFramebufferSpec{};
         mainFramebufferSpec.DebugName = "Main HDR Framebuffer";
         mainFramebufferSpec.Attachments = {
-            { TextureFormat::RGBA16F, TextureUsage::TextureAttachment, 1u, 1u },
-            { TextureFormat::DEPTH24STENCIL8, TextureUsage::Attachment, 1u, 1u }
+            { TextureFormat::RGBA16F, TextureUsage::TextureAttachment },
+            { TextureFormat::DEPTH24STENCIL8, TextureUsage::Attachment }
         };
         mainFramebufferSpec.Width = m_ViewportWidth;
         mainFramebufferSpec.Height = m_ViewportHeight;
+        mainFramebufferSpec.Samples = m_SamplesCount;
         m_MainFramebuffer = Framebuffer::Create(mainFramebufferSpec);
 
         PipelineSpecification pbrStaticPipelineSpec{};
@@ -153,6 +209,16 @@ namespace DLEngine
         pbrStaticPipelineSpec.DepthStencilState.DepthTest = true;
         pbrStaticPipelineSpec.DepthStencilState.DepthWrite = true;
         m_PBRStaticPipeline = Pipeline::Create(pbrStaticPipelineSpec);
+
+        PipelineSpecification dissolutionPipelineSpec{};
+        dissolutionPipelineSpec.DebugName = "PBR_Static Dissolution Pipeline";
+        dissolutionPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PBR_Static_Dissolution");
+        dissolutionPipelineSpec.TargetFramebuffer = m_MainFramebuffer;
+        dissolutionPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
+        dissolutionPipelineSpec.DepthStencilState.DepthTest = true;
+        dissolutionPipelineSpec.DepthStencilState.DepthWrite = true;
+        dissolutionPipelineSpec.BlendState = BlendState::AlphaToCoverage;
+        m_DissolutionPipeline = Pipeline::Create(dissolutionPipelineSpec);
 
         PipelineSpecification emissionPipelineSpec{};
         emissionPipelineSpec.DebugName = "Emission Pipeline";
@@ -171,8 +237,6 @@ namespace DLEngine
         skyboxPipelineSpec.DepthStencilState.DepthTest = true;
         skyboxPipelineSpec.DepthStencilState.DepthWrite = false;
         m_SkyboxPipeline = Pipeline::Create(skyboxPipelineSpec);
-        m_SkyboxMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Skybox"));
-        m_SkyboxMaterial->Set("t_Skybox", m_SceneEnvironment.Skybox);
 
         PipelineSpecification postProcessPipelineSpec{};
         postProcessPipelineSpec.DebugName = "Post Process Pipeline";
@@ -183,13 +247,9 @@ namespace DLEngine
         postProcessPipelineSpec.DepthStencilState.DepthWrite = false;
         m_PostProcessPipeline = Pipeline::Create(postProcessPipelineSpec);
 
-        m_PostProcessMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("PostProcess"));
-        m_PostProcessMaterial->Set("PostProcessSettings", m_CBPostProcessSettings);
-        m_PostProcessMaterial->Set("t_TextureHDR", AsRef<Texture2D>(m_MainFramebuffer->GetColorAttachment(0u)));
-
         FramebufferSpecification directionalShadowMapFBSpec{};
         directionalShadowMapFBSpec.DebugName = "Directional Shadow Map Framebuffer";
-        directionalShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment, 1u, 1u } };
+        directionalShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
         directionalShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
         directionalShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
         m_DirectionalShadowMapFramebuffer = Framebuffer::Create(directionalShadowMapFBSpec);
@@ -203,14 +263,12 @@ namespace DLEngine
         directionalShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
         directionalShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
         directionalShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        directionalShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Front;
-        directionalShadowMapPipelineSpec.RasterizerState.DepthBias = -1;
-        directionalShadowMapPipelineSpec.RasterizerState.SlopeScaledDepthBias = -1.0f;
+        directionalShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Back;
         m_DirectionalShadowMapPipeline = Pipeline::Create(directionalShadowMapPipelineSpec);
 
         FramebufferSpecification pointShadowMapFBSpec{};
         pointShadowMapFBSpec.DebugName = "Point Shadow Map Framebuffer";
-        pointShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment, 1u, 1u } };
+        pointShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
         pointShadowMapFBSpec.AttachmentsType = TextureType::TextureCube;
         pointShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
         pointShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
@@ -225,14 +283,12 @@ namespace DLEngine
         pointShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
         pointShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
         pointShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        pointShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Front;
-        pointShadowMapPipelineSpec.RasterizerState.DepthBias = -1;
-        pointShadowMapPipelineSpec.RasterizerState.SlopeScaledDepthBias = -1.0f;
+        pointShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Back;
         m_PointShadowMapPipeline = Pipeline::Create(pointShadowMapPipelineSpec);
 
         FramebufferSpecification spotShadowMapFBSpec{};
         spotShadowMapFBSpec.DebugName = "Spot Shadow Map Framebuffer";
-        spotShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment, 1u, 1u } };
+        spotShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
         spotShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
         spotShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
         m_SpotShadowMapFramebuffer = Framebuffer::Create(spotShadowMapFBSpec);
@@ -241,14 +297,12 @@ namespace DLEngine
 
         PipelineSpecification spotShadowMapPipelineSpec{};
         spotShadowMapPipelineSpec.DebugName = "Spot Shadow Map Pipeline";
-        spotShadowMapPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("SpotLightShadowMap");
+        spotShadowMapPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("DirectionalLightShadowMap");
         spotShadowMapPipelineSpec.TargetFramebuffer = m_SpotShadowMapFramebuffer;
         spotShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
         spotShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
         spotShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        spotShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Front;
-        spotShadowMapPipelineSpec.RasterizerState.DepthBias = -1;
-        spotShadowMapPipelineSpec.RasterizerState.SlopeScaledDepthBias = -1.0f;
+        spotShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Back;
         m_SpotShadowMapPipeline = Pipeline::Create(spotShadowMapPipelineSpec);
 
         BuildIrradianceMap();
@@ -337,15 +391,9 @@ namespace DLEngine
         const auto& lightsCount{ m_CBLightsCount->GetLocalData().As<CBLightsCount>() };
 
         // Building directional shadow maps
-        Renderer::SetConstantBuffers(BP_CB_NEXT_FREE, DL_VERTEX_SHADER_BIT, { m_SceneShadowEnvironment.CBDirectionalLightData });
         for (uint32_t i{ 0u }; i < lightsCount->DirectionalLightsCount; ++i)
         {
             const auto& directionalLightData{ m_SceneShadowEnvironment.DirectionalLightsData[i] };
-
-            CBDirectionalLightShadowMapData directionalLightShadowData{};
-            directionalLightShadowData.LightDirection = m_Scene->m_LightEnvironment.DirectionalLights[i].Direction;
-            directionalLightShadowData.WorldTexelSize = directionalLightData.WorldTexelSize;
-            m_SceneShadowEnvironment.CBDirectionalLightData->SetData(Buffer{ &directionalLightShadowData, sizeof(CBDirectionalLightShadowMapData) });
 
             UpdateCBCamera(directionalLightData.POV);
 
@@ -359,6 +407,7 @@ namespace DLEngine
 
             Renderer::SetPipeline(m_DirectionalShadowMapPipeline, true);
             submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static");
+            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
         }
 
         // Building point shadow maps
@@ -373,8 +422,6 @@ namespace DLEngine
                 const auto& facePOV{ pointLightData.POVs[face] };
                 pointLightShadowData.LightViewProjections[face] = facePOV.GetViewMatrix() * facePOV.GetProjectionMatrix();
             }
-            pointLightShadowData.LightPosition = pointLightData.POVs[0].GetPosition();
-            pointLightShadowData.WorldTexelSize = pointLightData.WorldTexelSize;
             m_SceneShadowEnvironment.CBPointLightData->SetData(Buffer{ &pointLightShadowData, sizeof(CBOmnidirectionalLightShadowData) });
 
             TextureViewSpecification depthAttachmentViewSpec{};
@@ -387,18 +434,13 @@ namespace DLEngine
 
             Renderer::SetPipeline(m_PointShadowMapPipeline, true);
             submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static");
+            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
         }
 
         // Building spot shadow maps
-        Renderer::SetConstantBuffers(BP_CB_NEXT_FREE, DL_VERTEX_SHADER_BIT, { m_SceneShadowEnvironment.CBSpotLightData });
         for (uint32_t i{ 0u }; i < lightsCount->SpotLightsCount; ++i)
         {
             const auto& spotLightData{ m_SceneShadowEnvironment.SpotLightsData[i] };
-
-            CBSpotLightShadowMapData spotLightShadowData{};
-            spotLightShadowData.LightPosition = spotLightData.POV.GetPosition();
-            spotLightShadowData.WorldTexelSize = spotLightData.WorldTexelSize;
-            m_SceneShadowEnvironment.CBSpotLightData->SetData(Buffer{ &spotLightShadowData, sizeof(CBSpotLightShadowMapData) });
 
             UpdateCBCamera(spotLightData.POV);
 
@@ -412,6 +454,7 @@ namespace DLEngine
 
             Renderer::SetPipeline(m_SpotShadowMapPipeline, true);
             submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static");
+            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
         }
     }
 
@@ -468,6 +511,9 @@ namespace DLEngine
 
         submitAllMeshesWithMaterial(m_Scene->m_MeshRegistry, "PBR_Static");
 
+        Renderer::SetPipeline(m_DissolutionPipeline, false);
+        submitAllMeshesWithMaterial(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
+
         Renderer::SetPipeline(m_EmissionPipeline, false);
         submitAllMeshesWithMaterial(m_Scene->m_MeshRegistry, "Emission");
     }
@@ -475,15 +521,15 @@ namespace DLEngine
     void SceneRenderer::SkyboxPass()
     {
         Renderer::SetPipeline(m_SkyboxPipeline, false);
-        
-        Renderer::SetMaterial(m_SkyboxMaterial);
+        Renderer::SetTextureCubes(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_SceneEnvironment.Skybox }, { TextureViewSpecification{} });
         Renderer::SubmitFullscreenQuad();
     }
 
     void SceneRenderer::PostProcessPass()
     {
         Renderer::SetPipeline(m_PostProcessPipeline, true);
-        Renderer::SetMaterial(m_PostProcessMaterial);
+        Renderer::SetConstantBuffers(BP_CB_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_CBPostProcessSettings });
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { AsRef<Texture2D>(m_MainFramebuffer->GetColorAttachment(0u)) }, { TextureViewSpecification{} });
         Renderer::SubmitFullscreenQuad();
     }
 
@@ -755,15 +801,6 @@ namespace DLEngine
                     // Need to transpose as matrices are expected as column-major in HLSL
                     pointLightsPOVsSB[i * 6u + 5u] = Math::Mat4x4::Transpose(povView * povProjection);
                 }
-
-                // Calculate texel size
-                const auto& lightPOV0{ pointLightData.POVs[0] };
-                const auto& lightPOV0TopLeft{ lightPOV0.ConstructFrustumPos(Math::Vec3{ -1.0f, 1.0f, 1.0f }) };
-                const auto& lightPOV0TopRight{ lightPOV0.ConstructFrustumPos(Math::Vec3{ 1.0f, 1.0f, 1.0f }) };
-
-                const auto& lightPOV0Size{ Math::Length(lightPOV0TopRight - lightPOV0TopLeft) };
-
-                pointLightData.WorldTexelSize = lightPOV0Size / m_SceneShadowEnvironment.Settings.MapSize;
             }
         }
         m_SceneShadowEnvironment.SBPointLightsPOVs->Unmap();
@@ -830,15 +867,6 @@ namespace DLEngine
 
                 // Need to transpose as matrices are expected as column-major in HLSL
                 spotLightsPOVsSB[i] = Math::Mat4x4::Transpose(spotLightData.POV.GetViewMatrix() * spotLightData.POV.GetProjectionMatrix());
-
-                // Calculate texel size
-                const auto& lightPOV{ spotLightData.POV };
-                const auto& lightPOVTopLeft{ lightPOV.ConstructFrustumPos(Math::Vec3{ -1.0f, 1.0f, 1.0f }) };
-                const auto& lightPOVTopRight{ lightPOV.ConstructFrustumPos(Math::Vec3{ 1.0f, 1.0f, 1.0f }) };
-
-                const auto& lightPOVSize{ Math::Length(lightPOVTopRight - lightPOVTopLeft) };
-
-                spotLightData.WorldTexelSize = lightPOVSize / m_SceneShadowEnvironment.Settings.MapSize;
             }
         }
         m_SceneShadowEnvironment.SBSpotLightsPOVs->Unmap();

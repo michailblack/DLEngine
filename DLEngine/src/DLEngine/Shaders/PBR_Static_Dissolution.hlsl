@@ -5,13 +5,15 @@ struct VertexInput
     float3 a_Position  : POSITION;
     float3 a_Normal    : NORMAL;
     float3 a_Tangent   : TANGENT;
-    float3 a_Bitangent : BITANGENT;  
+    float3 a_Bitangent : BITANGENT;
     float2 a_TexCoords : TEXCOORDS;
 };
 
 struct InstanceInput
 {
-    float4x4 a_Transform : TRANSFORM;
+    float4x4 a_Transform           : TRANSFORM;
+    float    a_DissolutionDuration : DISSOLUTION_DURATION;
+    float    a_ElapsedTime         : ELAPSED_TIME;
 };
 
 struct VertexOutput
@@ -21,6 +23,7 @@ struct VertexOutput
     float3   v_Normal         : NORMAL;
     float2   v_TexCoords      : TEXCOORDS;
     float3x3 v_TangentToWorld : TANGENT_TO_WORLD;
+    float    v_Dissolution    : DISSOLUTION;
 };
 
 VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
@@ -33,7 +36,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     vsOutput.v_Position = mul(vertexPos, c_ViewProjection);
 
     vsOutput.v_TexCoords = vsInput.a_TexCoords;
-
+    
     const float3x3 normalMatrix = ConstructNormalMatrix(instInput.a_Transform);
     
     vsOutput.v_Normal = mul(vsInput.a_Normal, normalMatrix);
@@ -42,9 +45,15 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     const float3 B = mul(vsInput.a_Bitangent, normalMatrix);
     
     vsOutput.v_TangentToWorld = float3x3(T, B, vsOutput.v_Normal);
+    
+    vsOutput.v_Dissolution = saturate(instInput.a_ElapsedTime / instInput.a_DissolutionDuration);
 
     return vsOutput;
 }
+
+Texture2D<float> t_DissolutionNoiseMap : register(t16);
+
+static const float3 HighlightColor = float3(128.0, 128.0, 0.0);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
@@ -56,7 +65,7 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
 
     float roughness = c_DefaultRoughness;
     if (c_HasRoughnessMap)
-        roughness = t_Roughness.Sample(s_ActiveSampler, psInput.v_TexCoords).r;    
+        roughness = t_Roughness.Sample(s_ActiveSampler, psInput.v_TexCoords).r;
 
     float3 surfaceNormal = psInput.v_Normal;
     if (c_UseNormalMap)
@@ -78,6 +87,8 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
         rough = c_OverwrittenRoughness;
 
     rough = max(rough, 0.01); // To keep specular highlight for small values
+    
+    const float dissolutionNoise = t_DissolutionNoiseMap.Sample(s_NearestWrap, psInput.v_TexCoords).r;
 
     Surface surface;
     surface.Albedo = albedo;
@@ -98,6 +109,15 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
         indirectLighting = c_IndirectLightingRadiance * albedo;
 
     const float3 directLighting = CalculateDirectLighting(view, surface, psInput.v_WorldPos);
-
-    return float4(indirectLighting + directLighting, 1.0);
+    
+    float3 outputColor = indirectLighting + directLighting;
+    
+    const float3 highlightColor = outputColor * HighlightColor;
+    
+    const float falloff = 0.15 / Epsilon;
+    const float dissolutionAlpha = saturate((psInput.v_Dissolution - dissolutionNoise) / max(fwidth(psInput.v_Dissolution), Epsilon) / falloff);
+    
+    outputColor = lerp(highlightColor, outputColor, dissolutionAlpha);
+    
+    return float4(outputColor, dissolutionAlpha);
 }

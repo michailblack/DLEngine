@@ -36,6 +36,7 @@ namespace DLEngine
 
         uint32_t GetMipsCount() const noexcept override { return m_Specification.Mips; }
         uint32_t GetLayersCount() const noexcept override { return m_Specification.Layers; }
+        uint32_t GetSamplesCount() const noexcept override { return m_Specification.Samples; }
 
         const TextureSpecification& GetSpecification() const noexcept override { return m_Specification; }
 
@@ -79,6 +80,7 @@ namespace DLEngine
 
         uint32_t GetMipsCount() const noexcept override { return m_Specification.Mips; }
         uint32_t GetLayersCount() const noexcept override { return m_Specification.Layers; }
+        uint32_t GetSamplesCount() const noexcept override { return m_Specification.Samples; }
 
         const TextureSpecification& GetSpecification() const noexcept override { return m_Specification; }
 

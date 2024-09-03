@@ -87,5 +87,13 @@ namespace DLEngine
         const T* As() const noexcept { return reinterpret_cast<const T*>(Data); }
 
         operator bool() const noexcept { return Data != nullptr && Size > 0u; }
+
+        bool operator==(const Buffer& other) const noexcept
+        {
+            if (Size != other.Size)
+                return false;
+
+            return memcmp(Data, other.Data, Size) == 0;
+        }
     };
 }

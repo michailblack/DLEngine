@@ -26,13 +26,14 @@ cbuffer PBRSettings : register(b1)
     
 }
 
-cbuffer ShadowMappingData : register(b2)
+cbuffer ShadowMapping : register(b2)
 {
-    uint c_ShadowMapSize;
-    bool c_UseDirectionalShadows;
-    bool c_UseOmnidirectionalShadows;
-    bool c_UseSpotShadows;
-    bool c_UsePCF;
+    uint  c_ShadowMapSize;
+    float c_ShadowBias;
+    bool  c_UseDirectionalShadows;
+    bool  c_UseOmnidirectionalShadows;
+    bool  c_UseSpotShadows;
+    bool  c_UsePCF;
 };
 
 cbuffer LightsCount : register(b3)

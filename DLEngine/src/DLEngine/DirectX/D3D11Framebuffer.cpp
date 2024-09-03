@@ -98,12 +98,10 @@ namespace DLEngine
         m_ColorAttachments.emplace_back(Renderer::GetBackBufferTexture());
         const auto& backBufferSpec{ m_ColorAttachments[0]->GetSpecification() };
 
-        TextureSpecification depthStencilSpec{};
+        TextureSpecification depthStencilSpec{ backBufferSpec };
         depthStencilSpec.DebugName = "Standard depth-stencil attachment";
         depthStencilSpec.Format = TextureFormat::DEPTH24STENCIL8;
         depthStencilSpec.Usage = TextureUsage::Attachment;
-        depthStencilSpec.Width = backBufferSpec.Width;
-        depthStencilSpec.Height = backBufferSpec.Height;
 
         m_DepthAttachment = Texture2D::Create(depthStencilSpec);
 
@@ -119,6 +117,7 @@ namespace DLEngine
         TextureSpecification textureSpec{};
         textureSpec.Width = m_Specification.Width;
         textureSpec.Height = m_Specification.Height;
+        textureSpec.Samples = m_Specification.Samples;
 
         for (uint32_t i{ 0u }; i < m_Specification.Attachments.Attachments.size(); ++i)
         {
@@ -197,6 +196,10 @@ namespace DLEngine
 
             DL_ASSERT(attachment->GetType() == m_Specification.AttachmentsType,
                 "Framebuffer [{0}] has invalid attachments type", m_Specification.DebugName
+            );
+
+            DL_ASSERT(attachmentSpec.Samples == m_Specification.Samples,
+                "Framebuffer [{0}] has invalid samples count", m_Specification.DebugName
             );
 
             if (Utils::IsDepthFormat(attachmentSpec.Format))

@@ -2,6 +2,7 @@
 #include "Scene.h"
 
 #include "DLEngine/Renderer/Renderer.h"
+#include "DLEngine/Renderer/SceneRenderer.h"
 
 namespace DLEngine
 {
@@ -37,6 +38,75 @@ namespace DLEngine
 
             m_Dragger->Drag(ray);
         }
+
+        auto& dissolutionMeshBatch{ m_MeshRegistry.GetMeshBatch("PBR_Static_Dissolution") };
+        std::unordered_map<Ref<Instance>, std::pair<Ref<Instance>, bool>> dissolutionToPBR_StaticInstances{};
+        std::unordered_set<MeshRegistry::SubmeshID, MeshRegistry::SubmeshIDHash, MeshRegistry::SubmeshIDEqual> submeshIDsToRemove{};
+        const auto& pbrStaticShader{ Renderer::GetShaderLibrary()->Get("PBR_Static") };
+        for (auto& [mesh, submeshBatch] : dissolutionMeshBatch.SubmeshBatches)
+        {
+            for (uint32_t submeshIndex{ 0u }; submeshIndex < submeshBatch.MaterialBatches.size(); ++submeshIndex)
+            {
+                auto& materialBatch{ submeshBatch.MaterialBatches[submeshIndex] };
+                for (auto& [material, instanceBatch] : materialBatch.InstanceBatches)
+                {
+                    for (auto& instance : instanceBatch.SubmeshInstances)
+                    {
+                        if (!dissolutionToPBR_StaticInstances.contains(instance))
+                        {
+                            auto pbrStaticInstance{ Instance::Create(pbrStaticShader) };
+                            pbrStaticInstance->Set("TRANSFORM", Buffer{ &instance->Get<Math::Mat4x4>("TRANSFORM"), sizeof(Math::Mat4x4) });
+
+                            dissolutionToPBR_StaticInstances[instance] = std::make_pair(pbrStaticInstance, false);
+                        }
+
+                        const auto& pbrStaticInstance{ dissolutionToPBR_StaticInstances[instance].first };
+                        const bool isUpdated{ dissolutionToPBR_StaticInstances[instance].second };
+                        
+                        const auto& dissolutionDuration{ instance->Get<float>("DISSOLUTION_DURATION") };
+                        const auto& elapsedTime{ instance->Get<float>("ELAPSED_TIME") };
+
+                        if (isUpdated && elapsedTime < dissolutionDuration)
+                            continue;
+
+                        if (elapsedTime < dissolutionDuration)
+                        {
+                            const float updatedElapsedTime{ elapsedTime + dt };
+                            instance->Set("ELAPSED_TIME", Buffer{ &updatedElapsedTime, sizeof(float) });
+
+                            dissolutionToPBR_StaticInstances[instance].second = true;
+                        }
+
+                        if (elapsedTime < dissolutionDuration)
+                            continue;
+
+                        // Replace instance
+                        const auto& pbrMaterialCB{ material->GetConstantBuffer("PBRMaterial") };
+                        const auto& pbrMaterialCBData{ pbrMaterialCB->GetLocalData().Read<CBPBRMaterial>() };
+
+                        auto pbrStaticMaterial{ Material::Create(pbrStaticShader) };
+                        pbrStaticMaterial->Set("PBRMaterial", pbrMaterialCB);
+
+                        pbrStaticMaterial->Set("t_Albedo", material->GetTexture2D("t_Albedo"));
+                        pbrStaticMaterial->Set("t_Normal", material->GetTexture2D("t_Normal"));
+
+                        if (pbrMaterialCBData.HasMetalnessMap)
+                            pbrStaticMaterial->Set("t_Metalness", material->GetTexture2D("t_Metalness"));
+
+                        if (pbrMaterialCBData.HasRoughnessMap)
+                            pbrStaticMaterial->Set("t_Roughness", material->GetTexture2D("t_Roughness"));
+
+                        m_MeshRegistry.AddSubmesh(mesh, submeshIndex, pbrStaticMaterial, pbrStaticInstance);
+
+                        // Removing an instance invalidates current iterator, so postponing it
+                        submeshIDsToRemove.emplace(mesh, material, instance, submeshIndex);
+                    }
+                }
+            }
+        }
+
+        for (const auto& submeshID : submeshIDsToRemove)
+            m_MeshRegistry.RemoveSubmesh(submeshID.Mesh, submeshID.SubmeshIndex, submeshID.Material, submeshID.Instance);
     }
 
     void Scene::OnEvent(Event& e)

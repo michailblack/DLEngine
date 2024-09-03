@@ -34,7 +34,7 @@ namespace DLEngine
     {
         while (m_IsRunning)
         {
-            DeltaTime dt{ static_cast<float>(m_Timer.GetDeltaTimeMS()) };
+            DeltaTime dt{ m_Timer.ElapsedMS() };
 
             m_Window->ProcessEvents();
 

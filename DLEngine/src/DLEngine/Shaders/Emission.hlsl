@@ -1,4 +1,5 @@
 #include "Include/Buffers.hlsli"
+#include "Include/Common.hlsli"
 
 struct VertexInput
 {
@@ -31,11 +32,10 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
 
     vsOutput.v_WorldPos = vertexPos.xyz;
     vsOutput.v_Position = mul(vertexPos, c_ViewProjection);
-
-    float3 axisX = normalize(instInput.a_Transform[0].xyz);
-    float3 axizY = normalize(instInput.a_Transform[1].xyz);
-    float3 axizZ = normalize(instInput.a_Transform[2].xyz);
-    vsOutput.v_Normal = vsInput.a_Normal.x * axisX + vsInput.a_Normal.y * axizY + vsInput.a_Normal.z * axizZ;
+    
+    const float3x3 normalMatrix = ConstructNormalMatrix(instInput.a_Transform);
+    vsOutput.v_Normal = mul(vsInput.a_Normal, normalMatrix);
+    
     vsOutput.v_EmissionRadiance = instInput.a_EmissionRadiance;
 
     return vsOutput;

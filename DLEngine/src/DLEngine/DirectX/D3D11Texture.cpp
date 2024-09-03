@@ -103,14 +103,18 @@ namespace DLEngine
     D3D11Texture2D::D3D11Texture2D(const TextureSpecification& specification)
         : m_Specification(specification)
     {
+        DL_ASSERT(!(m_Specification.Samples > 1u && m_Specification.Mips > 1u),
+            "Multisampled textures with mipmaps are not supported"
+        );
+
         D3D11_TEXTURE2D_DESC1 textureDesc{};
         textureDesc.Width = specification.Width;
         textureDesc.Height = specification.Height;
         textureDesc.MipLevels = specification.Mips;
         textureDesc.ArraySize = specification.Layers;
         textureDesc.Format = Utils::DXGIFormatFromTextureFormat(specification.Format);
-        textureDesc.SampleDesc.Count = 1u;
-        textureDesc.SampleDesc.Quality = 0u;
+        textureDesc.SampleDesc.Count = specification.Samples;
+        textureDesc.SampleDesc.Quality = specification.Samples > 1u ? D3D11_STANDARD_MULTISAMPLE_PATTERN : 0u;
         textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
         switch (specification.Usage)
@@ -145,6 +149,10 @@ namespace DLEngine
     D3D11Texture2D::D3D11Texture2D(const TextureSpecification& specification, const std::filesystem::path& path)
         : m_Specification(specification), m_Path(path)
     {
+        DL_ASSERT(!(m_Specification.Samples > 1u && m_Specification.Mips > 1u),
+            "Multisampled textures with mipmaps are not supported"
+        );
+
         const auto& [metadata, ddsMetadata, scratchImage] { Utils::LoadTextureDataFromDDSFile(path) };
 
         DL_ASSERT((metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) == 0,
@@ -157,8 +165,8 @@ namespace DLEngine
         textureDesc.MipLevels = static_cast<UINT>(metadata.mipLevels);
         textureDesc.ArraySize = static_cast<UINT>(metadata.arraySize);
         textureDesc.Format = metadata.format;
-        textureDesc.SampleDesc.Count = 1u;
-        textureDesc.SampleDesc.Quality = 0u;
+        textureDesc.SampleDesc.Count = specification.Samples;
+        textureDesc.SampleDesc.Quality = specification.Samples > 1u ? D3D11_STANDARD_MULTISAMPLE_PATTERN : 0u;
 
         switch (specification.Usage)
         {
@@ -224,21 +232,38 @@ namespace DLEngine
         D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc{};
         srvDesc.Format = Utils::DXGIFormatFromTextureFormat(viewSpecification.Format);
 
-        if (m_Specification.Layers == 0u)
+        if (m_Specification.Layers == 1u)
         {
-            srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-            srvDesc.Texture2D.MostDetailedMip = viewSpecification.Subresource.BaseMip;
-            srvDesc.Texture2D.MipLevels = viewSpecification.Subresource.MipsCount;
-            srvDesc.Texture2D.PlaneSlice = 0u;
+            if (m_Specification.Samples == 1u)
+            {
+                srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+                srvDesc.Texture2D.MostDetailedMip = viewSpecification.Subresource.BaseMip;
+                srvDesc.Texture2D.MipLevels = viewSpecification.Subresource.MipsCount;
+                srvDesc.Texture2D.PlaneSlice = 0u;
+            }
+            else
+            {
+                srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+                srvDesc.Texture2DMS.UnusedField_NothingToDefine = 0u;
+            }
         }
         else
         {
-            srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-            srvDesc.Texture2DArray.MostDetailedMip = viewSpecification.Subresource.BaseMip;
-            srvDesc.Texture2DArray.MipLevels = viewSpecification.Subresource.MipsCount;
-            srvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
-            srvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
-            srvDesc.Texture2DArray.PlaneSlice = 0u;
+            if (m_Specification.Samples == 1u)
+            {
+                srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+                srvDesc.Texture2DArray.MostDetailedMip = viewSpecification.Subresource.BaseMip;
+                srvDesc.Texture2DArray.MipLevels = viewSpecification.Subresource.MipsCount;
+                srvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
+                srvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
+                srvDesc.Texture2DArray.PlaneSlice = 0u;
+            }
+            else
+            {
+                srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
+                srvDesc.Texture2DMSArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
+                srvDesc.Texture2DMSArray.ArraySize = viewSpecification.Subresource.LayersCount;
+            }
         }
 
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> d3d11ShaderResourceView{};
@@ -265,19 +290,36 @@ namespace DLEngine
         D3D11_RENDER_TARGET_VIEW_DESC1 rtvDesc{};
         rtvDesc.Format = Utils::DXGIFormatFromTextureFormat(viewSpecification.Format);
         
-        if (m_Specification.Layers == 0u)
+        if (m_Specification.Layers == 1u)
         {
-            rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-            rtvDesc.Texture2D.MipSlice = viewSpecification.Subresource.BaseMip;
-            rtvDesc.Texture2D.PlaneSlice = 0u;
+            if (m_Specification.Samples == 1u)
+            {
+                rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+                rtvDesc.Texture2D.MipSlice = viewSpecification.Subresource.BaseMip;
+                rtvDesc.Texture2D.PlaneSlice = 0u;
+            }
+            else
+            {
+                rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+                rtvDesc.Texture2DMS.UnusedField_NothingToDefine = 0u;
+            }
         }
         else
         {
-            rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-            rtvDesc.Texture2DArray.MipSlice = viewSpecification.Subresource.BaseMip;
-            rtvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
-            rtvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
-            rtvDesc.Texture2DArray.PlaneSlice = 0u;
+            if (m_Specification.Samples == 1u)
+            {
+                rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+                rtvDesc.Texture2DArray.MipSlice = viewSpecification.Subresource.BaseMip;
+                rtvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
+                rtvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
+                rtvDesc.Texture2DArray.PlaneSlice = 0u;
+            }
+            else
+            {
+                rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+                rtvDesc.Texture2DMSArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
+                rtvDesc.Texture2DMSArray.ArraySize = viewSpecification.Subresource.LayersCount;
+            }
         }
 
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> d3d11RenderTargetView{};
@@ -304,17 +346,34 @@ namespace DLEngine
         D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
         dsvDesc.Format = Utils::DXGIFormatFromTextureFormat(viewSpecification.Format);
 
-        if (m_Specification.Layers == 0u)
+        if (m_Specification.Layers == 1u)
         {
-            dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-            dsvDesc.Texture2D.MipSlice = viewSpecification.Subresource.BaseMip;
+            if (m_Specification.Samples == 1u)
+            {
+                dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+                dsvDesc.Texture2D.MipSlice = viewSpecification.Subresource.BaseMip;
+            }
+            else
+            {
+                dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+                dsvDesc.Texture2DMS.UnusedField_NothingToDefine = 0u;
+            }
         }
         else
         {
-            dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-            dsvDesc.Texture2DArray.MipSlice = viewSpecification.Subresource.BaseMip;
-            dsvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
-            dsvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
+            if (m_Specification.Samples == 1u)
+            {
+                dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+                dsvDesc.Texture2DArray.MipSlice = viewSpecification.Subresource.BaseMip;
+                dsvDesc.Texture2DArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
+                dsvDesc.Texture2DArray.ArraySize = viewSpecification.Subresource.LayersCount;
+            }
+            else
+            {
+                dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                dsvDesc.Texture2DMSArray.FirstArraySlice = viewSpecification.Subresource.BaseLayer;
+                dsvDesc.Texture2DMSArray.ArraySize = viewSpecification.Subresource.LayersCount;
+            }
         }
 
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView> d3d11DepthStencilView{};
@@ -335,6 +394,9 @@ namespace DLEngine
     D3D11TextureCube::D3D11TextureCube(const TextureSpecification& specification)
         : m_Specification(specification)
     {
+        DL_ASSERT(m_Specification.Samples == 1u, "Multisampled texture cubes are not supported");
+        m_Specification.Samples = 1u;
+
         D3D11_TEXTURE2D_DESC1 textureDesc{};
         textureDesc.Width = specification.Width;
         textureDesc.Height = specification.Height;
@@ -377,6 +439,9 @@ namespace DLEngine
     D3D11TextureCube::D3D11TextureCube(const TextureSpecification& specification, const std::filesystem::path& path)
         : m_Specification(specification), m_Path(path)
     {
+        DL_ASSERT(m_Specification.Samples == 1u, "Multisampled texture cubes are not supported");
+        m_Specification.Samples = 1u;
+
         const auto& [metadata, ddsMetadata, scratchImage] { Utils::LoadTextureDataFromDDSFile(path) };
 
         DL_ASSERT((metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) != 0,

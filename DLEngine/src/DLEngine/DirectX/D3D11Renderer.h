@@ -1,6 +1,5 @@
 #pragma once
 #include "DLEngine/Renderer/ConstantBuffer.h"
-#include "DLEngine/Renderer/DepthStencil.h"
 #include "DLEngine/Renderer/RendererAPI.h"
 #include "DLEngine/Renderer/Shader.h"
 #include "DLEngine/Renderer/StructuredBuffer.h"
@@ -34,8 +33,9 @@ namespace DLEngine
         void SubmitFullscreenQuad() noexcept override;
 
         static Microsoft::WRL::ComPtr<ID3D11SamplerState> GetSamplerState(const SamplerSpecification& specification);
-        static Microsoft::WRL::ComPtr<ID3D11RasterizerState2> GetRasterizerState(const RasterizerSpecification& specification);
+        static Microsoft::WRL::ComPtr<ID3D11RasterizerState2> GetRasterizerState(const RasterizerSpecification& specification, bool multisampleEnabled);
         static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> GetDepthStencilState(const DepthStencilSpecification& specification);
+        static Microsoft::WRL::ComPtr<ID3D11BlendState1> GetBlendState(BlendState blendState);
 
     private:
         static void SetShaderResourceViews(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<ID3D11ShaderResourceView*>& srvs) noexcept;

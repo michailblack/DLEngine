@@ -122,7 +122,6 @@
     <ClInclude Include="src\DLEngine\DirectX\D3D11StructuredBuffer.h" />
     <ClInclude Include="src\DLEngine\DirectX\D3D11Texture.h" />
     <ClInclude Include="src\DLEngine\Renderer\Common.h" />
-    <ClInclude Include="src\DLEngine\Renderer\DepthStencil.h" />
     <ClInclude Include="src\DLEngine\Renderer\Framebuffer.h" />
     <ClInclude Include="src\DLEngine\DirectX\D3D11ConstantBuffer.h" />
     <ClInclude Include="src\DLEngine\Renderer\ConstantBuffer.h" />
@@ -137,7 +136,6 @@
     <ClInclude Include="src\DLEngine\Renderer\Mesh\MeshRegistry.h" />
     <ClInclude Include="src\DLEngine\Renderer\Mesh\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\Renderer\Pipeline.h" />
-    <ClInclude Include="src\DLEngine\Renderer\Rasterizer.h" />
     <ClInclude Include="src\DLEngine\Renderer\RendererAPI.h" />
     <ClInclude Include="src\DLEngine\Renderer\RendererContext.h" />
     <ClInclude Include="src\DLEngine\DirectX\D3D11VertexBuffer.h" />
@@ -245,6 +243,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\PBR_Static_Dissolution.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\EnvironmentIrradiance.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
@@ -261,6 +263,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="src\DLEngine\Shaders\Include\Common.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="src\DLEngine\Shaders\Include\Lighting.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
@@ -316,12 +322,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\Skybox.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="src\DLEngine\Shaders\SpotLightShadowMap.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

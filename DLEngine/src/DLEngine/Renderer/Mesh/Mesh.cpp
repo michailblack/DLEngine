@@ -296,11 +296,11 @@ namespace DLEngine
         return mesh;
     }
 
-    Ref<Mesh> MeshLibrary::Get(const std::string& path)
+    Ref<Mesh> MeshLibrary::Get(const std::string_view meshName)
     {
-        DL_ASSERT(m_Meshes.contains(path), "Mesh [{0}] not found in the mesh library", path);
+        DL_ASSERT(m_Meshes.contains(meshName), "Mesh [{0}] not found in the mesh library", meshName);
 
-        return m_Meshes[path];
+        return m_Meshes[meshName];
     }
 
 }

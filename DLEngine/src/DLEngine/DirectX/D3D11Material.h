@@ -30,6 +30,10 @@ namespace DLEngine
 
         const std::string& GetName() const noexcept override { return m_Name; }
 
+        std::size_t GetHash() const noexcept override;
+
+        bool operator==(const Material& other) const noexcept override;
+
     private:
         void SetShaderStageFlags() noexcept;
 

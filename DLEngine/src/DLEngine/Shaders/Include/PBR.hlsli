@@ -1,7 +1,7 @@
 #ifndef _PBR_HLSLI_
 #define _PBR_HLSLI_
 
-#include "Include/Common.hlsli"
+#include "Common.hlsli"
 
 // GGX/Towbridge-Reitz normal distribution function.
 // Uses Disney's reparametrization of alpha = roughness^2

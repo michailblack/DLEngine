@@ -50,6 +50,15 @@ uint CubeFaceIndex(float3 unitDir)
     return maxIndex + (asuint(unitDir[maxIndex >> 1]) >> 31);
 }
 
+float3x3 ConstructNormalMatrix(float4x4 transform)
+{
+    const float3 axisX = normalize(transform[0].xyz);
+    const float3 axizY = normalize(transform[1].xyz);
+    const float3 axizZ = normalize(transform[2].xyz);
+    
+    return float3x3(axisX, axizY, axizZ);
+}
+
 float3 RandomConeDirection(uint index, uint samplesCount, float coneHalfAngleCos)
 {
     const float z = lerp(coneHalfAngleCos, 1.0, float(index) / float(samplesCount - 1));
