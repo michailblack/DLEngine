@@ -47,7 +47,7 @@ float VisibilityForDirectionalLight(uint directionalLightIndex, float3 worldPos,
     const float3 depthOffset = -lightToFragmentDir * c_ShadowBias;
     const float3 normalOffset = geometryNormal * texelSize;
     
-    const float3 lightPOVPos = mul(float4(worldPos + depthOffset, 1.0), lightPOV).xyz;
+    const float3 lightPOVPos = mul(float4(worldPos + depthOffset + normalOffset, 1.0), lightPOV).xyz;
     const float2 lightPOVUV = lightPOVPos.xy * 0.5 + 0.5;
     const float3 sampleUVW = float3(lightPOVUV.x, 1.0 - lightPOVUV.y, directionalLightIndex);
     

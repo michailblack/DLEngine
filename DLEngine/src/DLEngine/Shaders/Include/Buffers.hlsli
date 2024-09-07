@@ -10,7 +10,9 @@ cbuffer Camera : register(b0)
     float4x4 c_ViewProjection;
     float4x4 c_InvViewProjection;
     float3   c_CameraPosition;
+    float    c_zNear;
     float3   c_BL;
+    float    c_zFar;
     float3   c_BL2TL;
     float3   c_BL2BR;
 };

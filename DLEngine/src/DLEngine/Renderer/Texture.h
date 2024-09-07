@@ -19,6 +19,7 @@ namespace DLEngine
     enum class TextureFormat
     {
         None = 0,
+        R8,
         RG16F,
         RG32F,
         RGBA,

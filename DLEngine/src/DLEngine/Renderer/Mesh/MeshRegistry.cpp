@@ -43,7 +43,13 @@ namespace DLEngine
         InstanceBatch* instanceBatch{ nullptr };
         const auto instanceBatchIt{ materialBatch->InstanceBatches.find(material) };
         if (instanceBatchIt == materialBatch->InstanceBatches.end())
+        {
             instanceBatch = &materialBatch->InstanceBatches[material];
+
+            const auto& instanceBufferLayout{ instance->GetShader()->GetInstanceLayout() };
+            const size_t instanceBufferSize{ instanceBufferLayout.GetStride() };
+            instanceBatch->InstanceBuffer = VertexBuffer::Create(instanceBufferLayout, instanceBufferSize);
+        }
         else
             instanceBatch = &instanceBatchIt->second;
 
@@ -131,8 +137,10 @@ namespace DLEngine
             return;
 
         const auto& instanceBufferLayout{ instanceBatch.SubmeshInstances.front()->GetShader()->GetInstanceLayout() };
-        size_t instanceBufferSize{ instanceBufferLayout.GetStride() };
-        instanceBatch.InstanceBuffer = VertexBuffer::Create(instanceBufferLayout, instanceBufferSize * instanceBatch.SubmeshInstances.size());
+        const size_t instanceBufferSize{ instanceBufferLayout.GetStride() };
+        const size_t requiredInstanceBufferSize{ instanceBufferSize * instanceBatch.SubmeshInstances.size() };
+        if (instanceBatch.InstanceBuffer->GetSize() != requiredInstanceBufferSize)
+            instanceBatch.InstanceBuffer = VertexBuffer::Create(instanceBufferLayout, requiredInstanceBufferSize);
 
         Buffer buffer{ instanceBatch.InstanceBuffer->Map() };
         for (size_t i{ 0 }; i < instanceBatch.SubmeshInstances.size(); ++i)

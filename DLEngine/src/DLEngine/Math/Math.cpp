@@ -78,9 +78,29 @@ namespace DLEngine::Math
         return DirectX::XMScalarCos(angle);
     }
 
+    float CosEst(float angle) noexcept
+    {
+        return DirectX::XMScalarCosEst(angle);
+    }
+
     float Sin(float angle) noexcept
     {
         return DirectX::XMScalarSin(angle);
+    }
+
+    float SinEst(float angle) noexcept
+    {
+        return DirectX::XMScalarSinEst(angle);
+    }
+
+    float Acos(float x) noexcept
+    {
+        return DirectX::XMScalarACos(x);
+    }
+
+    float AcosEst(float x) noexcept
+    {
+        return DirectX::XMScalarACosEst(x);
     }
 
     std::vector<Vec3> GenerateFibonacciHemispherePoints(uint32_t numPoints)
@@ -142,15 +162,4 @@ namespace DLEngine::Math
         b1 = Vec3{ 1.0f + s * n.x * n.x * a, s * b, -s * n.x };
         b2 = Vec3{ b, s + n.y * n.y * a, -n.y };
     }
-
-    float Acos(float x) noexcept
-    {
-        return DirectX::XMScalarACos(x);
-    }
-
-    float AcosEst(float x) noexcept
-    {
-        return DirectX::XMScalarACosEst(x);
-    }
-
 }

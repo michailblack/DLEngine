@@ -58,13 +58,13 @@ namespace DLEngine
             Math::Mat4x4 ViewProjection;
             Math::Mat4x4 InvViewProjection;
             Math::Vec3 CameraPosition;
-            float _padding1{ 0.0f };
+            float zNear;
             Math::Vec3 BL;
-            float _padding2{ 0.0f };
+            float zFar;
             Math::Vec3 BL2TL;
-            float _padding3{ 0.0f };
+            float _padding1{ 0.0f };
             Math::Vec3 BL2BR;
-            float _padding4{ 0.0f };
+            float _padding2{ 0.0f };
         };
 
         struct CBLightsCount
@@ -108,6 +108,27 @@ namespace DLEngine
             uint32_t UsePCF{ static_cast<uint32_t>(true) };
             float _padding[2u];
         };
+
+        struct VBSmokeParticle
+        {
+            Math::Vec3 WorldPosition;
+            Math::Vec3 TintColor;
+            Math::Vec2 InitialSize;
+            Math::Vec2 EndSize;
+            float EmissionIntensity;
+            float LifetimeMS;
+            float LifetimePassedMS;
+            float Rotation;
+        };
+
+        struct CBTextureAtlasData
+        {
+            Math::Vec2 Size;
+            Math::Vec2 TileSize;
+            uint32_t TilesCountX;
+            uint32_t TilesCountY;
+            float _padding[2u];
+        };
     }
 
     SceneRenderer::SceneRenderer(const SceneRendererSpecification& specification)
@@ -130,6 +151,7 @@ namespace DLEngine
         ShadowPass();
         GeometryPass();
         SkyboxPass();
+        SmokeParticlesPass();
         PostProcessPass();
     }
 
@@ -182,6 +204,7 @@ namespace DLEngine
         m_CBPostProcessSettings = ConstantBuffer::Create(sizeof(CBPostProcessingSettings));
         m_SceneShadowEnvironment.CBPointLightData = ConstantBuffer::Create(sizeof(CBOmnidirectionalLightShadowData));
         m_CBShadowMappingData = ConstantBuffer::Create(sizeof(CBShadowMappingData));
+        m_CBTextureAtlasData = ConstantBuffer::Create(sizeof(CBTextureAtlasData));
 
         m_SBDirectionalLights = StructuredBuffer::Create(sizeof(DirectionalLight), 100u);
         m_SBPointLights = StructuredBuffer::Create(sizeof(PointLight), 100u);
@@ -193,8 +216,8 @@ namespace DLEngine
         FramebufferSpecification mainFramebufferSpec{};
         mainFramebufferSpec.DebugName = "Main HDR Framebuffer";
         mainFramebufferSpec.Attachments = {
-            { TextureFormat::RGBA16F, TextureUsage::TextureAttachment },
-            { TextureFormat::DEPTH24STENCIL8, TextureUsage::Attachment }
+            { TextureFormat::RGBA16F     , TextureUsage::TextureAttachment },
+            { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment }
         };
         mainFramebufferSpec.Width = m_ViewportWidth;
         mainFramebufferSpec.Height = m_ViewportHeight;
@@ -263,7 +286,7 @@ namespace DLEngine
         directionalShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
         directionalShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
         directionalShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        directionalShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Back;
+        directionalShadowMapPipelineSpec.RasterizerState.Cull = CullMode::None;
         m_DirectionalShadowMapPipeline = Pipeline::Create(directionalShadowMapPipelineSpec);
 
         FramebufferSpecification pointShadowMapFBSpec{};
@@ -283,7 +306,7 @@ namespace DLEngine
         pointShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
         pointShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
         pointShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        pointShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Back;
+        pointShadowMapPipelineSpec.RasterizerState.Cull = CullMode::None;
         m_PointShadowMapPipeline = Pipeline::Create(pointShadowMapPipelineSpec);
 
         FramebufferSpecification spotShadowMapFBSpec{};
@@ -302,8 +325,76 @@ namespace DLEngine
         spotShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
         spotShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
         spotShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        spotShadowMapPipelineSpec.RasterizerState.Cull = CullMode::Back;
+        spotShadowMapPipelineSpec.RasterizerState.Cull = CullMode::None;
         m_SpotShadowMapPipeline = Pipeline::Create(spotShadowMapPipelineSpec);
+
+        PipelineSpecification smokeParticlePipelineSpec{};
+        const auto& smokeParticleShader{ Renderer::GetShaderLibrary()->Get("SmokeParticle") };
+
+        smokeParticlePipelineSpec.DebugName = "Smoke Particle Pipeline";
+        smokeParticlePipelineSpec.Shader = smokeParticleShader;
+        smokeParticlePipelineSpec.TargetFramebuffer = m_MainFramebuffer;
+        smokeParticlePipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
+        smokeParticlePipelineSpec.DepthStencilState.DepthTest = true;
+        smokeParticlePipelineSpec.DepthStencilState.DepthWrite = false;
+        smokeParticlePipelineSpec.RasterizerState.Cull = CullMode::Back;
+        smokeParticlePipelineSpec.BlendState = BlendState::General;
+        m_SmokeParticlePipeline = Pipeline::Create(smokeParticlePipelineSpec);
+
+        m_SmokeParticlesInstanceBuffer = VertexBuffer::Create(smokeParticleShader->GetInstanceLayout(), sizeof(VBSmokeParticle));
+
+        // Load smoke particle 6-way light maps
+        auto textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
+        const auto& textureDirectoryPath{ DLEngine::Texture::GetTextureDirectoryPath() };
+
+        DLEngine::TextureSpecification textureSpecification{};
+        textureSpecification.Usage = DLEngine::TextureUsage::Texture;
+
+        // R - right, L - left, U - up
+        textureSpecification.DebugName = "Smoke Particle Light Map RLU";
+        m_SmokeParticlesRLU = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "smoke\\smoke_RLU.dds");
+
+        // D - down, B - back, F - front
+        textureSpecification.DebugName = "Smoke Particle Light Map DBF";
+        m_SmokeParticlesDBF = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "smoke\\smoke_DBF.dds");
+
+        // E - emission, MV - motion vector, A - alpha
+        textureSpecification.DebugName = "Smoke Particle Light Map EMVA";
+        m_SmokeParticlesEMVA = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "smoke\\smoke_MVEA.dds");
+
+        CBTextureAtlasData textureAtlasData{};
+        textureAtlasData.Size = Math::Vec2{
+            static_cast<float>(m_SmokeParticlesEMVA->GetWidth()),
+            static_cast<float>(m_SmokeParticlesEMVA->GetHeight())
+        };
+        textureAtlasData.TileSize = Math::Vec2{ textureAtlasData.Size.x / 8.0f, textureAtlasData.Size.y / 8.0f };
+        textureAtlasData.TilesCountX = 8u;
+        textureAtlasData.TilesCountY = 8u;
+        m_CBTextureAtlasData->SetData(Buffer{ &textureAtlasData, sizeof(CBTextureAtlasData) });
+
+        FramebufferSpecification maxDepthFramebufferSpec{};
+        maxDepthFramebufferSpec.DebugName = "Max Depth Framebuffer";
+        maxDepthFramebufferSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
+        maxDepthFramebufferSpec.Width = m_ViewportWidth;
+        maxDepthFramebufferSpec.Height = m_ViewportHeight;
+        m_MaxDepthFramebuffer = Framebuffer::Create(maxDepthFramebufferSpec);
+
+        PipelineSpecification maxDepthPipelineSpec{};
+        maxDepthPipelineSpec.DebugName = "Max Depth Pipeline";
+        maxDepthPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("MaxDepth");
+        maxDepthPipelineSpec.TargetFramebuffer = m_MaxDepthFramebuffer;
+        maxDepthPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Always;
+        maxDepthPipelineSpec.DepthStencilState.DepthTest = true;
+        maxDepthPipelineSpec.DepthStencilState.DepthWrite = true;
+        m_MaxDepthPipeline = Pipeline::Create(maxDepthPipelineSpec);
+
+        TextureSpecification nullTextureSpec{};
+        nullTextureSpec.DebugName = "Null Texture";
+        nullTextureSpec.Usage = TextureUsage::TextureAttachment;
+        nullTextureSpec.Width = 1u;
+        nullTextureSpec.Height = 1u;
+        nullTextureSpec.Format = TextureFormat::R8;
+        m_NullTexture = Texture2D::Create(nullTextureSpec);
 
         BuildIrradianceMap();
         BuildPrefilteredMap();
@@ -365,8 +456,13 @@ namespace DLEngine
         UpdateDirectionalLightsData();
         UpdatePointLightsData();
         UpdateSpotLightsData();
+        UpdateSmokeParticlesData();
 
         m_MainFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+
+        TextureViewSpecification mainDepthAttachmentViewSpec{};
+        mainDepthAttachmentViewSpec.Format = TextureFormat::DEPTH24STENCIL8;
+        m_MainFramebuffer->SetDepthAttachmentViewSpecification(mainDepthAttachmentViewSpec);
     }
 
     void SceneRenderer::ShadowPass()
@@ -525,6 +621,50 @@ namespace DLEngine
         Renderer::SubmitFullscreenQuad();
     }
 
+    void SceneRenderer::SmokeParticlesPass()
+    {
+        if (m_Scene->m_SmokeEnvironment.SortedSmokeParticles.empty())
+            return;
+
+        TextureViewSpecification depthWriteAttachmentViewSpec{};
+        depthWriteAttachmentViewSpec.Format = TextureFormat::DEPTH24STENCIL8;
+
+        TextureViewSpecification depthReadAttachmentViewSpec{};
+        depthReadAttachmentViewSpec.Format = TextureFormat::R24X8;
+
+        // Building max depth framebuffer
+        m_MaxDepthFramebuffer->SetDepthAttachmentViewSpecification(depthWriteAttachmentViewSpec);
+        Renderer::SetPipeline(m_MaxDepthPipeline, true);
+
+        Renderer::SetConstantBuffers(BP_CB_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_CBPostProcessSettings });
+        
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { AsRef<Texture2D>(m_MainFramebuffer->GetDepthAttachment()) }, { depthReadAttachmentViewSpec });
+
+        Renderer::SubmitFullscreenQuad();
+
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_NullTexture }, { TextureViewSpecification{} });
+
+        // Rendering smoke particles
+        Renderer::SetPipeline(m_SmokeParticlePipeline, false);
+        Renderer::SetConstantBuffers(BP_CB_NEXT_FREE, DL_VERTEX_SHADER_BIT | DL_PIXEL_SHADER_BIT, { m_CBTextureAtlasData });
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT,
+            {
+                m_SmokeParticlesRLU,
+                m_SmokeParticlesDBF,
+                m_SmokeParticlesEMVA,
+                AsRef<Texture2D>(m_MaxDepthFramebuffer->GetDepthAttachment())
+            },
+            {
+                TextureViewSpecification{},
+                TextureViewSpecification{},
+                TextureViewSpecification{},
+                depthReadAttachmentViewSpec
+            }
+        );
+        
+        Renderer::SubmitParticleBillboard(m_SmokeParticlesInstanceBuffer);
+    }
+
     void SceneRenderer::PostProcessPass()
     {
         Renderer::SetPipeline(m_PostProcessPipeline, true);
@@ -544,6 +684,9 @@ namespace DLEngine
         cameraData.InvViewProjection = Math::Mat4x4::Inverse(cameraData.ViewProjection);
         
         cameraData.CameraPosition    = camera.GetPosition();
+
+        cameraData.zNear = camera.GetNearZ();
+        cameraData.zFar  = camera.GetFarZ();
         
         cameraData.BL    = camera.ConstructFrustumPosNoTranslation(Math::Vec3{ -1.0f, -1.0f, 1.0f });
         cameraData.BL2BR = camera.ConstructFrustumPosNoTranslation(Math::Vec3{  1.0f, -1.0f, 1.0f }) - cameraData.BL;
@@ -758,7 +901,7 @@ namespace DLEngine
                 auto& pointLightData{ m_SceneShadowEnvironment.PointLightsData[i] };
 
                 // Calculate view matrices and projection matrix
-                static constexpr std::array<Math::Vec3, 6u> cubeDirections{
+                constexpr std::array<Math::Vec3, 6u> cubeDirections{
                     Math::Vec3{  1.0f,  0.0f,  0.0f }, // +X
                     Math::Vec3{ -1.0f,  0.0f,  0.0f }, // -X
                     Math::Vec3{  0.0f,  1.0f,  0.0f }, // +Y
@@ -871,6 +1014,44 @@ namespace DLEngine
         }
         m_SceneShadowEnvironment.SBSpotLightsPOVs->Unmap();
         m_SBSpotLights->Unmap();
+    }
+
+    void SceneRenderer::UpdateSmokeParticlesData()
+    {
+        const uint32_t smokeParticlesCount{ static_cast<uint32_t>(m_Scene->m_SmokeEnvironment.SortedSmokeParticles.size()) };
+        
+        if (smokeParticlesCount == 0u)
+            return;
+
+        // Recreate smoke particles instance buffer if needed
+        const auto& instanceBufferLayout{ m_SmokeParticlesInstanceBuffer->GetLayout() };
+        const size_t requiredSmokeParticlesInstanceBufferSize{ instanceBufferLayout.GetStride() * smokeParticlesCount };
+        if (m_SmokeParticlesInstanceBuffer->GetSize() != requiredSmokeParticlesInstanceBufferSize)
+            m_SmokeParticlesInstanceBuffer = VertexBuffer::Create(instanceBufferLayout, requiredSmokeParticlesInstanceBufferSize);
+
+        auto* smokeParticlesInstanceBuffer{ m_SmokeParticlesInstanceBuffer->Map().As<VBSmokeParticle>() };
+        for (uint32_t sortedParticleIndex{ 0u }; sortedParticleIndex < smokeParticlesCount; ++sortedParticleIndex)
+        {
+            const auto& smokeParticleID{ m_Scene->m_SmokeEnvironment.SortedSmokeParticles[sortedParticleIndex] };
+            const uint32_t smokeEmitterIndex{ smokeParticleID.first };
+            const uint32_t smokeParticleIndex{ smokeParticleID.second };
+
+            const auto& smokeEmitter{ m_Scene->m_SmokeEnvironment.SmokeEmitters[smokeEmitterIndex].first };
+            const auto& smokeParticle{ smokeEmitter.Particles[smokeParticleIndex] };
+
+            VBSmokeParticle gpuSmokeParticle{};
+            gpuSmokeParticle.WorldPosition = smokeParticle.Position;
+            gpuSmokeParticle.TintColor = smokeEmitter.SpawnedParticleTintColor;
+            gpuSmokeParticle.InitialSize = smokeEmitter.InitialParticleSize;
+            gpuSmokeParticle.EndSize = smokeEmitter.FinalParticleSize;
+            gpuSmokeParticle.EmissionIntensity = smokeEmitter.ParticleEmissionIntensity;
+            gpuSmokeParticle.LifetimeMS = smokeParticle.LifetimeMS;
+            gpuSmokeParticle.LifetimePassedMS = smokeParticle.LifetimePassedMS;
+            gpuSmokeParticle.Rotation = smokeParticle.Rotation;
+
+            smokeParticlesInstanceBuffer[sortedParticleIndex] = gpuSmokeParticle;
+        }
+        m_SmokeParticlesInstanceBuffer->Unmap();
     }
 
     void SceneRenderer::BuildIrradianceMap()

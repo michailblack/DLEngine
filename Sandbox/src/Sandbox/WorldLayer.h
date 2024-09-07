@@ -26,6 +26,8 @@ private:
     void AddPBRSamuraiToScene(std::string_view shaderName, const std::initializer_list<std::pair<std::string, DLEngine::Buffer>>& instanceData);
     void AddObjectsToScene();
 
+    void SwapDissolutionGroupInstances(DLEngine::DeltaTime dt);
+
 private:
     bool OnKeyPressedEvent(DLEngine::KeyPressedEvent& e);
 
@@ -43,6 +45,11 @@ private:
 
     DissolutionGroupSpawnSettings m_DissolutionGroupSpawnSettings{};
 
+    DLEngine::SmokeEmitter m_SmokeEmitterToSpawn{};
+    float m_SmokeEmitterSpawnDistanceToCamera{ 1.5f };
+
     float m_Time{ 0.0f };
     float m_DeltaTime{ 0.0f };
+
+    float m_TimeScale{ 1.0f };
 };

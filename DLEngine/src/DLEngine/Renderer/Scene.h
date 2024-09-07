@@ -7,6 +7,7 @@
 #include "DLEngine/Renderer/IDragger.h"
 
 #include "DLEngine/Utils/DeltaTime.h"
+#include "DLEngine/Utils/RandomGenerator.h"
 
 namespace DLEngine
 {
@@ -43,16 +44,35 @@ namespace DLEngine
 
     struct SmokeParticle
     {
+        Math::Vec3 Position{ 0.0f };
+        Math::Vec3 VelocityPerSecond{ 0.0f };
+        float Rotation{ RandomGenerator::GenerateRandomInRange(-Math::Numeric::Pi, Math::Numeric::Pi) };
+        float LifetimeMS{ Math::Numeric::Max };
+        float LifetimePassedMS{ 0.0f };
     };
 
     struct SmokeEmitter
     {
         std::vector<SmokeParticle> Particles;
         Math::Vec3 Position;
-        Math::Vec3 SpawnedParticleColor;
-        float ParticleSpawnRatePerSecond;
+        Math::Vec3 SpawnedParticleTintColor;
+        Math::Vec2 InitialParticleSize;
+        Math::Vec2 FinalParticleSize;
+        float ParticleEmissionIntensity;
         float ParticleSpawnRadius;
+        float MinParticleLifetimeMS;
+        float MaxParticleLifetimeMS;
+        float ParticleVerticalVelocity;
+        uint32_t ParticleSpawnRatePerSecond;
+    };
 
+    struct SmokeEnvironment
+    {
+        using EmitterIndex  = uint32_t;
+        using ParticleIndex = uint32_t;
+
+        std::vector<std::pair<SmokeEmitter, Ref<Instance>>> SmokeEmitters;
+        std::vector<std::pair<EmitterIndex, ParticleIndex>> SortedSmokeParticles;
     };
 
     struct SceneSpecification
@@ -71,8 +91,6 @@ namespace DLEngine
         void OnUpdate(DeltaTime dt);
         void OnEvent(Event& e);
 
-        void AddSubmesh(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<Material>& material, const Ref<Instance>& instance);
-
         void AddDirectionalLight(const Math::Vec3& direction, const Math::Vec3& radiance, float solidAngle);
 
         void AddPointLight(const Math::Vec3& position, const Math::Vec3& irradiance, float radius, float distance, const Math::Vec3& emissionMeshTranslation);
@@ -81,7 +99,21 @@ namespace DLEngine
         void AddSpotLight(const Math::Vec3& position, const Math::Vec3& direction, float radius, float innerCutoffCos, float outerCutoffCos, const Math::Vec3& irradiance, float distance, const Math::Vec3& emissionMeshTranslation);
         void AddSpotLight(const Math::Vec3& position, const Math::Vec3& direction, float radius, float innerCutoffCos, float outerCutoffCos, const Math::Vec3& irradiance, float distance, const Ref<Instance>& meshInstance);
 
-        const Camera& GetCamera() const { return m_SceneCameraController.GetCamera(); }
+        void AddSmokeEmitter(const SmokeEmitter& emitter, const Math::Vec3& emissionMeshTranslation);
+        void AddSmokeEmitter(const SmokeEmitter& emitter, const Ref<Instance>& meshInstance);
+
+        void ClearSmokeEmitters();
+
+        const Camera& GetCamera() const noexcept { return m_SceneCameraController.GetCamera(); }
+
+        MeshRegistry& GetMeshRegistry() noexcept { return m_MeshRegistry; }
+        const MeshRegistry& GetMeshRegistry() const noexcept { return m_MeshRegistry; }
+
+        uint32_t GetOverallParticlesCount() const noexcept { return static_cast<uint32_t>(m_SmokeEnvironment.SortedSmokeParticles.size()); }
+
+    private:
+        void UpdateSmokeEmitters(DeltaTime dt);
+        void SortSmokeParticles();
 
     private:
         bool OnWindowResize(WindowResizeEvent& e);
@@ -97,6 +129,8 @@ namespace DLEngine
 
         std::string m_SceneName;
 
+        SmokeEnvironment m_SmokeEnvironment;
+
         Scope<IDragger> m_Dragger;
 
         uint32_t m_ViewportWidth;
@@ -110,7 +144,7 @@ namespace DLEngine
     {
         Math::Vec3 SphereLightRadianceFromIrradiance(const Math::Vec3& irradiance, float radius, float distance);
         
-        // Threshold is basically irradiance / radiance
+        // Threshold is basically (irradiance / radiance)
         float SphereLightContributionDistance(float threshold, float radius);
     }
 }

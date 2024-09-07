@@ -108,6 +108,7 @@ namespace DLEngine
             switch (format)
             {
             case TextureFormat::None:            return DXGI_FORMAT_UNKNOWN;
+            case TextureFormat::R8:              return DXGI_FORMAT_R8_UNORM;
             case TextureFormat::RG16F:           return DXGI_FORMAT_R16G16_FLOAT;
             case TextureFormat::RG32F:           return DXGI_FORMAT_R32G32_FLOAT;
             case TextureFormat::RGBA:            return DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -134,6 +135,7 @@ namespace DLEngine
         {
             switch (format)
             {
+            case DXGI_FORMAT_R8_UNORM:              return TextureFormat::R8;
             case DXGI_FORMAT_R16G16_FLOAT:          return TextureFormat::RG16F;
             case DXGI_FORMAT_R32G32_FLOAT:          return TextureFormat::RG32F;
             case DXGI_FORMAT_R8G8B8A8_UNORM:        return TextureFormat::RGBA;

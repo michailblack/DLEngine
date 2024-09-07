@@ -11,6 +11,8 @@
 
 #include <imgui/imgui.h>
 
+#include <unordered_set>
+
 void WorldLayer::OnAttach()
 {
     const auto& windowSize{ DLEngine::Application::Get().GetWindow().GetSize() };
@@ -40,6 +42,16 @@ void WorldLayer::OnAttach()
 
     m_PostProcessingSettings.EV100 = -0.5f;
 
+    m_SmokeEmitterToSpawn.SpawnedParticleTintColor = DLEngine::Math::Vec3{ 0.5f, 0.5f, 0.5f };
+    m_SmokeEmitterToSpawn.ParticleEmissionIntensity = 2.0f;
+    m_SmokeEmitterToSpawn.InitialParticleSize = DLEngine::Math::Vec2{ 0.1f, 0.1f };
+    m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.3f, 0.3f };
+    m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.1f;
+    m_SmokeEmitterToSpawn.MinParticleLifetimeMS = 100.0f;
+    m_SmokeEmitterToSpawn.MaxParticleLifetimeMS = 1000.0f;
+    m_SmokeEmitterToSpawn.ParticleVerticalVelocity = 0.2f;
+    m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond = 5000u;
+
     LoadMeshes();
     LoadTextures();
     AddObjectsToScene();
@@ -52,10 +64,12 @@ void WorldLayer::OnDetach()
 
 void WorldLayer::OnUpdate(DLEngine::DeltaTime dt)
 {
-    m_Time += dt.GetSeconds();
-    m_DeltaTime = dt;
+    DLEngine::DeltaTime scaledDeltaTime{ dt * m_TimeScale };
 
-    m_Scene->OnUpdate(dt);
+    m_Time += scaledDeltaTime.GetSeconds();
+    m_DeltaTime = scaledDeltaTime;
+
+    m_Scene->OnUpdate(scaledDeltaTime);
     
     if (m_IsFlashlightAttached)
     {
@@ -69,6 +83,8 @@ void WorldLayer::OnUpdate(DLEngine::DeltaTime dt)
         
         m_FlashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &newFlashlightTransform, sizeof(DLEngine::Math::Mat4x4) });
     }
+
+    SwapDissolutionGroupInstances(scaledDeltaTime);
 
     m_SceneRenderer->RenderScene(m_Scene);
 }
@@ -94,10 +110,14 @@ void WorldLayer::OnImGuiRender()
     const ImVec2 windowSize{ ImGui::GetWindowSize() };
     s_PrevWidth = windowSize.x;
 
-    if (ImGui::CollapsingHeader("Info"))
+    ImGui::Text("Time Scale");
+    ImGui::SliderFloat("##time_scale", &m_TimeScale, 0.0f, 5.0f);
+
+    if (ImGui::CollapsingHeader("Statistics"))
     {
         ImGui::Text(std::format("Time (s): {0:.2f}", m_Time).c_str());
         ImGui::Text(std::format("Delta time (ms): {0:.2f}", m_DeltaTime).c_str());
+        ImGui::Text(std::format("Overall Particles Count: {0}", m_Scene->GetOverallParticlesCount()).c_str());
     }
 
     if (ImGui::CollapsingHeader("Settings"))
@@ -183,6 +203,55 @@ void WorldLayer::OnImGuiRender()
 
         ImGui::Text("Max Dissolution Duration (s)");
         ImGui::SliderFloat("##max_dissolution_duration", &m_DissolutionGroupSpawnSettings.MaxDissolutionDuration, m_DissolutionGroupSpawnSettings.MinDissolutionDuration, m_DissolutionGroupSpawnSettings.MinDissolutionDuration + 10.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Smoke Emitter Spawning"))
+    {
+        ImGui::Text("Particle Tint Color");
+        ImGui::ColorEdit3("##smoke_emitter_particle_color", &m_SmokeEmitterToSpawn.SpawnedParticleTintColor.x);
+
+        ImGui::Text("Particle Emission Intensity");
+        ImGui::SliderFloat("##smoke_emitter_particle_emission_intensity", &m_SmokeEmitterToSpawn.ParticleEmissionIntensity, 1.0f, 5.0f);
+
+        ImGui::Text("Initial Particle Size");
+        ImGui::DragFloat2("##smoke_emitter_initial_particle_size", &m_SmokeEmitterToSpawn.InitialParticleSize.x, 0.001f, 0.0f, 2.0f, "%.5f");
+
+        ImGui::Text("Final Particle Size");
+        ImGui::DragFloat2("##smoke_emitter_final_particle_size", &m_SmokeEmitterToSpawn.FinalParticleSize.x, 0.001f, 0.0f, 2.0f, "%.5f");
+
+        ImGui::Text("Particle Spawn Radius");
+        ImGui::SliderFloat("##smoke_emitter_particle_spawn_radius", &m_SmokeEmitterToSpawn.ParticleSpawnRadius, 0.0f, 2.0f, "%.5f");
+
+        constexpr float lifetimeDuration{ 5000.0f };
+        ImGui::Text("Min Particle Lifetime (ms)");
+        ImGui::SliderFloat("##smoke_emitter_min_particle_lifetime", &m_SmokeEmitterToSpawn.MinParticleLifetimeMS, 0.0f, lifetimeDuration);
+
+        m_SmokeEmitterToSpawn.MaxParticleLifetimeMS = DLEngine::Math::Clamp(
+            m_SmokeEmitterToSpawn.MaxParticleLifetimeMS,
+            m_SmokeEmitterToSpawn.MinParticleLifetimeMS,
+            m_SmokeEmitterToSpawn.MinParticleLifetimeMS + lifetimeDuration
+        );
+
+        ImGui::Text("Max Particle Lifetime (ms)");
+        ImGui::SliderFloat("##smoke_emitter_max_particle_lifetime", &m_SmokeEmitterToSpawn.MaxParticleLifetimeMS, m_SmokeEmitterToSpawn.MinParticleLifetimeMS, m_SmokeEmitterToSpawn.MinParticleLifetimeMS + lifetimeDuration);
+
+        ImGui::Text("Particle Vertical Velocity Per Second");
+        ImGui::SliderFloat("##smoke_emitter_particle_vertical_velocity", &m_SmokeEmitterToSpawn.ParticleVerticalVelocity, 0.0f, 2.0f, "%.5f");
+
+        ImGui::Text("Particle Spawn Rate Per Second");
+        ImGui::SliderInt("##smoke_emitter_particle_spawn_rate_per_second", reinterpret_cast<int32_t*>(&m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond), 1, 10000);
+
+        ImGui::Text("Emitter Distance To Camera");
+        ImGui::SliderFloat("##emitter_distance_to_camera", &m_SmokeEmitterSpawnDistanceToCamera, 0.0f, 10.0f);
+
+        const auto& sceneCameraPosition{ m_Scene->GetCamera().GetPosition() };
+        const auto& sceneCameraForward{ m_Scene->GetCamera().GetForward() };
+
+        if (ImGui::Button("Spawn Smoke Emitter"))
+            m_Scene->AddSmokeEmitter(m_SmokeEmitterToSpawn, sceneCameraPosition + m_SmokeEmitterSpawnDistanceToCamera * sceneCameraForward);
+
+        if (ImGui::Button("Clear Smoke Emitters"))
+            m_Scene->ClearSmokeEmitters();
     }
 
     ImGui::End();
@@ -356,6 +425,8 @@ void WorldLayer::LoadTextures()
 
 void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::initializer_list<std::pair<std::string, DLEngine::Buffer>>& instanceData)
 {
+    auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
+
     const auto& textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
     const auto& textureDirectoryPath{ DLEngine::Texture::GetTextureDirectoryPath() };
 
@@ -405,7 +476,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     swordMaterial->Set("t_Roughness", swordRoughness);
     swordMaterial->Set("PBRMaterial", swordPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 0u, swordMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 0u, swordMaterial, samuraiInstance);
 
     const auto& headAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Head_BaseColor.dds")) };
     const auto& headNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Head_Normal.dds")) };
@@ -426,7 +497,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     headMaterial->Set("t_Roughness", headRoughness);
     headMaterial->Set("PBRMaterial", headPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 1u, headMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 1u, headMaterial, samuraiInstance);
 
     const auto& eyesAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Eyes_BaseColor.dds")) };
     const auto& eyesNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Eyes_Normal.dds")) };
@@ -446,7 +517,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     eyesMaterial->Set("t_Normal", eyesNormal);
     eyesMaterial->Set("PBRMaterial", eyesPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 2u, eyesMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 2u, eyesMaterial, samuraiInstance);
 
     const auto& helmetAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Helmet_BaseColor.dds")) };
     const auto& helmetNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Helmet_Normal.dds")) };
@@ -468,7 +539,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     helmetMaterial->Set("t_Roughness", helmetRoughness);
     helmetMaterial->Set("PBRMaterial", helmetPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 3u, helmetMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 3u, helmetMaterial, samuraiInstance);
 
     const auto& decorAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Decor_BaseColor.dds")) };
     const auto& decorNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Decor_Normal.dds")) };
@@ -490,7 +561,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     decorMaterial->Set("t_Roughness", decorRoughness);
     decorMaterial->Set("PBRMaterial", decorPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 4u, decorMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 4u, decorMaterial, samuraiInstance);
 
     const auto& pantsAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Pants_BaseColor.dds")) };
     const auto& pantsNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Pants_Normal.dds")) };
@@ -512,7 +583,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     pantsMaterial->Set("t_Roughness", pantsRoughness);
     pantsMaterial->Set("PBRMaterial", pantsPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 5u, pantsMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 5u, pantsMaterial, samuraiInstance);
 
     const auto& handsAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Hands_BaseColor.dds")) };
     const auto& handsNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Hands_Normal.dds")) };
@@ -533,7 +604,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     handsMaterial->Set("t_Roughness", handsRoughness);
     handsMaterial->Set("PBRMaterial", handsPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 6u, handsMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 6u, handsMaterial, samuraiInstance);
 
     const auto& torsoAlbedo{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Torso_BaseColor.dds")) };
     const auto& torsoNormal{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "models\\samurai\\Torso_Normal.dds")) };
@@ -555,11 +626,13 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     torsoMaterial->Set("t_Roughness", torsoRoughness);
     torsoMaterial->Set("PBRMaterial", torsoPBRCB);
 
-    m_Scene->AddSubmesh(samurai, 7u, torsoMaterial, samuraiInstance);
+    sceneMeshRegistry.AddSubmesh(samurai, 7u, torsoMaterial, samuraiInstance);
 }
 
 void WorldLayer::AddObjectsToScene()
 {
+    auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
+    
     const auto& meshLibrary{ DLEngine::Renderer::GetMeshLibrary() };
     
     const auto& textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
@@ -647,7 +720,7 @@ void WorldLayer::AddObjectsToScene()
         crystallCBPBRMaterial.HasMetalnessMap = false;
         crystallCBPBRMaterial.DefaultMetalness = 0.0f;
         crystallCBPBRMaterial.HasRoughnessMap = false;
-        crystallCBPBRMaterial.DefaultRoughness = 0.2f;
+        crystallCBPBRMaterial.DefaultRoughness = 0.3f;
         crystallPBRCB->SetData(DLEngine::Buffer{ &crystallCBPBRMaterial, sizeof(DLEngine::CBPBRMaterial) });
 
         pbrCrystallMaterial->Set("t_Albedo", crystallAlbedo);
@@ -661,7 +734,7 @@ void WorldLayer::AddObjectsToScene()
         auto instance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Cube Instance") };
         instance->Set("TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) });
 
-        m_Scene->AddSubmesh(cube, 0u, pbrCobblestoneMaterial, instance);
+        sceneMeshRegistry.AddSubmesh(cube, 0u, pbrCobblestoneMaterial, instance);
 #else
 
         for (int32_t x{ -5 }; x < 5; ++x)
@@ -682,7 +755,7 @@ void WorldLayer::AddObjectsToScene()
                 else
                     pbrMaterial = pbrMetalSteelMaterial;
 
-                m_Scene->AddSubmesh(cube, 0u, pbrMaterial, instance);
+                sceneMeshRegistry.AddSubmesh(cube, 0u, pbrMaterial, instance);
             }
         }
 #endif
@@ -738,7 +811,7 @@ void WorldLayer::AddObjectsToScene()
         m_FlashlightInstance = DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Flashlight Instance");
         m_FlashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &m_FlashlightBaseTransform, sizeof(DLEngine::Math::Mat4x4) });
 
-        m_Scene->AddSubmesh(flashlight, 0u, flashlightMaterial, m_FlashlightInstance);
+        sceneMeshRegistry.AddSubmesh(flashlight, 0u, flashlightMaterial, m_FlashlightInstance);
 
         m_Scene->AddSpotLight(
             DLEngine::Math::Vec3{ 0.0f },
@@ -751,6 +824,81 @@ void WorldLayer::AddObjectsToScene()
             m_FlashlightInstance
         );
     }
+}
+
+void WorldLayer::SwapDissolutionGroupInstances(DLEngine::DeltaTime dt)
+{
+    using namespace DLEngine;
+
+    auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
+    auto& dissolutionMeshBatch{ sceneMeshRegistry.GetMeshBatch("PBR_Static_Dissolution") };
+    std::unordered_map<Ref<Instance>, std::pair<Ref<Instance>, bool>> dissolutionToPBR_StaticInstances{};
+    std::unordered_set<MeshRegistry::SubmeshID, MeshRegistry::SubmeshIDHash, MeshRegistry::SubmeshIDEqual> submeshIDsToRemove{};
+    const auto& pbrStaticShader{ Renderer::GetShaderLibrary()->Get("PBR_Static") };
+    for (auto& [mesh, submeshBatch] : dissolutionMeshBatch.SubmeshBatches)
+    {
+        for (uint32_t submeshIndex{ 0u }; submeshIndex < submeshBatch.MaterialBatches.size(); ++submeshIndex)
+        {
+            auto& materialBatch{ submeshBatch.MaterialBatches[submeshIndex] };
+            for (auto& [material, instanceBatch] : materialBatch.InstanceBatches)
+            {
+                for (auto& instance : instanceBatch.SubmeshInstances)
+                {
+                    if (!dissolutionToPBR_StaticInstances.contains(instance))
+                    {
+                        auto pbrStaticInstance{ Instance::Create(pbrStaticShader) };
+                        pbrStaticInstance->Set("TRANSFORM", Buffer{ &instance->Get<Math::Mat4x4>("TRANSFORM"), sizeof(Math::Mat4x4) });
+
+                        dissolutionToPBR_StaticInstances[instance] = std::make_pair(pbrStaticInstance, false);
+                    }
+
+                    const auto& pbrStaticInstance{ dissolutionToPBR_StaticInstances[instance].first };
+                    const bool isUpdated{ dissolutionToPBR_StaticInstances[instance].second };
+
+                    const auto& dissolutionDuration{ instance->Get<float>("DISSOLUTION_DURATION") };
+                    const auto& elapsedTime{ instance->Get<float>("ELAPSED_TIME") };
+
+                    if (isUpdated && elapsedTime < dissolutionDuration)
+                        continue;
+
+                    if (elapsedTime < dissolutionDuration)
+                    {
+                        const float updatedElapsedTime{ elapsedTime + dt };
+                        instance->Set("ELAPSED_TIME", Buffer{ &updatedElapsedTime, sizeof(float) });
+
+                        dissolutionToPBR_StaticInstances[instance].second = true;
+                    }
+
+                    if (elapsedTime < dissolutionDuration)
+                        continue;
+
+                    // Replace instance
+                    const auto& pbrMaterialCB{ material->GetConstantBuffer("PBRMaterial") };
+                    const auto& pbrMaterialCBData{ pbrMaterialCB->GetLocalData().Read<CBPBRMaterial>() };
+
+                    auto pbrStaticMaterial{ Material::Create(pbrStaticShader) };
+                    pbrStaticMaterial->Set("PBRMaterial", pbrMaterialCB);
+
+                    pbrStaticMaterial->Set("t_Albedo", material->GetTexture2D("t_Albedo"));
+                    pbrStaticMaterial->Set("t_Normal", material->GetTexture2D("t_Normal"));
+
+                    if (pbrMaterialCBData.HasMetalnessMap)
+                        pbrStaticMaterial->Set("t_Metalness", material->GetTexture2D("t_Metalness"));
+
+                    if (pbrMaterialCBData.HasRoughnessMap)
+                        pbrStaticMaterial->Set("t_Roughness", material->GetTexture2D("t_Roughness"));
+
+                    sceneMeshRegistry.AddSubmesh(mesh, submeshIndex, pbrStaticMaterial, pbrStaticInstance);
+
+                    // Removing an instance invalidates current iterator, so postponing it
+                    submeshIDsToRemove.emplace(mesh, material, instance, submeshIndex);
+                }
+            }
+        }
+    }
+
+    for (const auto& submeshID : submeshIDsToRemove)
+        sceneMeshRegistry.RemoveSubmesh(submeshID.Mesh, submeshID.SubmeshIndex, submeshID.Material, submeshID.Instance);
 }
 
 bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)

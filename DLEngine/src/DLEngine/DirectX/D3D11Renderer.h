@@ -29,8 +29,10 @@ namespace DLEngine
 
         void SetPipeline(const Ref<Pipeline>& pipeline, bool clearAttachments) noexcept override;
         void SetMaterial(const Ref<Material>& material) noexcept override;
+        
         void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<VertexBuffer>& instanceBuffer, uint32_t instanceCount) noexcept override;
         void SubmitFullscreenQuad() noexcept override;
+        void SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept override;
 
         static Microsoft::WRL::ComPtr<ID3D11SamplerState> GetSamplerState(const SamplerSpecification& specification);
         static Microsoft::WRL::ComPtr<ID3D11RasterizerState2> GetRasterizerState(const RasterizerSpecification& specification, bool multisampleEnabled);
