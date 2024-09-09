@@ -33,13 +33,11 @@ namespace DLEngine
 #pragma warning(disable: 4324)
         struct GPUDirectionalLight
         {
-            Math::Vec3 Direction;
-            float _padding{};
-            Math::Vec3 Luminance;
+            DirectionalLight Light;
             uint32_t TransformIndex;
         };
 
-        struct alignas(16) GPUPointLight
+        struct GPUPointLight
         {
             PointLight Light;
             uint32_t TransformIndex;
@@ -120,8 +118,7 @@ namespace DLEngine
         for (const auto& [directionalLight, transformID] : s_Data.DirectionalLights)
         {
             GPUDirectionalLight gpuLight{};
-            gpuLight.Direction = directionalLight.Direction;
-            gpuLight.Luminance = directionalLight.Luminance;
+            gpuLight.Light = directionalLight;
             gpuLight.TransformIndex = TransformSystem::GetArrayIndex(transformID);
 
             gpuDirectionalLights.insert(gpuLight);

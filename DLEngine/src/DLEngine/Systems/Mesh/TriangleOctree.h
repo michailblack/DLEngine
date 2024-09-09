@@ -30,7 +30,7 @@ namespace DLEngine
 
         bool NodeHasChildren(uint32_t nodeIndex) const;
 
-        uint32_t GetCurrentDepth(uint32_t nodeIndex) const noexcept;
+        static uint32_t GetNodeDepth(uint32_t nodeIndex) noexcept;
         static uint32_t CountMaxElementsWithDepth(uint32_t depth) noexcept;
 
     private:

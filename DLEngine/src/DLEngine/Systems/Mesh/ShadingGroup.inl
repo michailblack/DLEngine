@@ -5,8 +5,6 @@
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
-#define TYPE_NAME(x) STRINGIFY(x)
-
 namespace DLEngine
 {
     template <MaterialConcept TMaterial, typename TInstance>
@@ -178,20 +176,30 @@ namespace DLEngine
                             Math::Normalize(TransformSystem::TransformDirection(ray.Direction, worldToModel))
                         };
 
-                        if (mesh.Intersects(transformedRay, outIntersectInfo.MeshIntersectInfo))
+                        Mesh::IntersectInfo intersectInfo{ outIntersectInfo.MeshIntersectInfo };
+                        if (intersectInfo.TriangleIntersectInfo.T != Math::Numeric::Inf)
+                        {
+                            intersectInfo.TriangleIntersectInfo.IntersectionPoint = TransformSystem::TransformPoint(intersectInfo.TriangleIntersectInfo.IntersectionPoint, worldToModel);
+                            intersectInfo.TriangleIntersectInfo.Normal = Math::Normalize(TransformSystem::TransformDirection(intersectInfo.TriangleIntersectInfo.Normal, worldToModel));
+                            intersectInfo.TriangleIntersectInfo.T = Math::Length(intersectInfo.TriangleIntersectInfo.IntersectionPoint - transformedRay.Origin);
+                        }
+
+                        if (mesh.Intersects(transformedRay, intersectInfo))
                         {
                             outIntersectInfo.Model = modelInst.Model;
                             outIntersectInfo.TransformID = meshInstance.TransformID;
 
-                            // From model space to world space
                             auto& triangleIntersectInfo{ outIntersectInfo.MeshIntersectInfo.TriangleIntersectInfo };
                             triangleIntersectInfo.IntersectionPoint = TransformSystem::TransformPoint(
-                                triangleIntersectInfo.IntersectionPoint, modelToWorld
+                                intersectInfo.TriangleIntersectInfo.IntersectionPoint, modelToWorld
                             );
                             triangleIntersectInfo.Normal = Math::Normalize(
-                                TransformSystem::TransformDirection(triangleIntersectInfo.Normal, modelToWorld)
+                                TransformSystem::TransformDirection(intersectInfo.TriangleIntersectInfo.Normal, modelToWorld)
                             );
                             triangleIntersectInfo.T = Math::Length(triangleIntersectInfo.IntersectionPoint - ray.Origin);
+
+                            outIntersectInfo.MeshIntersectInfo.TriangleIndex = intersectInfo.TriangleIndex;
+                            outIntersectInfo.MeshIntersectInfo.InstanceIndex = intersectInfo.InstanceIndex;
 
                             intersects = true;
                         }

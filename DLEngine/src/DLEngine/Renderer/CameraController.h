@@ -49,7 +49,7 @@ namespace DLEngine
         float m_MaxVelocity{ 0.5f };
 
         // Radians per millisecond
-        float m_RotationVelocity{ Math::Pi() * 1.e-3f };
+        float m_RotationVelocity{ Math::Numeric::Pi * 1.e-3f };
         float m_ForwardRotationVelocityScale{ 0.25f };
 
         bool m_IsRotating{ false };

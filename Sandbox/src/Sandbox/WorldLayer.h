@@ -23,8 +23,6 @@ private:
 
     bool OnKeyPressedEvent(DLEngine::KeyPressedEvent& e);
 
-    bool OnKeyPressed(DLEngine::KeyPressedEvent& e);
-
 private:
     DLEngine::CameraController m_CameraController;
     uint32_t m_CameraTransformID{ 0u };

@@ -30,7 +30,7 @@ namespace DLEngine
     bool MeshSystem::Intersects(const Math::Ray& ray, IShadingGroup::IntersectInfo& outIntersectInfo) const noexcept
     {
         bool intersects{ false };
-        for (const auto& [key, shadingGroup] : m_ShadingGroups)
+        for (const auto& shadingGroup : m_ShadingGroups | std::views::values)
             if (shadingGroup->Intersects(ray, outIntersectInfo))
                 intersects = true;
         return intersects;

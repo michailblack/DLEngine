@@ -14,6 +14,8 @@ namespace DLEngine
         static bool Exists(const std::wstring& path);
 
     private:
+        static Ref<Model> LoadFromFile(const std::wstring& path);
+
         static void InitUnitSphere();
     };
 }
