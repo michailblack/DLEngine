@@ -6,7 +6,7 @@
 
 namespace DLEngine
 {
-    struct PipelineStateDesc
+    struct PipelineState
     {
         InputLayout Layout{};
         VertexShader VS{};
@@ -17,16 +17,6 @@ namespace DLEngine
         RasterizerState Rasterizer{};
         DepthStencilState DepthStencil{};
         D3D_PRIMITIVE_TOPOLOGY Topology{ D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
-    };
-
-    class PipelineState
-    {
-    public:
-        void Create(const PipelineStateDesc& spec) noexcept;
-        void Bind() const noexcept;
-
-    private:
-        PipelineStateDesc m_Specification{};
     };
 }
 

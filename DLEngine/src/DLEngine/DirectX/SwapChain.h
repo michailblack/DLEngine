@@ -7,17 +7,16 @@ namespace DLEngine
 
     class SwapChain
     {
+        friend class RenderCommand;
     public:
         void Create(HWND hWnd);
 
-        void Resize(uint32_t width, uint32_t height);
+        void Resize(uint32_t width, uint32_t height) const;
 
         void Present() const;
 
-        Texture2D GetBackBuffer() const;
-
-    public:
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> Handle;
+    private:
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> m_Handle{};
     };
 }
 

@@ -1,10 +1,10 @@
 #include "Buffers.hlsli"
 #include "Input.hlsli"
 #include "Samplers.hlsli"
+#include "BRDF.hlsli"
 
 struct InstanceInput
 {
-    float _emptyInstance  : _empty;
     uint a_TransformIndex : TRANSFORM_INDEX;
 };
 
@@ -21,7 +21,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
 {
     VertexOutput vsOutput;
 
-    float4x4 meshToWorld = mul(c_MeshToModel, c_ModelToWorld[instInput.a_TransformIndex]);
+    float4x4 meshToWorld = mul(c_MeshToModel, t_ModelToWorld[instInput.a_TransformIndex]);
     float4 vertexPos = mul(float4(vsInput.a_Position, 1.0), meshToWorld);
 
     vsOutput.v_WorldPos = vertexPos.xyz;
@@ -42,129 +42,244 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     return vsOutput;
 }
 
-static const float PI = 3.14159265359;
-
-float GGX(float NdotH, float roughness)
+struct View
 {
-    const float r = roughness * roughness;
+    float3 ViewDir;
+    float3 ReflectionDir;
+    float3 HalfDir;
+    float NoV;
+    float NoL;
+    float NoH;
+};
 
-    float denom = NdotH * NdotH * (r * r - 1.0) + 1.0;
-    denom = PI * denom * denom;
+struct Surface
+{
+    float3 Albedo;
+    float3 GeometryNormal;
+    float3 SurfaceNormal;
+    float Metallic;
+    float Rough;
+    float Rough2;
+    float Rough4;
+    float3 F0;
+};
 
-    return r * r / denom;
+struct Light
+{
+    float3 LightDir;
+    float3 Radiance;
+    float SolidAngle;
+};
+
+float3 CalculateEnvironmentReflection(in const View view, in const Surface surface)
+{
+    const float3 diffuseIrradianceIBL = t_DiffuseIrradianceIBL.Sample(s_AnisotropicWrap, surface.SurfaceNormal).rgb;
+
+    float width, height, numMipLevels;
+    t_SpecularIrradianceIBL.GetDimensions(0, width, height, numMipLevels);
+    const float3 specularIrradianceIBL = t_SpecularIrradianceIBL.SampleLevel(s_AnisotropicWrap, view.ReflectionDir, surface.Rough * numMipLevels).rgb;
+
+    const float2 specularFactors = t_SpecularFactorIBL.Sample(s_TrilinearClamp, float2(surface.Rough, view.NoV)).rg;
+
+    const float3 diffuseReflection = diffuseIrradianceIBL * surface.Albedo * (1.0 - surface.Metallic);
+    const float3 specularReflection = specularIrradianceIBL * (surface.F0 * specularFactors.x + specularFactors.y);
+
+    return diffuseReflection + specularReflection;
 }
 
-float GGX_Smith(float NdotV, float NdotL, float roughness)
+float3 RenderingEquation(in const View view, in const Surface surface, in const Light light)
 {
-    const float r = roughness * roughness;
+    const float diffuseCosTheta = dot(surface.SurfaceNormal, light.LightDir);
+    const float specularCosTheta = dot(view.HalfDir, light.LightDir);
 
-    return 2.0 / (sqrt(1.0 + (r * r * (1.0 - NdotV) / NdotV)) * sqrt(1.0 + (r * r * (1.0 - NdotL) / NdotL)));
+    float3 diffuseComponent = light.SolidAngle * surface.Albedo * (1.0 - surface.Metallic) * (1.0 - FresnelSchlick(surface.F0, diffuseCosTheta)) * view.NoL / PI;
+    if (!c_RendererSettings.DiffuseReflectoinsEnabled)
+        diffuseComponent = float3(0.0, 0.0, 0.0);
+
+    float3 specularComponent = min(1.0, (TrowbridgeReitzNDF(view.NoH, surface.Rough4) * light.SolidAngle) / (4.0 * view.NoV)) *
+        SmithGAF(view.NoV, view.NoL, surface.Rough4) * FresnelSchlick(surface.F0, specularCosTheta);
+    if (!c_RendererSettings.SpecularReflectionsEnabled)
+        specularComponent = float3(0.0, 0.0, 0.0);
+
+    return light.Radiance * (diffuseComponent + specularComponent);
 }
 
-float3 FresnelSchlick(float3 F0, float cosTheta)
+// May return direction pointing beneath surface horizon (dot(N, dir) < 0), use clampDirToHorizon to fix it.
+// sphereCos is cosine of the light source angular halfsize (2D angle, not solid angle).
+// sphereRelPos is position of a sphere relative to surface:
+// 'sphereDir == normalize(sphereRelPos)' and 'sphereDir * sphereDist == sphereRelPos'
+float3 ApproximateClosestSphereDir(float3 reflectionDir, float sphereCos,
+    float3 sphereRelPos, float3 sphereDir, float sphereDist, float sphereRadius)
 {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+    float3 closestSphereDir = float3(0.0, 0.0, 0.0);
+    const float RoS = dot(reflectionDir, sphereDir);
+
+    const bool intersects = RoS >= sphereCos;
+    if (intersects)
+    {
+        closestSphereDir = reflectionDir;
+    }
+    else if (RoS < 0.0)
+    {
+        closestSphereDir = sphereDir;
+    }
+    else
+    {
+        const float3 closestPointDir = normalize(reflectionDir * sphereDist * RoS - sphereRelPos);
+        closestSphereDir = normalize(sphereRelPos + sphereRadius * closestPointDir);
+    }
+
+    return closestSphereDir;
 }
 
-float3 RenderingEquation(
-    float3 normal, float3 viewDir, float3 lightDir,
-    float3 albedo, float metallic, float roughness, float solidAngle,
-    float3 lightLuminance
-)
+// Input dir and NoD is N and NoL in a case of lighting computation 
+void ClampDirToHorizon(inout float3 dir, inout float NoD, float3 normal, float minNoD)
 {
-    const float3 halfDir = normalize(viewDir + lightDir);
-
-    const float diffuseCosTheta = dot(normal, lightDir);
-    const float specularCosTheta = dot(halfDir, lightDir);
-
-    const float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-
-    const float threshold = 0.001;
-    const float NdotL = max(dot(normal, lightDir), threshold);
-    const float NdotV = max(dot(normal, viewDir), threshold);
-    const float NdotH = max(dot(normal, halfDir), threshold);
-
-    return lightLuminance * (
-        1.0 / PI * solidAngle * albedo * (1.0 - metallic) * (1.0 - FresnelSchlick(F0, diffuseCosTheta)) * NdotL +
-        min(1.0, (GGX(NdotH, roughness) * solidAngle) / (4.0 * NdotV)) *
-        GGX_Smith(NdotV, NdotL, roughness) * FresnelSchlick(F0, specularCosTheta)
-    );
+    if (NoD < minNoD)
+    {
+        dir = normalize(dir + (minNoD - NoD) * normal);
+        NoD = minNoD;
+    }
 }
 
-Texture2D<float3> t_Albedo    : register(t0);
-Texture2D<float2> t_Normal    : register(t1);
-Texture2D<float>  t_Metallic  : register(t2);
-Texture2D<float>  t_Roughness : register(t3);
+Texture2D<float3> t_Albedo    : register(t8);
+Texture2D<float2> t_Normal    : register(t9);
+Texture2D<float>  t_Metallic  : register(t10);
+Texture2D<float>  t_Roughness : register(t11);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    const float3 albedo    = t_Albedo.Sample(s_ActiveSampler, psInput.v_TexCoords).xyz;
-    const float  metallic  = t_Metallic.Sample(s_ActiveSampler, psInput.v_TexCoords).x;
-    const float  roughness = t_Roughness.Sample(s_ActiveSampler, psInput.v_TexCoords).x;
-    const float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, psInput.v_TexCoords).xy;
+    const float3 albedo    = t_Albedo.Sample(s_ActiveSampler, psInput.v_TexCoords).rgb;
+    const float  metallic  = t_Metallic.Sample(s_ActiveSampler, psInput.v_TexCoords).r;
+    const float  roughness = t_Roughness.Sample(s_ActiveSampler, psInput.v_TexCoords).r;
+    const float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, psInput.v_TexCoords).rg;
     
     const float3 normalTangentSpace = float3(normalBC5.x, normalBC5.y, sqrt(saturate(1.0 - dot(normalBC5.xy, normalBC5.yx))));
-    const float3 normal = normalize(mul(
+    const float3 surfaceNormal = normalize(mul(
         normalTangentSpace,
         psInput.v_TangentToWorld
     ));
 
-    const float3 indirect = float3(0.05, 0.05, 0.05);
+    float rough = roughness;
+    if (c_RendererSettings.OverwriteRoughness)
+        rough = c_RendererSettings.OverwrittenRoughness;
 
-    float3 outputColor = albedo * indirect;
+    Surface surface;
+    surface.Albedo = albedo;
+    surface.GeometryNormal = psInput.v_Normal;
+    surface.SurfaceNormal = surfaceNormal;
+    surface.Metallic = metallic;
+    surface.Rough = rough;
+    surface.Rough2 = rough * rough;
+    surface.Rough4 = rough * rough * rough * rough;
+    surface.F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
 
-    const float3 viewDir = normalize(c_CameraPosition.xyz - psInput.v_WorldPos);
+    View view;
+    view.ViewDir = normalize(c_CameraPosition - psInput.v_WorldPos);
+    view.ReflectionDir = normalize(reflect(-view.ViewDir, surface.SurfaceNormal));
+    view.NoV = max(dot(view.ViewDir, surface.SurfaceNormal), THRESHOLD);
+    view.HalfDir = float3(0.0, 0.0, 0.0);
+    view.NoL = -1.0;
+    view.NoH = -1.0;
+
+    float3 indirectLighting = CalculateEnvironmentReflection(view, surface);
+    if (!c_RendererSettings.UseIBL)
+        indirectLighting = c_RendererSettings.IndirectLightingRadiance * albedo;
+
+    float3 outputColor = indirectLighting;
+
+    uint stride = 0;
+    uint lightsCount = 0;
+    t_DirectionalLights.GetDimensions(lightsCount, stride);
 
     uint i = 0;
-    for (; i < c_DirectionalLightsCount; ++i)
+    for (; i < lightsCount; ++i)
     {
-        const float3 lightDir = -normalize(mul(float4(c_DirectionalLights[i].Direction, 0.0), c_ModelToWorld[c_DirectionalLights[i].TransformIndex]).xyz);
+        const DirectionalLight directionalLight = t_DirectionalLights[i];
 
-        outputColor += RenderingEquation(
-            normal, viewDir, lightDir,
-            albedo, metallic, roughness, c_DirectionalLights[i].SolidAngle,
-            c_DirectionalLights[i].Luminance
-        );
+        Light light;
+        light.LightDir = -normalize(mul(float4(directionalLight.Direction, 0.0), t_ModelToWorld[directionalLight.TransformIndex]).xyz);
+        light.Radiance = directionalLight.Radiance;
+        light.SolidAngle = directionalLight.SolidAngle;
+
+        view.HalfDir = normalize(view.ViewDir + light.LightDir);
+        view.NoL = max(dot(surface.SurfaceNormal, light.LightDir), THRESHOLD);
+        view.NoH = max(dot(surface.SurfaceNormal, view.HalfDir), THRESHOLD);
+
+        outputColor += RenderingEquation(view, surface, light);
     }
 
-    i = 0;
-    for (; i < c_PointLightsCount; ++i)
-    {
-        const float3 lightWorldPos = mul(float4(c_PointLights[i].Position, 1.0), c_ModelToWorld[c_PointLights[i].TransformIndex]).xyz;
-        const float3 lightDir = normalize(lightWorldPos - psInput.v_WorldPos);
+    t_PointLights.GetDimensions(lightsCount, stride);
 
-        const float sizeRelation = c_PointLights[i].Radius / length(lightWorldPos - psInput.v_WorldPos);
+    i = 0;
+    for (; i < lightsCount; ++i)
+    {
+        const PointLight pointLight = t_PointLights[i];
+
+        const float3 lightWorldPos = mul(float4(pointLight.Position, 1.0), t_ModelToWorld[pointLight.TransformIndex]).xyz;
+
+        const float sizeRelation = pointLight.Radius / length(lightWorldPos - psInput.v_WorldPos);
         const float solidAngle = 2.0 * PI * (1.0 - sqrt(1.0 - sizeRelation * sizeRelation));
 
-        outputColor += RenderingEquation(
-            normal, viewDir, lightDir,
-            albedo, metallic, roughness, solidAngle,
-            c_PointLights[i].Luminance
-        );
+        const float sphereDist = length(lightWorldPos - psInput.v_WorldPos);
+        const float3 sphereDir = normalize(lightWorldPos - psInput.v_WorldPos);
+        float sphereCos = sqrt(sphereDist * sphereDist - pointLight.Radius * pointLight.Radius) / sphereDist;
+
+        float3 lightDir = ApproximateClosestSphereDir(view.ReflectionDir, sphereCos, sphereDir * sphereDist, sphereDir, sphereDist, pointLight.Radius);
+        float NoD = dot(surface.SurfaceNormal, lightDir);
+        ClampDirToHorizon(lightDir, NoD, surface.SurfaceNormal, THRESHOLD);
+
+        Light light;
+        light.LightDir = lightDir;
+        light.Radiance = pointLight.Radiance;
+        light.SolidAngle = solidAngle;
+
+        view.HalfDir = normalize(view.ViewDir + light.LightDir);
+        view.NoL = max(dot(surface.SurfaceNormal, light.LightDir), THRESHOLD);
+        view.NoH = max(dot(surface.SurfaceNormal, view.HalfDir), THRESHOLD);
+
+        // Plane equation: Ax + By + Cz + D = 0, where (A, B, C) is its normal.
+        const float geometryPlaneD = -dot(psInput.v_WorldPos, surface.GeometryNormal);
+        const float geometryPlaneH = dot(lightWorldPos, surface.GeometryNormal) + geometryPlaneD;
+        const float geometryFalloff = saturate((geometryPlaneH + pointLight.Radius) / (2.0 * pointLight.Radius));
+
+        const float surfacePlaneD = -dot(psInput.v_WorldPos, surface.SurfaceNormal);
+        const float surfacePlaneH = dot(lightWorldPos, surface.SurfaceNormal) + surfacePlaneD;
+        const float surfaceFalloff = saturate((surfacePlaneH + pointLight.Radius) / (2.0 * pointLight.Radius));
+
+        outputColor += RenderingEquation(view, surface, light) * geometryFalloff * surfaceFalloff;
     }
 
+    t_SpotLights.GetDimensions(lightsCount, stride);
+
     i = 0;
-    for (; i < c_SpotLightsCount; ++i)
+    for (; i < lightsCount; ++i)
     {
-        const float3 spotLightWorldPos = mul(float4(c_SpotLights[i].Position, 1.0), c_ModelToWorld[c_SpotLights[i].TransformIndex]).xyz;
-        const float3 spotLightWorldDir = normalize(mul(float4(c_SpotLights[i].Direction, 0.0), c_ModelToWorld[c_SpotLights[i].TransformIndex]).xyz);
+        const SpotLight spotLight = t_SpotLights[i];
 
-        const float3 lightDir = normalize(spotLightWorldPos - psInput.v_WorldPos);
+        const float3 lightWorldPos = mul(float4(spotLight.Position, 1.0), t_ModelToWorld[spotLight.TransformIndex]).xyz;
+        const float3 lightWorldDir = normalize(mul(float4(spotLight.Direction, 0.0), t_ModelToWorld[spotLight.TransformIndex]).xyz);
 
-        const float angle = dot(lightDir, -spotLightWorldDir);
-        if (angle > c_SpotLights[i].OuterCutoffCos)
+        Light light;
+        light.LightDir = normalize(lightWorldPos - psInput.v_WorldPos);
+
+        const float angle = dot(light.LightDir, -lightWorldDir);
+        if (angle > spotLight.OuterCutoffCos)
         {
-            const float sizeRelation = c_SpotLights[i].Radius / length(spotLightWorldPos - psInput.v_WorldPos);
+            const float sizeRelation = spotLight.Radius / length(lightWorldPos - psInput.v_WorldPos);
             const float solidAngle = 2.0 * PI * (1.0 - sqrt(1.0 - sizeRelation * sizeRelation));
 
-            const float spotLightFactor = c_SpotLights[i].InnerCutoffCos - c_SpotLights[i].OuterCutoffCos;
-            const float intensity = saturate((angle - c_SpotLights[i].OuterCutoffCos) / spotLightFactor);
+            light.Radiance = spotLight.Radiance;
+            light.SolidAngle = solidAngle;
 
-            outputColor += RenderingEquation(
-                normal, viewDir, lightDir,
-                albedo, metallic, roughness, solidAngle,
-                c_SpotLights[i].Luminance
-            ) * intensity;
+            view.HalfDir = normalize(view.ViewDir + light.LightDir);
+            view.NoL = max(dot(surface.SurfaceNormal, light.LightDir), THRESHOLD);
+            view.NoH = max(dot(surface.SurfaceNormal, view.HalfDir), THRESHOLD);
+
+            const float spotLightFactor = spotLight.InnerCutoffCos - spotLight.OuterCutoffCos;
+            const float intensity = saturate((angle - spotLight.OuterCutoffCos) / spotLightFactor);
+
+            outputColor += RenderingEquation(view, surface, light) * intensity;
         }
     }
 

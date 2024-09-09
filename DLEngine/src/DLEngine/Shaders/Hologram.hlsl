@@ -21,7 +21,7 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
 {
     VertexOutput vsOutput;
 
-    float4x4 meshToWorld = mul(c_MeshToModel, c_ModelToWorld[instInput.a_TransformIndex]);
+    float4x4 meshToWorld = mul(c_MeshToModel, t_ModelToWorld[instInput.a_TransformIndex]);
     float4 vertexPos = mul(float4(vsInput.a_Position, 1.0), meshToWorld);
 
     vsOutput.v_WorldPos = vertexPos.xyz;

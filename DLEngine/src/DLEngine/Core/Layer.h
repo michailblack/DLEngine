@@ -19,6 +19,7 @@ namespace DLEngine
         virtual void OnAttach() {}
         virtual void OnDetach() {}
         virtual void OnUpdate(DeltaTime) {}
+        virtual void OnImGuiRender() {}
         virtual void OnEvent(Event&) {}
     };
 }

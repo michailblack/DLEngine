@@ -48,4 +48,10 @@ robocopy ".\DirectXTex" "%DEPENDENCY_DIR%\include\DirectXTex" /e /mir /np /mt /z
 robocopy ".\build\lib\Debug" "%DEPENDENCY_DIR%\lib\Debug" *.lib /np /mt /z
 robocopy ".\build\lib\Release" "%DEPENDENCY_DIR%\lib\Release" *.lib /np /mt /z
 
+REM Build imgui
+cd "%VENDOR_DIR%\imgui"
+
+robocopy "." "%DEPENDENCY_DIR%\include\imgui" *.cpp *.h /np /mt /z
+robocopy ".\backends" "%DEPENDENCY_DIR%\include\imgui" imgui_impl_dx11.* imgui_impl_win32.* /np /mt /z
+
 endlocal

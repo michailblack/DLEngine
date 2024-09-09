@@ -12,74 +12,69 @@ namespace DLEngine
 
     class VertexShader
     {
+        friend class RenderCommand;
     public:
         void Create(const ShaderSpecification& spec);
 
-        void Bind() const noexcept;
-
-        Microsoft::WRL::ComPtr<ID3DBlob> GetBlob() const { return m_VertexShaderBlob; }
+        Microsoft::WRL::ComPtr<ID3DBlob> GetBlob() const { return m_Blob; }
 
     private:
         ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_VertexShaderBlob{ nullptr };
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_Handle{};
+        Microsoft::WRL::ComPtr<ID3DBlob> m_Blob{};
     };
 
     class PixelShader
     {
+        friend class RenderCommand;
     public:
         void Create(const ShaderSpecification& spec);
-
-        void Bind() const noexcept;
 
     private:
         ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_PixelShaderBlob{ nullptr };
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_Handle{};
+        Microsoft::WRL::ComPtr<ID3DBlob> m_Blob{};
     };
 
     class HullShader
     {
+        friend class RenderCommand;
     public:
         void Create(const ShaderSpecification& spec);
-
-        void Bind() const noexcept;
 
     private:
         ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_HullShaderBlob{ nullptr };
-        Microsoft::WRL::ComPtr<ID3D11HullShader> m_HullShader{ nullptr };
+        Microsoft::WRL::ComPtr<ID3DBlob> m_Blob{};
+        Microsoft::WRL::ComPtr<ID3D11HullShader> m_Handle{};
     };
 
     class DomainShader
     {
+        friend class RenderCommand;
     public:
         void Create(const ShaderSpecification& spec);
-
-        void Bind() const noexcept;
 
     private:
         ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_DomainShaderBlob{ nullptr };
-        Microsoft::WRL::ComPtr<ID3D11DomainShader> m_DomainShader{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11DomainShader> m_Handle{};
+        Microsoft::WRL::ComPtr<ID3DBlob> m_Blob{};
     };
 
     class GeometryShader
     {
+        friend class RenderCommand;
     public:
         void Create(const ShaderSpecification& spec);
-
-        void Bind() const noexcept;
 
     private:
         ShaderSpecification m_Specification{};
 
-        Microsoft::WRL::ComPtr<ID3DBlob> m_GeometryShaderBlob{ nullptr };
-        Microsoft::WRL::ComPtr<ID3D11GeometryShader> m_GeometryShader{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D11GeometryShader> m_Handle{};
+        Microsoft::WRL::ComPtr<ID3DBlob> m_Blob{};
     };
 
     class ShaderIncludeHandler

@@ -7,7 +7,11 @@
 #include "DLEngine/Core/Events/KeyEvent.h"
 #include "DLEngine/Core/Events/MouseEvent.h"
 
+#include <imgui/imgui.h>
+
 #pragma comment(lib, "dxgi.lib")
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace DLEngine
 {
@@ -103,6 +107,9 @@ namespace DLEngine
 
     LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, const EventCallbackFn& eventCallback)
     {
+        if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+            return true;
+
         switch (msg)
         {
         case WM_CLOSE:

@@ -1,9 +1,31 @@
 #include "dlpch.h"
 #include "TextureManager.h"
 
+#include "DLEngine/Core/Filesystem.h"
+
 #include <DirectXTex/DirectXTex.h>
 
 #pragma comment(lib, "DirectXTex.lib")
+
+enum class FileFormat
+{
+    NONE,
+    PNG,
+    TGA,
+    HDR,
+    BC1_LINEAR = DXGI_FORMAT_BC1_UNORM,			// RGB, 1 bit Alpha
+    BC1_SRGB = DXGI_FORMAT_BC1_UNORM_SRGB,		// RGB, 1-bit Alpha, SRGB
+    BC3_LINEAR = DXGI_FORMAT_BC3_UNORM,			// RGBA
+    BC3_SRGB = DXGI_FORMAT_BC3_UNORM_SRGB,		// RGBA, SRGB
+    BC4_UNSIGNED = DXGI_FORMAT_BC4_UNORM,		// GRAY, unsigned
+    BC4_SIGNED = DXGI_FORMAT_BC4_SNORM,			// GRAY, signed
+    BC5_UNSIGNED = DXGI_FORMAT_BC5_UNORM,		// RG, unsigned
+    BC5_SIGNED = DXGI_FORMAT_BC5_SNORM,			// RG, signed
+    BC6_UNSIGNED = DXGI_FORMAT_BC6H_UF16,		// RGB HDR, unsigned
+    BC6_SIGNED = DXGI_FORMAT_BC6H_SF16,			// RGB HDR, signed
+    BC7_LINEAR = DXGI_FORMAT_BC7_UNORM,			// RGBA Advanced
+    BC7_SRGB = DXGI_FORMAT_BC7_UNORM_SRGB,		// RGBA Advanced, SRGB
+};
 
 namespace std
 {
@@ -56,8 +78,8 @@ namespace DLEngine
     {
         struct TextureManagerData
         {
-            std::unordered_map<std::wstring, Texture2DResource> Textures2D;
-            std::unordered_map<Math::Vec4, Texture2DResource> ValueTextures2D;
+            std::unordered_map<std::wstring, Texture2D> Textures2D;
+            std::unordered_map<Math::Vec4, Texture2D> ValueTextures2D;
         } s_Data;
     }
 
@@ -68,12 +90,12 @@ namespace DLEngine
         DL_LOG_INFO("TextureManager Initialized");
     }
 
-    Texture2DResource TextureManager::LoadTexture2D(const std::wstring& path)
+    Texture2D TextureManager::LoadTexture2D(const std::wstring& path)
     {
         if (Exists2D(path))
             return s_Data.Textures2D[path];
 
-        const auto& [metadata, ddsMetadata, scratchImage]{ Utils::LoadFromFile(path) };
+        const auto& [metadata, ddsMetadata, scratchImage] { Utils::LoadFromFile(path) };
 
         DL_ASSERT(
             metadata.dimension == DirectX::TEX_DIMENSION_TEXTURE2D,
@@ -105,23 +127,25 @@ namespace DLEngine
             initData.push_back(data);
         }
 
-        Texture2DResource resource{};
-        resource.Texture.Create(textureDesc, initData);
-        resource.SRV.Create(resource.Texture);
+        const std::string fileName{ std::filesystem::path{path}.stem().string() };
 
-        const auto& [it, hasConstructed]{ s_Data.Textures2D.emplace(std::make_pair(path, resource)) };
+        Texture2D texture{};
+        texture.Create(textureDesc, initData);
+        texture.SetDebugName(fileName);
+
+        const auto& [it, hasConstructed] { s_Data.Textures2D.emplace(std::make_pair(path, texture)) };
 
         return it->second;
     }
 
-    Texture2DResource TextureManager::GetTexture2D(const std::wstring& path)
+    Texture2D TextureManager::GetTexture2D(const std::wstring& path)
     {
         DL_ASSERT_NOINFO(Exists2D(path));
 
         return s_Data.Textures2D[path];
     }
 
-    Texture2DResource TextureManager::GenerateValueTexture2D(Math::Vec4 value)
+    Texture2D TextureManager::GenerateValueTexture2D(Math::Vec4 value)
     {
         if (s_Data.ValueTextures2D.contains(value))
             return s_Data.ValueTextures2D[value];
@@ -145,13 +169,58 @@ namespace DLEngine
         initData.SysMemPitch = sizeof(Math::Vec4);
         initData.SysMemSlicePitch = 0u;
 
-        Texture2DResource resource{};
-        resource.Texture.Create(textureDesc, std::vector { initData });
-        resource.SRV.Create(resource.Texture);
+        Texture2D texture{};
+        texture.Create(textureDesc, std::vector{ initData });
 
-        const auto& [it, hasConstructed]{ s_Data.ValueTextures2D.emplace(std::make_pair(value, resource)) };
+        const auto& [it, hasConstructed] { s_Data.ValueTextures2D.emplace(std::make_pair(value, texture)) };
 
         return it->second;
+    }
+
+    void TextureManager::SaveToDDS(const Texture2D& texture, const std::wstring& name)
+    {
+        DirectX::ScratchImage scratchImage{};
+        DirectX::CaptureTexture(D3D::GetDevice5().Get(), D3D::GetDeviceContext4().Get(), texture.GetHandle().Get(), scratchImage);
+
+        const auto& texFormat{ texture.GetDesc().Format };
+
+        DirectX::ScratchImage* imagePtr{ &scratchImage };
+
+        DirectX::ScratchImage compressed;
+        if (DirectX::IsCompressed(static_cast<DXGI_FORMAT>(texFormat)))
+        {
+            if (static_cast<DXGI_FORMAT>(FileFormat::BC6_UNSIGNED) <= texFormat && texFormat <= static_cast<DXGI_FORMAT>(FileFormat::BC7_SRGB))
+            {
+                DL_THROW_IF_HR(DirectX::Compress(
+                    D3D::GetDevice5().Get(),
+                    imagePtr->GetImages(),
+                    imagePtr->GetImageCount(),
+                    imagePtr->GetMetadata(),
+                    static_cast<DXGI_FORMAT>(texFormat),
+                    DirectX::TEX_COMPRESS_PARALLEL,
+                    1.0f,
+                    compressed
+                ));
+            }
+            else
+            {
+                DL_THROW_IF_HR(DirectX::Compress(
+                    imagePtr->GetImages(),
+                    imagePtr->GetImageCount(),
+                    imagePtr->GetMetadata(),
+                    static_cast<DXGI_FORMAT>(texFormat),
+                    DirectX::TEX_COMPRESS_PARALLEL,
+                    1.0f,
+                    compressed
+                ));
+            }
+
+            imagePtr = &compressed;
+        }
+
+        const std::wstring file{ Filesystem::GetTextureDir() + L"saved/" + name + L".dds" };
+
+        DirectX::SaveToDDSFile(imagePtr->GetImages(), imagePtr->GetImageCount(), imagePtr->GetMetadata(), DirectX::DDS_FLAGS(0), file.c_str());
     }
 
     bool TextureManager::Exists2D(const std::wstring& path)

@@ -20,8 +20,8 @@ namespace DLEngine
         ApplicationSpecification spec;
         spec.WndTitle = L"Sandbox";
         spec.WorkingDir = cmdLine.data();
-        spec.WndWidth = 800;
-        spec.WndHeight = 600;
+        spec.WndWidth = 1280u;
+        spec.WndHeight = 720u;
         return new SandboxApp(spec);
     }
 }

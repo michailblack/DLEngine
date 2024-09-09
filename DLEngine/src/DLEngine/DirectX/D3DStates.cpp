@@ -121,6 +121,23 @@ namespace DLEngine
 
                     return rasterizerDesc;
                 }
+                case RasterizerStates::CULL_NONE:
+                {
+                    rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+                    rasterizerDesc.CullMode = D3D11_CULL_NONE;
+                    rasterizerDesc.FrontCounterClockwise = FALSE;
+                    rasterizerDesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+                    rasterizerDesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+                    rasterizerDesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+                    rasterizerDesc.DepthClipEnable = TRUE;
+                    rasterizerDesc.ScissorEnable = FALSE;
+                    rasterizerDesc.MultisampleEnable = FALSE;
+                    rasterizerDesc.AntialiasedLineEnable = FALSE;
+                    rasterizerDesc.ForcedSampleCount = 0u;
+                    rasterizerDesc.ConservativeRaster = D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+                    return rasterizerDesc;
+                }
                 default:
                     DL_ASSERT(false, "Unknown RasterizerState");
                     return rasterizerDesc;
@@ -213,47 +230,17 @@ namespace DLEngine
 
     void RasterizerState::Create(const D3D11_RASTERIZER_DESC2& desc)
     {
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateRasterizerState2(&desc, &Handle));
-    }
-
-    void RasterizerState::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->RSSetState(Handle.Get());
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateRasterizerState2(&desc, &m_Handle));
     }
 
     void DepthStencilState::Create(const D3D11_DEPTH_STENCIL_DESC& desc)
     {
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateDepthStencilState(&desc, &Handle));
-    }
-
-    void DepthStencilState::Bind() const noexcept
-    {
-        D3D::GetDeviceContext4()->OMSetDepthStencilState(Handle.Get(), 0u);
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateDepthStencilState(&desc, &m_Handle));
     }
 
     void SamplerState::Create(const D3D11_SAMPLER_DESC& desc)
     {
-        DL_THROW_IF_HR(D3D::GetDevice5()->CreateSamplerState(&desc, &Handle));
-    }
-
-    void SamplerState::Bind(uint32_t slot, uint8_t shaderBindFlags) const noexcept
-    {
-        const auto& deviceContext{ D3D::GetDeviceContext4() };
-
-        if (shaderBindFlags & BIND_VS)
-            deviceContext->VSSetSamplers(slot, 1u, Handle.GetAddressOf());
-
-        if (shaderBindFlags & BIND_HS)
-            deviceContext->HSSetSamplers(slot, 1u, Handle.GetAddressOf());
-
-        if (shaderBindFlags & BIND_DS)
-            deviceContext->DSSetSamplers(slot, 1u, Handle.GetAddressOf());
-
-        if (shaderBindFlags & BIND_GS)
-            deviceContext->GSSetSamplers(slot, 1u, Handle.GetAddressOf());
-
-        if (shaderBindFlags & BIND_PS)
-            deviceContext->PSSetSamplers(slot, 1u, Handle.GetAddressOf());
+        DL_THROW_IF_HR(D3D::GetDevice5()->CreateSamplerState(&desc, &m_Handle));
     }
 
     RasterizerState D3DStates::GetRasterizerState(const D3D11_RASTERIZER_DESC2& desc)

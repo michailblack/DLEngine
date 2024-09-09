@@ -2,6 +2,7 @@
 #include "Application.h"
 
 #include "DLEngine/Core/Engine.h"
+#include "DLEngine/Core/ImGuiLayer.h"
 
 #include "DLEngine/Renderer/Renderer.h"
 
@@ -23,7 +24,7 @@ namespace DLEngine
     {
         while (m_IsRunning)
         {
-            DeltaTime dt{static_cast<float>(m_Timer.GetDeltaTimeMS())};
+            DeltaTime dt{ static_cast<float>(m_Timer.GetDeltaTimeMS()) };
 
             ProcessInputs();
 
@@ -35,6 +36,11 @@ namespace DLEngine
 
                 for (const auto& layer : m_LayerStack)
                     layer->OnUpdate(dt);
+
+                ImGuiLayer::Begin();
+                for (const auto& layer : m_LayerStack)
+                    layer->OnImGuiRender();
+                ImGuiLayer::End();
 
                 Renderer::EndFrame();
             }
@@ -83,6 +89,12 @@ namespace DLEngine
         layer->OnAttach();
     }
 
+    void Application::PushOverlay(Layer* layer)
+    {
+        m_LayerStack.PushOverlay(layer);
+        layer->OnAttach();
+    }
+
     Application::Application(const ApplicationSpecification& spec)
         : m_Specification(spec)
         , m_Window(CreateScope<Window>(spec.WndWidth, spec.WndHeight, spec.WndTitle))
@@ -92,6 +104,8 @@ namespace DLEngine
         m_Window->SetEventCallback(DL_BIND_EVENT_FN(Application::OnEvent));
 
         Engine::Init();
+
+        PushOverlay(new ImGuiLayer());
     }
 
     void Application::ProcessInputs() const

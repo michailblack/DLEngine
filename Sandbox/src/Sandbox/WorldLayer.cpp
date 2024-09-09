@@ -3,12 +3,6 @@
 #include "DLEngine/Core/Filesystem.h"
 #include "DLEngine/Core/Input.h"
 
-#include "DLEngine/DirectX/D3D.h"
-#include "DLEngine/DirectX/D3DStates.h"
-#include "DLEngine/DirectX/View.h"
-
-#include "DLEngine/Renderer/PostProcess.h"
-#include "DLEngine/Renderer/Renderer.h"
 #include "DLEngine/Renderer/TextureManager.h"
 
 #include "DLEngine/Systems/Light/LightSystem.h"
@@ -18,58 +12,10 @@
 
 #include "DLEngine/Systems/Transform/TransformSystem.h"
 
-struct HologramGroupInstance
-{
-    DLEngine::Math::Vec3 BaseColor{};
-    DLEngine::Math::Vec3 AdditionalColor{};
-};
-
-struct TextureOnlyGroupMaterial
-{
-    DLEngine::ShaderResourceView TextureSRV{};
-
-    void Set() const noexcept
-    {
-        TextureSRV.Bind(0u, DLEngine::BIND_PS);
-    }
-
-    bool operator==(const TextureOnlyGroupMaterial& other) const
-    {
-        return TextureSRV.Handle == other.TextureSRV.Handle;
-    }
-};
-
-struct EmissionGroupInstance
-{
-    DLEngine::Math::Vec3 EmissionColor{};
-};
-
-struct LitGroupMaterial
-{
-    DLEngine::ShaderResourceView AlbedoSRV{};
-    DLEngine::ShaderResourceView NormalSRV{};
-    DLEngine::ShaderResourceView MetallicSRV{};
-    DLEngine::ShaderResourceView RoughnessSRV{};
-
-    void Set() const noexcept
-    {
-        AlbedoSRV.Bind(0u, DLEngine::BIND_PS);
-        NormalSRV.Bind(1u, DLEngine::BIND_PS);
-        MetallicSRV.Bind(2u, DLEngine::BIND_PS);
-        RoughnessSRV.Bind(3u, DLEngine::BIND_PS);
-    }
-
-    bool operator==(const LitGroupMaterial& other) const
-    {
-        return AlbedoSRV.Handle == other.AlbedoSRV.Handle &&
-            NormalSRV.Handle == other.NormalSRV.Handle &&
-            MetallicSRV.Handle == other.MetallicSRV.Handle &&
-            RoughnessSRV.Handle == other.RoughnessSRV.Handle;
-    }
-};
+#include <imgui/imgui.h>
 
 WorldLayer::WorldLayer()
-    : m_CameraController(DLEngine::Camera { DLEngine::Math::ToRadians(45.0f), 800.0f / 600.0f, 0.001f, 100.0f })
+    : m_CameraController(DLEngine::Camera{ DLEngine::Math::ToRadians(45.0f), 1280.0f / 720.0f, 0.001f, 100.0f })
 {
 }
 
@@ -79,250 +25,255 @@ WorldLayer::~WorldLayer()
 
 void WorldLayer::OnAttach()
 {
-    const auto cube{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"cube\\cube.obj") };
-    const auto samurai{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
-    const auto flashlight{ DLEngine::ModelManager::Load(DLEngine::Filesystem::GetModelDir() + L"flashlight\\flashlight.fbx") };
-    const auto sphere { DLEngine::ModelManager::Get(L"UNIT_SPHERE") };
-    
-    const auto skybox{ DLEngine::TextureManager::LoadTexture2D(DLEngine::Filesystem::GetTextureDir() + L"skybox\\night_street_hdr.dds") };
-    DLEngine::Renderer::SetSkybox(skybox.SRV);
+    using namespace DLEngine;
+
+    const auto cube{ ModelManager::Load(Filesystem::GetModelDir() + L"cube\\cube.obj") };
+    const auto samurai{ ModelManager::Load(Filesystem::GetModelDir() + L"samurai\\samurai.fbx") };
+    const auto flashlight{ ModelManager::Load(Filesystem::GetModelDir() + L"flashlight\\flashlight.fbx") };
+    const auto sphere{ ModelManager::Get(L"UNIT_SPHERE") };
+    const auto skybox{ TextureManager::LoadTexture2D(Filesystem::GetTextureDir() + L"skybox\\night_street.dds") };
+
+    Renderer::SetSkybox(skybox);
 
     uint32_t transformID{ 0u };
 
-    InitHologramGroup();
-    InitTextureOnlyGroup();
-    InitEmissionGroup();
-    InitLitGroup();
-    
-    std::vector<DLEngine::NullMaterial> nullMaterials{};
-    std::vector<TextureOnlyGroupMaterial> textureOnlyMaterials{};
-    std::vector<LitGroupMaterial> litMaterials{};
+    std::vector<ShadingGroupStruct::Material::Null> nullMaterials{};
+    std::vector<ShadingGroupStruct::Material::TextureOnly> textureOnlyMaterials{};
+    std::vector<ShadingGroupStruct::Material::Lit> litMaterials{};
 
     nullMaterials.resize(sphere->GetMeshesCount());
 
-    DLEngine::PointLight pointLight{};
-    pointLight.Position = DLEngine::Math::Vec3{ 0.0f };
+    PointLight pointLight{};
+    pointLight.Position = Math::Vec3{ 0.0f };
     pointLight.Radius = 0.5f;
-    pointLight.Luminance = DLEngine::Math::Vec3{ 98.3f, 156.7f, 30.4f };
+    pointLight.Radiance = Math::Vec3{ 9.83f, 15.67f, 3.04f };
 
-    transformID = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ pointLight.Radius }) *
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 1.5f, 2.0f, 1.0f })
+    transformID = TransformSystem::AddTransform(
+        Math::Mat4x4::Scale(Math::Vec3{ pointLight.Radius }) *
+        Math::Mat4x4::Translate(Math::Vec3{ 1.5f, 2.0f, 1.0f })
     );
 
-    DLEngine::LightSystem::AddPointLight(pointLight, transformID);
+    ShadingGroupStruct::Instance::Emission emissionInstance{};
+    emissionInstance.PointLightID = LightSystem::AddPointLight(pointLight, transformID);
+    emissionInstance.TransformID = transformID;
 
-    EmissionGroupInstance emissionInstance{};
-    emissionInstance.EmissionColor = pointLight.Luminance;
+    MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance);
 
-    DLEngine::MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance, transformID);
-
-    pointLight.Position = DLEngine::Math::Vec3{ 0.0f };
+    pointLight.Position = Math::Vec3{ 0.0f };
     pointLight.Radius = 0.1f;
-    pointLight.Luminance = DLEngine::Math::Vec3{ 23.1f, 41.5f, 99.9f };
+    pointLight.Radiance = Math::Vec3{ 23.1f, 41.5f, 99.9f };
 
-    transformID = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Scale(DLEngine::Math::Vec3{ pointLight.Radius }) *
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 2.0f, 1.0f })
+    transformID = TransformSystem::AddTransform(
+        Math::Mat4x4::Scale(Math::Vec3{ pointLight.Radius }) *
+        Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 2.0f, 1.0f })
     );
 
-    DLEngine::LightSystem::AddPointLight(pointLight, transformID);
+    emissionInstance.PointLightID = LightSystem::AddPointLight(pointLight, transformID);
+    emissionInstance.TransformID = transformID;
 
-    emissionInstance.EmissionColor = pointLight.Luminance;
-
-    DLEngine::MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance, transformID);
+    MeshSystem::Get().Add<>(sphere, nullMaterials, emissionInstance);
 
     litMaterials.resize(samurai->GetMeshesCount());
-    transformID = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 0.0f, 1.5f })
+    transformID = TransformSystem::AddTransform(
+        Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 0.0f, 1.5f })
     );
 
-    litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_BaseColor.dds"
-    ).SRV;
-    litMaterials[0].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_Normal.dds"
-    ).SRV;
-    litMaterials[0].MetallicSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_Metallic.dds"
-    ).SRV;
-    litMaterials[0].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Sword_Roughness.dds"
-    ).SRV;
-
-    litMaterials[1].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_BaseColor.dds"
-    ).SRV;
-    litMaterials[1].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_Normal.dds"
-    ).SRV;
-    litMaterials[1].MetallicSRV = DLEngine::TextureManager::GenerateValueTexture2D(DLEngine::Math::Vec4{ 0.0f }).SRV;
-    litMaterials[1].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Head_Roughness.dds"
-    ).SRV;
-
-    litMaterials[2].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_BaseColor.dds"
-    ).SRV;
-    litMaterials[2].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Eyes_Normal.dds"
-    ).SRV;
-    litMaterials[2].MetallicSRV = DLEngine::TextureManager::GenerateValueTexture2D(DLEngine::Math::Vec4{ 0.0f }).SRV;
-    litMaterials[2].RoughnessSRV = DLEngine::TextureManager::GenerateValueTexture2D(DLEngine::Math::Vec4{ 0.0f }).SRV;
-
-    litMaterials[3].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_BaseColor.dds"
-    ).SRV;
-    litMaterials[3].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_Normal.dds"
-    ).SRV;
-    litMaterials[3].MetallicSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_Metallic.dds"
-    ).SRV;
-    litMaterials[3].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Helmet_Roughness.dds"
-    ).SRV;
-
-    litMaterials[4].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_BaseColor.dds"
-    ).SRV;
-    litMaterials[4].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_Normal.dds"
-    ).SRV;
-    litMaterials[4].MetallicSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_Metallic.dds"
-    ).SRV;
-    litMaterials[4].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Decor_Roughness.dds"
-    ).SRV;
-
-    litMaterials[5].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_BaseColor.dds"
-    ).SRV;
-    litMaterials[5].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_Normal.dds"
-    ).SRV;
-    litMaterials[5].MetallicSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_Metallic.dds"
-    ).SRV;
-    litMaterials[5].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Pants_Roughness.dds"
-    ).SRV;
-
-    litMaterials[6].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_BaseColor.dds"
-    ).SRV;
-    litMaterials[6].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_Normal.dds"
-    ).SRV;
-    litMaterials[6].MetallicSRV = DLEngine::TextureManager::GenerateValueTexture2D(DLEngine::Math::Vec4{ 0.0f }).SRV;
-    litMaterials[6].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Hands_Roughness.dds"
-    ).SRV;
-
-    litMaterials[7].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_BaseColor.dds"
-    ).SRV;
-    litMaterials[7].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_Normal.dds"
-    ).SRV;
-    litMaterials[7].MetallicSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_Metallic.dds"
-    ).SRV;
-    litMaterials[7].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"samurai\\Torso_Roughness.dds"
-    ).SRV;
-
-    DLEngine::MeshSystem::Get().Add<>(samurai, litMaterials, DLEngine::NullInstance{}, transformID);
-
-    transformID = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ 1.5f, 0.0f, 1.5f })
+    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_BaseColor.dds"
     );
-    DLEngine::MeshSystem::Get().Add<>(samurai, litMaterials, DLEngine::NullInstance{}, transformID);
+    litMaterials[0].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Normal.dds"
+    );
+    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Metallic.dds"
+    );
+    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Sword_Roughness.dds"
+    );
+
+    litMaterials[1].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Head_BaseColor.dds"
+    );
+    litMaterials[1].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Head_Normal.dds"
+    );
+    litMaterials[1].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
+    litMaterials[1].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Head_Roughness.dds"
+    );
+
+    litMaterials[2].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Eyes_BaseColor.dds"
+    );
+    litMaterials[2].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Eyes_Normal.dds"
+    );
+    litMaterials[2].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
+    litMaterials[2].Roughness = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
+
+    litMaterials[3].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_BaseColor.dds"
+    );
+    litMaterials[3].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Normal.dds"
+    );
+    litMaterials[3].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Metallic.dds"
+    );
+    litMaterials[3].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Helmet_Roughness.dds"
+    );
+
+    litMaterials[4].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_BaseColor.dds"
+    );
+    litMaterials[4].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Normal.dds"
+    );
+    litMaterials[4].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Metallic.dds"
+    );
+    litMaterials[4].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Decor_Roughness.dds"
+    );
+
+    litMaterials[5].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_BaseColor.dds"
+    );
+    litMaterials[5].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Normal.dds"
+    );
+    litMaterials[5].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Metallic.dds"
+    );
+    litMaterials[5].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Pants_Roughness.dds"
+    );
+
+    litMaterials[6].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_BaseColor.dds"
+    );
+    litMaterials[6].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_Normal.dds"
+    );
+    litMaterials[6].Metallic = TextureManager::GenerateValueTexture2D(Math::Vec4{ 0.0f });
+    litMaterials[6].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Hands_Roughness.dds"
+    );
+
+    litMaterials[7].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_BaseColor.dds"
+    );
+    litMaterials[7].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Normal.dds"
+    );
+    litMaterials[7].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Metallic.dds"
+    );
+    litMaterials[7].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\samurai\\Torso_Roughness.dds"
+    );
+
+    ShadingGroupStruct::Instance::Null nullInstance{};
+    nullInstance.TransformID = transformID;
+
+    MeshSystem::Get().Add<>(samurai, litMaterials, nullInstance);
+
+    transformID = TransformSystem::AddTransform(
+        Math::Mat4x4::Translate(Math::Vec3{ 1.5f, 0.0f, 1.5f })
+    );
+    nullInstance.TransformID = transformID;
+    MeshSystem::Get().Add<>(samurai, litMaterials, nullInstance);
 
     litMaterials.resize(cube->GetMeshesCount());
-    transformID = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ -1.5f, 0.0f, 0.0f })
+    transformID = TransformSystem::AddTransform(
+        Math::Mat4x4::Translate(Math::Vec3{ -1.5f, 0.0f, 0.0f })
     );
 
-    litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"cube\\Cobblestone_albedo.dds"
-    ).SRV;
-    litMaterials[0].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"cube\\Cobblestone_normal.dds"
-    ).SRV;
-    litMaterials[0].MetallicSRV = DLEngine::TextureManager::GenerateValueTexture2D(DLEngine::Math::Vec4{ 0.0f }).SRV;
-    litMaterials[0].RoughnessSRV = DLEngine::TextureManager::GenerateValueTexture2D(DLEngine::Math::Vec4{ 0.0f }).SRV;
+    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_BaseColor.dds"
+    );
+    litMaterials[0].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Normal.dds"
+    );
+    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Metallic.dds"
+    );
+    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\cube\\metal_steel\\MetalSteelBrushed_Roughness.dds"
+    );
 
     for (int32_t x{ -5 }; x < 5; ++x)
     {
         for (int32_t z{ -5 }; z < 5; ++z)
         {
-            transformID = DLEngine::TransformSystem::AddTransform(
-                DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{ static_cast<float>(x), -0.5f, static_cast<float>(z) })
+            transformID = TransformSystem::AddTransform(
+                Math::Mat4x4::Translate(Math::Vec3{ static_cast<float>(x), -0.5f, static_cast<float>(z) })
             );
-            DLEngine::MeshSystem::Get().Add<>(cube, litMaterials, DLEngine::NullInstance{}, transformID);
+            nullInstance.TransformID = transformID;
+            MeshSystem::Get().Add<>(cube, litMaterials, nullInstance);
         }
     }
 
-    DLEngine::DirectionalLight directionalLight{};
-    directionalLight.Direction = DLEngine::Math::Normalize(DLEngine::Math::Vec3{ -1.0f, -1.0f, 1.0f });
+    DirectionalLight directionalLight{};
+    directionalLight.Direction = Math::Normalize(Math::Vec3{ -1.0f, -1.0f, 1.0f });
     directionalLight.SolidAngle = 6.418e-5f;
-    directionalLight.Luminance = DLEngine::Math::Vec3{ 0.05f, 0.06f, 0.1f };
+    directionalLight.Radiance = Math::Vec3{ 0.05f, 0.06f, 0.1f };
 
-    transformID = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Identity()
+    transformID = TransformSystem::AddTransform(
+        Math::Mat4x4::Identity()
     );
 
-    DLEngine::LightSystem::AddDirectionalLight(directionalLight, transformID);
+    LightSystem::AddDirectionalLight(directionalLight, transformID);
 
-    m_CameraTransformID = DLEngine::TransformSystem::AddTransform(
-        DLEngine::Math::Mat4x4::Identity()
+    m_CameraTransformID = TransformSystem::AddTransform(
+        Math::Mat4x4::Identity()
     );
 
-    DLEngine::SpotLight spotLight{};
-    spotLight.Position = DLEngine::Math::Vec3{ 0.0f, 0.0f, 0.0f };
-    spotLight.Direction = DLEngine::Math::Normalize(DLEngine::Math::Vec3{ 0.0f, 0.0f, 1.0f });
-    spotLight.Luminance = DLEngine::Math::Vec3{ 400.0f, 100.0f, 1500.0f };
+    SpotLight spotLight{};
+    spotLight.Position = Math::Vec3{ 0.0f, 5.0f, 0.0f };
+    spotLight.Direction = Math::Normalize(Math::Vec3{ 0.0f, 0.0f, 1.0f });
+    spotLight.Radiance = Math::Vec3{ 40.0f, 10.0f, 150.0f };
     spotLight.Radius = 0.075f;
-    spotLight.InnerCutoffCos = DLEngine::Math::Cos(DLEngine::Math::ToRadians(15.0f));
-    spotLight.OuterCutoffCos = DLEngine::Math::Cos(DLEngine::Math::ToRadians(25.0f));
+    spotLight.InnerCutoffCos = Math::Cos(Math::ToRadians(15.0f));
+    spotLight.OuterCutoffCos = Math::Cos(Math::ToRadians(25.0f));
 
-    DLEngine::LightSystem::AddSpotLight(spotLight, m_CameraTransformID);
+    LightSystem::AddSpotLight(spotLight, m_CameraTransformID);
 
     litMaterials.resize(flashlight->GetMeshesCount());
-    litMaterials[0].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
-    ).SRV;
-    litMaterials[0].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Normal.dds"
-    ).SRV;
-    litMaterials[0].MetallicSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Metallic.dds"
-    ).SRV;
-    litMaterials[0].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Roughness.dds"
-    ).SRV;
+    litMaterials[0].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Base_color.dds"
+    );
+    litMaterials[0].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Normal.dds"
+    );
+    litMaterials[0].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Metallic.dds"
+    );
+    litMaterials[0].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Roughness.dds"
+    );
 
-    litMaterials[1].AlbedoSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Base_color.dds"
-    ).SRV;
-    litMaterials[1].NormalSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Normal.dds"
-    ).SRV;
-    litMaterials[1].MetallicSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Metallic.dds"
-    ).SRV;
-    litMaterials[1].RoughnessSRV = DLEngine::TextureManager::LoadTexture2D(
-        DLEngine::Filesystem::GetTextureDir() + L"flashlight\\Flashlight_Roughness.dds"
-    ).SRV;
+    litMaterials[1].Albedo = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Base_color.dds"
+    );
+    litMaterials[1].Normal = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Normal.dds"
+    );
+    litMaterials[1].Metallic = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Metallic.dds"
+    );
+    litMaterials[1].Roughness = TextureManager::LoadTexture2D(
+        Filesystem::GetTextureDir() + L"models\\flashlight\\Flashlight_Roughness.dds"
+    );
 
-    DLEngine::MeshSystem::Get().Add<>(flashlight, litMaterials, DLEngine::NullInstance{}, m_CameraTransformID);
+    nullInstance.TransformID = m_CameraTransformID;
+    MeshSystem::Get().Add<>(flashlight, litMaterials, nullInstance);
 }
 
 void WorldLayer::OnDetach()
 {
-    
+
 }
 
 void WorldLayer::OnUpdate(DeltaTime dt)
@@ -341,31 +292,31 @@ void WorldLayer::OnUpdate(DeltaTime dt)
         );
     }
 
-    static constexpr float EV100Step{ 0.001f };
-    if (DLEngine::Input::IsKeyPressed(VK_OEM_PLUS))
-    {
-        m_EV100 += EV100Step * dt;
-        if (m_EV100 > 16.0f)
-            m_EV100 = 16.0f;
-
-        DL_LOG_INFO("EV100: {0}", m_EV100);
-    }
-    else if (DLEngine::Input::IsKeyPressed(VK_OEM_MINUS))
-    {
-        m_EV100 -= EV100Step * dt;
-        if (m_EV100 < -16.0f)
-            m_EV100 = -16.0f;
-
-        DL_LOG_INFO("EV100: {0}", m_EV100);
-    }
-
-    DLEngine::PostProcessSettings postProcessSettings{};
-    postProcessSettings.EV100 = m_EV100;
-    
-    DLEngine::Renderer::SetPostProcessSettings(postProcessSettings);
     DLEngine::Renderer::BeginScene(m_CameraController.GetCamera());
 
     DLEngine::Renderer::EndScene();
+}
+
+void WorldLayer::OnImGuiRender()
+{
+    ImGui::Begin("Settings");
+
+    ImGui::Checkbox("Diffuse Reflections", reinterpret_cast<bool*>(&m_Settings.DiffuseReflections));
+    ImGui::Checkbox("Specular Reflections", reinterpret_cast<bool*>(&m_Settings.SpecularReflections));
+
+    ImGui::Checkbox("Use IBL", reinterpret_cast<bool*>(&m_Settings.UseIBL));
+    if (!m_Settings.UseIBL)
+        ImGui::SliderFloat3("Indirect Light Radiance", &m_Settings.IndirectLightRadiance.x, 0.0f, 10.0f, "%.001f");
+
+    ImGui::Checkbox("Overwrite Roughness", reinterpret_cast<bool*>(&m_Settings.OverwriteRoughness));
+    if (m_Settings.OverwriteRoughness)
+        ImGui::SliderFloat("Overwritten Roughness", &m_Settings.OverwrittenRoughness, 0.0f, 1.0f);
+
+    ImGui::SliderFloat("EV100", &m_Settings.EV100, -16.0f, 16.0f, "%.001f");
+
+    ImGui::End();
+
+    DLEngine::Renderer::SetRendererSettings(m_Settings);
 }
 
 void WorldLayer::OnEvent(DLEngine::Event& e)
@@ -374,152 +325,6 @@ void WorldLayer::OnEvent(DLEngine::Event& e)
 
     DLEngine::EventDispatcher dispatcher{ e };
     dispatcher.Dispatch<DLEngine::KeyPressedEvent>(DL_BIND_EVENT_FN(WorldLayer::OnKeyPressedEvent));
-}
-
-void WorldLayer::InitHologramGroup() const
-{
-    using namespace DLEngine;
-    ShadingGroupDesc hologramGroupDesc{};
-
-    hologramGroupDesc.Name = "Hologram";
-
-    hologramGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
-
-    hologramGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "BASE_COLOR", BufferLayout::ShaderDataType::Float3 },
-        { "ADD_COLOR" , BufferLayout::ShaderDataType::Float3 }
-    };
-
-    ShaderSpecification shaderSpec{};
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"Hologram.hlsl";
-
-    shaderSpec.EntryPoint = "mainVS";
-    VertexShader vs{};
-    vs.Create(shaderSpec);
-    hologramGroupDesc.PipelineDesc.VS = vs;
-
-    shaderSpec.EntryPoint = "mainPS";
-    PixelShader ps{};
-    ps.Create(shaderSpec);
-    hologramGroupDesc.PipelineDesc.PS = ps;
-
-    shaderSpec.EntryPoint = "mainHS";
-    HullShader hs{};
-    hs.Create(shaderSpec);
-    hologramGroupDesc.PipelineDesc.HS = hs;
-
-    shaderSpec.EntryPoint = "mainDS";
-    DomainShader ds{};
-    ds.Create(shaderSpec);
-    hologramGroupDesc.PipelineDesc.DS = ds;
-    
-    shaderSpec.EntryPoint = "mainGS";
-    GeometryShader gs{};
-    gs.Create(shaderSpec);
-    hologramGroupDesc.PipelineDesc.GS = gs;
-
-    hologramGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
-    hologramGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
-
-    MeshSystem::Get().CreateShadingGroup<NullMaterial, HologramGroupInstance>(hologramGroupDesc);
-}
-
-void WorldLayer::InitTextureOnlyGroup() const
-{
-    using namespace DLEngine;
-    ShadingGroupDesc textureOnlyGroupDesc{};
-
-    textureOnlyGroupDesc.Name = "TextureOnly";
-
-    textureOnlyGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    textureOnlyGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "_empty", BufferLayout::ShaderDataType::Float }
-    };
-
-    ShaderSpecification shaderSpec{};
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"TextureOnly.hlsl";
-
-    shaderSpec.EntryPoint = "mainVS";
-    VertexShader vs{};
-    vs.Create(shaderSpec);
-    textureOnlyGroupDesc.PipelineDesc.VS = vs;
-
-    shaderSpec.EntryPoint = "mainPS";
-    PixelShader ps{};
-    ps.Create(shaderSpec);
-    textureOnlyGroupDesc.PipelineDesc.PS = ps;
-
-    textureOnlyGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DLEngine::DepthStencilStates::DEFAULT);
-    textureOnlyGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(DLEngine::RasterizerStates::DEFAULT);
-
-    MeshSystem::Get().CreateShadingGroup<TextureOnlyGroupMaterial, NullInstance>(textureOnlyGroupDesc);
-}
-
-void WorldLayer::InitEmissionGroup() const
-{
-    using namespace DLEngine;
-
-    ShadingGroupDesc emissionGroupDesc{};
-
-    emissionGroupDesc.Name = "Emission";
-
-    emissionGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    emissionGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "EMISSION_LUMINANCE", BufferLayout::ShaderDataType::Float3 }
-    };
-
-    ShaderSpecification shaderSpec{};
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"Emission.hlsl";
-
-    shaderSpec.EntryPoint = "mainVS";
-    VertexShader vs{};
-    vs.Create(shaderSpec);
-    emissionGroupDesc.PipelineDesc.VS = vs;
-
-    shaderSpec.EntryPoint = "mainPS";
-    PixelShader ps{};
-    ps.Create(shaderSpec);
-    emissionGroupDesc.PipelineDesc.PS = ps;
-
-    emissionGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEFAULT);
-    emissionGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
-
-    MeshSystem::Get().CreateShadingGroup<NullMaterial, EmissionGroupInstance>(emissionGroupDesc);
-}
-
-void WorldLayer::InitLitGroup() const
-{
-    using namespace DLEngine;
-
-    ShadingGroupDesc litGroupDesc{};
-
-    litGroupDesc.Name = "Lit";
-
-    litGroupDesc.PipelineDesc.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    litGroupDesc.InstanceBufferLayout = BufferLayout{
-        { "_empty", BufferLayout::ShaderDataType::Float }
-    };
-
-    ShaderSpecification shaderSpec{};
-    shaderSpec.Path = Filesystem::GetShaderDir() + L"Lit.hlsl";
-
-    shaderSpec.EntryPoint = "mainVS";
-    VertexShader vs{};
-    vs.Create(shaderSpec);
-    litGroupDesc.PipelineDesc.VS = vs;
-
-    shaderSpec.EntryPoint = "mainPS";
-    PixelShader ps{};
-    ps.Create(shaderSpec);
-    litGroupDesc.PipelineDesc.PS = ps;
-
-    litGroupDesc.PipelineDesc.DepthStencil = D3DStates::GetDepthStencilState(DepthStencilStates::DEFAULT);
-    litGroupDesc.PipelineDesc.Rasterizer = D3DStates::GetRasterizerState(RasterizerStates::DEFAULT);
-
-    MeshSystem::Get().CreateShadingGroup<LitGroupMaterial, NullInstance>(litGroupDesc);
 }
 
 bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)

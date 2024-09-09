@@ -1,5 +1,6 @@
 #pragma once
-#include <DirectXMath.h>
+#include "DLEngine/Math/Vec3.h"
+
 #include <numbers>
 
 namespace DLEngine::Math
@@ -39,6 +40,16 @@ namespace DLEngine::Math
         return std::exp(x);
     }
 
+    float Log(float x) noexcept
+    {
+        return std::log(x);
+    }
+
+    float Log2(float x) noexcept
+    {
+        return std::log2(x);
+    }
+
     inline float Log10(float x) noexcept
     {
         return std::log10(x);
@@ -57,5 +68,26 @@ namespace DLEngine::Math
     inline float Sin(float angle) noexcept
     {
         return DirectX::XMScalarSin(angle);
+    }
+
+    std::vector<Vec3> GenerateFibonacciHemispherePoints(uint32_t numPoints)
+    {
+        std::vector<Vec3> points{};
+        points.reserve(numPoints);
+
+        static const float GOLDEN_RATIO{ (1.0f + std::sqrt(5.0f)) / 2.0f };
+
+        for (uint32_t i{ 0u }; i < numPoints; ++i)
+        {
+            const float theta{ 2.0f * Numeric::Pi * i / GOLDEN_RATIO };
+            const float phiCos{ 1.0f - (i + 0.5f) / numPoints };
+            const float phiSin{ std::sqrt(1.0f - phiCos * phiCos) };
+            const float thetaCos{ Cos(theta) };
+            const float thetaSin{ Sin(theta) };
+
+            points.emplace_back(Vec3{ phiSin * thetaCos, phiSin * thetaSin, phiCos });
+        }
+
+        return points;
     }
 }

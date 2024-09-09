@@ -48,6 +48,18 @@ namespace DLEngine
         MeshSystem::Get().Init();
         TransformSystem::Init();
         LightSystem::Init();
+
+        DL_LOG_INFO("Fibonacci hemisphere point generation check...");
+
+        const uint32_t numPoints{ 1024u };
+        const Math::Vec3 normal{ 0.0f, 0.0f, 1.0f };
+        const auto hemispherePoints{ Math::GenerateFibonacciHemispherePoints(numPoints) };
+        float integrationResult{ 0.0f };
+        for (const auto& point : hemispherePoints)
+            integrationResult += Math::Dot(point, normal);
+        integrationResult *= 2.0f * Math::Numeric::Pi / numPoints;
+
+        DL_LOG_INFO("Integration result for {} points: {}", numPoints, integrationResult);
     }
 
     void Engine::Deinit()

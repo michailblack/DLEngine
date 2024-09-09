@@ -5,13 +5,12 @@ namespace DLEngine
 {
     class IndexBuffer
     {
+        friend class RenderCommand;
     public:
         void Create(const std::vector<uint32_t>& indices);
 
-        void Bind() const noexcept;
-
     private:
-        Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer> m_Handle{};
     };
 }
 

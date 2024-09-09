@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -108,17 +108,20 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\Core\ImGuiLayer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\RenderCommand.h" />
+    <ClInclude Include="src\DLEngine\DirectX\StructuredBuffer.h" />
     <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
     <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
     <ClInclude Include="src\DLEngine\Renderer\LightCasters.h" />
     <ClInclude Include="src\DLEngine\Renderer\PostProcess.h" />
+    <ClInclude Include="src\DLEngine\Renderer\ReflectionCapture.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
     <ClInclude Include="src\DLEngine\Renderer\TextureManager.h" />
     <ClInclude Include="src\DLEngine\Systems\Light\LightSystem.h" />
     <ClInclude Include="src\DLEngine\Core\Filesystem.h" />
-    <ClInclude Include="src\DLEngine\Core\SolidVector.h" />
+    <ClInclude Include="src\DLEngine\Core\solid_vector.h" />
     <ClInclude Include="src\DLEngine\DirectX\Binder.h" />
-    <ClInclude Include="src\DLEngine\DirectX\View.h" />
     <ClInclude Include="src\DLEngine\DirectX\D3DStates.h" />
     <ClInclude Include="src\DLEngine\DirectX\PipelineState.h" />
     <ClInclude Include="src\DLEngine\Math\Distance.h" />
@@ -128,6 +131,7 @@
     <ClInclude Include="src\DLEngine\Systems\Mesh\Model.h" />
     <ClInclude Include="src\DLEngine\Systems\Mesh\ModelManager.h" />
     <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroup.h" />
+    <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroupStructs.h" />
     <ClInclude Include="src\DLEngine\Systems\Mesh\TriangleOctree.h" />
     <ClInclude Include="src\DLEngine\DirectX\BufferLayout.h" />
     <ClInclude Include="src\DLEngine\DirectX\IndexBuffer.h" />
@@ -169,17 +173,21 @@
     <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\Core\ImGuiLayer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\ConstantBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\RenderCommand.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\StructuredBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\PostProcess.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\ReflectionCapture.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\TextureManager.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Light\LightSystem.cpp" />
     <ClCompile Include="src\DLEngine\Core\Filesystem.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\View.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\D3DStates.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\PipelineState.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\IDragger.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\Mesh.cpp" />
     <ClCompile Include="src\DLEngine\Systems\Mesh\MeshSystem.cpp" />
@@ -215,6 +223,9 @@
     <None Include="src\DLEngine\Math\Vec2.inl" />
     <None Include="src\DLEngine\Math\Vec3.inl" />
     <None Include="src\DLEngine\Math\Vec4.inl" />
+    <None Include="src\DLEngine\Shaders\BRDF.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="src\DLEngine\Shaders\Buffers.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -251,6 +262,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\PostProcess.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\ReflectionCapture.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

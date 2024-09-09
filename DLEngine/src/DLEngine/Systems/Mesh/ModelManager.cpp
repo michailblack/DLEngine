@@ -150,8 +150,12 @@ namespace DLEngine
             dstMesh.UpdateOctree();
 		}
 
-        model->m_VertexBuffer.SetBufferLayout(Model::GetCommonVertexBufferLayout());
-        model->m_VertexBuffer.Resize(vertices);
+        model->m_VertexBuffer.Create(
+            Model::GetCommonVertexBufferLayout(),
+            D3D11_USAGE_IMMUTABLE,
+            static_cast<uint32_t>(vertices.size()),
+            vertices.data()
+        );
         
         model->m_IndexBuffer.Create(indices);
 
@@ -280,8 +284,12 @@ namespace DLEngine
 		mesh.m_BoundingBox.Max = Math::Vec3{ 1.0f, 1.0f, 1.0f };
 		mesh.UpdateOctree();
 
-		model->m_VertexBuffer.SetBufferLayout(Model::GetCommonVertexBufferLayout());
-		model->m_VertexBuffer.Resize(mesh.m_Vertices);
+        model->m_VertexBuffer.Create(
+            Model::GetCommonVertexBufferLayout(),
+            D3D11_USAGE_IMMUTABLE,
+            static_cast<uint32_t>(mesh.m_Vertices.size()),
+            mesh.m_Vertices.data()
+        );
 
 		model->m_IndexBuffer.Create(indices);
 

@@ -1,27 +1,26 @@
 struct DirectionalLight
 {
     float3 Direction;
+    float3 Radiance;
     float SolidAngle;
-    float3 Luminance;
     uint TransformIndex;
 };
 
 struct PointLight
 {
     float3 Position;
+    float3 Radiance;
     float Radius;
-    float3 Luminance;
     uint TransformIndex;
 };
 
 struct SpotLight
 {
     float3 Position;
-    float InnerCutoffCos;
     float3 Direction;
-    float OuterCutoffCos;
-    float3 Luminance;
+    float3 Radiance;
     float Radius;
+    float InnerCutoffCos;
+    float OuterCutoffCos;
     uint TransformIndex;
-    float3 _padding;
 };

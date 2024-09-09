@@ -7,3 +7,6 @@
 [submodule "DLEngine/vendor/DirectXTex"]
 	path = DLEngine/vendor/DirectXTex
 	url = https://github.com/microsoft/DirectXTex.git
+[submodule "DLEngine/vendor/imgui"]
+	path = DLEngine/vendor/imgui
+	url = https://github.com/ocornut/imgui.git
