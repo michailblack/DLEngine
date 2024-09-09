@@ -8,6 +8,8 @@ namespace DLEngine
     public:
         uint8_t GetKeyCode() const noexcept { return m_KeyCode; }
 
+        EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryKeyboard)
+
     protected:
         KeyEvent(uint8_t keyCode)
             : m_KeyCode(keyCode)
@@ -24,7 +26,7 @@ namespace DLEngine
             : KeyEvent(keyCode)
         {}
 
-        EVENT_CLASS_TYPE(KeyPressed)
+        EVENT_CLASS_TYPE(EventType::KeyPressed)
     };
 
     class KeyReleasedEvent : public KeyEvent
@@ -34,6 +36,6 @@ namespace DLEngine
             : KeyEvent(keyCode)
         {}
 
-        EVENT_CLASS_TYPE(KeyReleased)
+        EVENT_CLASS_TYPE(EventType::KeyReleased)
     };
 }

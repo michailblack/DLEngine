@@ -61,7 +61,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -83,13 +84,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>DL_RELEASE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DL_ENABLE_ASSERTS;DL_RELEASE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>dlpch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)dependency\include;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -108,40 +110,54 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\DLEngine\Core\Assert.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Common.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Framebuffer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Instance.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Material.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Pipeline.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Renderer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Shader.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11ShaderCompiler.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11StructuredBuffer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Texture.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Common.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Framebuffer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11ConstantBuffer.h" />
+    <ClInclude Include="src\DLEngine\Renderer\ConstantBuffer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11IndexBuffer.h" />
+    <ClInclude Include="src\DLEngine\Renderer\IDragger.h" />
+    <ClInclude Include="src\DLEngine\Renderer\IndexBuffer.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11SwapChain.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11Context.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Instance.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Material.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Mesh\Mesh.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Mesh\MeshRegistry.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Mesh\TriangleOctree.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Pipeline.h" />
+    <ClInclude Include="src\DLEngine\Renderer\RendererAPI.h" />
+    <ClInclude Include="src\DLEngine\Renderer\RendererContext.h" />
+    <ClInclude Include="src\DLEngine\DirectX\D3D11VertexBuffer.h" />
+    <ClInclude Include="src\DLEngine\Core\Buffer.h" />
     <ClInclude Include="src\DLEngine\Core\ImGuiLayer.h" />
-    <ClInclude Include="src\DLEngine\DirectX\RenderCommand.h" />
-    <ClInclude Include="src\DLEngine\DirectX\StructuredBuffer.h" />
     <ClInclude Include="src\DLEngine\Renderer\Camera.h" />
     <ClInclude Include="src\DLEngine\Renderer\CameraController.h" />
-    <ClInclude Include="src\DLEngine\Renderer\LightCasters.h" />
-    <ClInclude Include="src\DLEngine\Renderer\PostProcess.h" />
-    <ClInclude Include="src\DLEngine\Renderer\ReflectionCapture.h" />
     <ClInclude Include="src\DLEngine\Renderer\Renderer.h" />
-    <ClInclude Include="src\DLEngine\Renderer\TextureManager.h" />
-    <ClInclude Include="src\DLEngine\Systems\Light\LightSystem.h" />
-    <ClInclude Include="src\DLEngine\Core\Filesystem.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Sampler.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Scene.h" />
+    <ClInclude Include="src\DLEngine\Renderer\SceneRenderer.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Shader.h" />
+    <ClInclude Include="src\DLEngine\Renderer\ShaderInput.h" />
+    <ClInclude Include="src\DLEngine\Renderer\StructuredBuffer.h" />
+    <ClInclude Include="src\DLEngine\Renderer\Texture.h" />
     <ClInclude Include="src\DLEngine\Core\solid_vector.h" />
     <ClInclude Include="src\DLEngine\DirectX\Binder.h" />
-    <ClInclude Include="src\DLEngine\DirectX\D3DStates.h" />
-    <ClInclude Include="src\DLEngine\DirectX\PipelineState.h" />
     <ClInclude Include="src\DLEngine\Math\Distance.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\IDragger.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\Mesh.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\MeshSystem.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\Model.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\ModelManager.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroup.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\ShadingGroupStructs.h" />
-    <ClInclude Include="src\DLEngine\Systems\Mesh\TriangleOctree.h" />
-    <ClInclude Include="src\DLEngine\DirectX\BufferLayout.h" />
-    <ClInclude Include="src\DLEngine\DirectX\IndexBuffer.h" />
-    <ClInclude Include="src\DLEngine\Core\Engine.h" />
     <ClInclude Include="src\DLEngine\Core\Log.h" />
-    <ClInclude Include="src\DLEngine\DirectX\ConstantBuffer.h" />
     <ClInclude Include="src\DLEngine\DirectX\DXGIInfoQueue.h" />
     <ClInclude Include="src\DLEngine\Core\Application.h" />
     <ClInclude Include="src\DLEngine\Core\Base.h" />
-    <ClInclude Include="src\DLEngine\DirectX\D3D.h" />
     <ClInclude Include="src\DLEngine\Core\DLException.h" />
     <ClInclude Include="src\DLEngine\Core\DLWin.h" />
     <ClInclude Include="src\DLEngine\Core\EntryPoint.h" />
@@ -152,9 +168,6 @@
     <ClInclude Include="src\DLEngine\Core\Input.h" />
     <ClInclude Include="src\DLEngine\Core\Layer.h" />
     <ClInclude Include="src\DLEngine\Core\LayerStack.h" />
-    <ClInclude Include="src\DLEngine\DirectX\InputLayout.h" />
-    <ClInclude Include="src\DLEngine\DirectX\Shaders.h" />
-    <ClInclude Include="src\DLEngine\DirectX\VertexBuffer.h" />
     <ClInclude Include="src\DLEngine\Math\Primitives.h" />
     <ClInclude Include="src\DLEngine\Math\Intersections.h" />
     <ClInclude Include="src\DLEngine\Math\Math.h" />
@@ -163,103 +176,138 @@
     <ClInclude Include="src\DLEngine\Math\Vec3.h" />
     <ClInclude Include="src\DLEngine\Math\Vec4.h" />
     <ClInclude Include="src\DLEngine\Core\Window.h" />
-    <ClInclude Include="src\DLEngine\Systems\Transform\TransformSystem.h" />
     <ClInclude Include="src\DLEngine\Utils\DeltaTime.h" />
     <ClInclude Include="src\DLEngine\Utils\RandomGenerator.h" />
     <ClInclude Include="src\DLEngine\Utils\Timer.h" />
-    <ClInclude Include="src\DLEngine\Utils\Utils.h" />
     <ClInclude Include="src\dlpch.h" />
-    <ClInclude Include="src\DLEngine\DirectX\Texture.h" />
-    <ClInclude Include="src\DLEngine\DirectX\SwapChain.h" />
+    <ClInclude Include="src\DLEngine\Renderer\VertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DLEngine\DirectX\D3D11ConstantBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Framebuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Instance.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Material.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Pipeline.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Renderer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Shader.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11ShaderCompiler.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11StructuredBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Texture.cpp" />
+    <ClCompile Include="src\DLEngine\Math\Distance.cpp" />
+    <ClCompile Include="src\DLEngine\Math\Intersections.cpp" />
+    <ClCompile Include="src\DLEngine\Math\Mat4x4.cpp" />
+    <ClCompile Include="src\DLEngine\Math\Math.cpp" />
+    <ClCompile Include="src\DLEngine\Math\Vec2.cpp" />
+    <ClCompile Include="src\DLEngine\Math\Vec3.cpp" />
+    <ClCompile Include="src\DLEngine\Math\Vec4.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\ConstantBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11IndexBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Framebuffer.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\IndexBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11SwapChain.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11Context.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Instance.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Material.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Mesh\Mesh.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Mesh\MeshRegistry.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Mesh\TriangleOctree.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Pipeline.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\RendererContext.cpp" />
+    <ClCompile Include="src\DLEngine\DirectX\D3D11VertexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Core\ImGuiLayer.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\ConstantBuffer.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\RenderCommand.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\StructuredBuffer.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Camera.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\CameraController.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\PostProcess.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\ReflectionCapture.cpp" />
     <ClCompile Include="src\DLEngine\Renderer\Renderer.cpp" />
-    <ClCompile Include="src\DLEngine\Renderer\TextureManager.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Light\LightSystem.cpp" />
-    <ClCompile Include="src\DLEngine\Core\Filesystem.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\BufferLayout.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\D3DStates.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Mesh\IDragger.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Mesh\Mesh.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Mesh\MeshSystem.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Mesh\Model.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Mesh\ModelManager.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Mesh\TriangleOctree.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\IndexBuffer.cpp" />
-    <ClCompile Include="src\DLEngine\Core\Engine.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Scene.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\SceneRenderer.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Shader.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\StructuredBuffer.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\Texture.cpp" />
     <ClCompile Include="src\DLEngine\Core\Log.cpp" />
     <ClCompile Include="src\DLEngine\Core\Application.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\D3D.cpp" />
     <ClCompile Include="src\DLEngine\Core\DLException.cpp" />
     <ClCompile Include="src\DLEngine\Core\Input.cpp" />
     <ClCompile Include="src\DLEngine\Core\LayerStack.cpp" />
     <ClCompile Include="src\DLEngine\DirectX\DXGIInfoQueue.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\InputLayout.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\Shaders.cpp" />
     <ClCompile Include="src\DLEngine\Core\Window.cpp" />
-    <ClCompile Include="src\DLEngine\Systems\Transform\TransformSystem.cpp" />
-    <ClCompile Include="src\DLEngine\Utils\Utils.cpp" />
     <ClCompile Include="src\dlpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\DLEngine\DirectX\Texture.cpp" />
-    <ClCompile Include="src\DLEngine\DirectX\SwapChain.cpp" />
+    <ClCompile Include="src\DLEngine\Renderer\VertexBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\DLEngine\Math\Distance.inl" />
-    <None Include="src\DLEngine\Math\Intersections.inl" />
-    <None Include="src\DLEngine\Math\Mat4x4.inl" />
-    <None Include="src\DLEngine\Math\Math.inl" />
-    <None Include="src\DLEngine\Math\Vec2.inl" />
-    <None Include="src\DLEngine\Math\Vec3.inl" />
-    <None Include="src\DLEngine\Math\Vec4.inl" />
-    <None Include="src\DLEngine\Shaders\BRDF.hlsli">
+    <FxCompile Include="src\DLEngine\Shaders\DirectionalLightShadowMap.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="src\DLEngine\Shaders\Buffers.hlsli">
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\PBR_Static_Dissolution.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\EnvironmentIrradiance.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="src\DLEngine\Shaders\Include\EnvironmentMapping.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </FxCompile>
+    <None Include="src\DLEngine\Shaders\Include\Buffers.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <None Include="src\DLEngine\Shaders\Input.hlsli">
+    <None Include="src\DLEngine\Shaders\Include\Common.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <None Include="src\DLEngine\Shaders\LightCasters.hlsli">
+    <None Include="src\DLEngine\Shaders\Include\Lighting.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <None Include="src\DLEngine\Systems\Mesh\ShadingGroup.inl" />
+    <None Include="src\DLEngine\Shaders\Include\PBR.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="src\DLEngine\Shaders\Include\PBR_Resources.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="src\DLEngine\Shaders\Include\ShadowMapping.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="src\DLEngine\Shaders\BRDFLUT.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\Emission.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="src\DLEngine\Shaders\Hologram.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="src\DLEngine\Shaders\Lit.hlsl">
+    <FxCompile Include="src\DLEngine\Shaders\OmnidirectionalLightShadowMap.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="src\DLEngine\Shaders\NormalVis.hlsl">
+    <FxCompile Include="src\DLEngine\Shaders\PBR_Static.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
     </FxCompile>
     <FxCompile Include="src\DLEngine\Shaders\PostProcess.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
@@ -267,7 +315,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="src\DLEngine\Shaders\ReflectionCapture.hlsl">
+    <FxCompile Include="src\DLEngine\Shaders\PrefilteredEnvironment.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -283,7 +331,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\DLEngine\Shaders\Samplers.hlsli">
+    <FxCompile Include="src\DLEngine\Shaders\Include\Samplers.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

@@ -8,12 +8,14 @@
 
 #include "DLEngine/Utils/Timer.h"
 
+#include <filesystem>
+
 namespace DLEngine
 {
     struct ApplicationSpecification
     {
         const wchar_t* WndTitle{ L"New Window" };
-        const wchar_t* WorkingDir{ L".\\" };
+        std::filesystem::path WorkingDir{ std::filesystem::current_path() };
         uint32_t WndWidth{ 800 };
         uint32_t WndHeight{ 600 };
     };
@@ -34,17 +36,15 @@ namespace DLEngine
         void PushLayer(Layer* layer);
         void PushOverlay(Layer* layer);
 
-        Scope<Window>& GetWindow() noexcept { return m_Window; }
+        Window& GetWindow() noexcept { return *m_Window; }
         static Application& Get() noexcept { return *s_Instance; }
 
-        const wchar_t* GetWorkingDir() const noexcept { return m_Specification.WorkingDir; }
+        const std::filesystem::path& GetWorkingDir() const noexcept { return m_Specification.WorkingDir; }
 
     protected:
         explicit Application(const ApplicationSpecification& spec);
 
     private:
-        void ProcessInputs() const;
-
         bool OnWindowClose(WindowCloseEvent&);
         bool OnWindowResize(WindowResizeEvent& e);
         bool OnKeyPressed(KeyPressedEvent& e);

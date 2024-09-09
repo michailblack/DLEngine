@@ -3,29 +3,44 @@
 
 namespace DLEngine::Math
 {
+    class Mat4x4;
     class Vec3;
+    struct AABB;
+    struct Ray;
 
-    inline float ToRadians(float degrees) noexcept;
-    inline float ToDegrees(float radians) noexcept;
+    float ToRadians(float degrees) noexcept;
+    float ToDegrees(float radians) noexcept;
 
-    inline float Max(float a, float b);
-    inline float Min(float a, float b);
+    float Max(float a, float b);
+    float Min(float a, float b);
 
-    inline float Sign(float x);
+    float Sign(float x);
 
-    inline float Pow(float base, float exponent) noexcept;
-    inline float Exp(float x) noexcept;
+    float Sqrt(float x) noexcept;
 
-    inline float Log(float x) noexcept;
-    inline float Log2(float x) noexcept;
-    inline float Log10(float x) noexcept;
+    float Pow(float base, float exponent) noexcept;
+    float Exp(float x) noexcept;
 
-    inline float Clamp(float value, float min, float max);
+    float Log(float x) noexcept;
+    float Log2(float x) noexcept;
+    float Log10(float x) noexcept;
 
-    inline float Cos(float angle) noexcept;
-    inline float Sin(float angle) noexcept;
+    float Clamp(float value, float min, float max);
+
+    float Cos(float angle) noexcept;
+    float Sin(float angle) noexcept;
+
+    float Acos(float x) noexcept;
+    float AcosEst(float x) noexcept;
+
+    Vec3 DirectionToSpace(const Vec3& direction, const Mat4x4& spaceTransformation) noexcept;
+    Vec3 PointToSpace(const Vec3& point, const Mat4x4& spaceTransformation) noexcept;
+    Ray RayToSpace(const Ray& ray, const Mat4x4& spaceTransformation) noexcept;
+    AABB AABBToSpace(const AABB& aabb, const Mat4x4& spaceTransformation) noexcept;
+
+    void BranchlessONB(const Vec3& n, Vec3& b1, Vec3& b2) noexcept;
     
-    inline std::vector<Vec3> GenerateFibonacciHemispherePoints(uint32_t numPoints);
+    std::vector<Vec3> GenerateFibonacciHemispherePoints(uint32_t numPoints);
 
     struct Numeric
     {
@@ -35,5 +50,3 @@ namespace DLEngine::Math
         static constexpr float Pi { std::numbers::pi_v<float> };
     };
 }
-
-#include "Math.inl"

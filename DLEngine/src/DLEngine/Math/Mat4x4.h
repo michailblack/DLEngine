@@ -1,13 +1,12 @@
 ﻿#pragma once
-#include <cmath>
 #include <DirectXMath.h>
-
-#include "DLEngine/Math/Vec4.h"
 
 namespace DLEngine::Math
 {
-    class Mat4x4
-        : public DirectX::XMFLOAT4X4
+    class Vec3;
+    class Vec4;
+
+    class Mat4x4 : public DirectX::XMFLOAT4X4
     {
     public:
         constexpr Mat4x4() noexcept
@@ -37,8 +36,10 @@ namespace DLEngine::Math
 
         static Mat4x4 Identity() noexcept;
 
-        static Mat4x4 Perspective(float fov, float aspectRatio, float zNear, float zFar) noexcept;
-        static Mat4x4 View(const Vec3& right, const Vec3& up, const Vec3& forward, const Vec3& position) noexcept;
+        static Mat4x4 PerspectiveFov(float fovAngleY, float aspectRatio, float nearZ, float farZ) noexcept;
+        static Mat4x4 Perspective(float viewWidth, float viewHeight, float nearZ, float farZ) noexcept;
+        static Mat4x4 Orthographic(float viewWidth, float viewHeight, float nearZ, float farZ) noexcept;
+        static Mat4x4 LookTo(const Vec3& position, const Vec3& forward, const Vec3& up) noexcept;
 
         static Mat4x4 Inverse(const Mat4x4& mat) noexcept;
         static Mat4x4 Transpose(const Mat4x4& mat) noexcept;
@@ -48,8 +49,7 @@ namespace DLEngine::Math
         static Mat4x4 Rotate(float pitch, float yaw, float roll) noexcept;
         static Mat4x4 Rotate(const Vec3& normalizedAxis, float angle) noexcept;
     };
-    inline Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs) noexcept;
-    inline Vec4 operator*(const Vec4& v, const Mat4x4& m) noexcept;
-}
 
-#include "Mat4x4.inl"
+    Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs) noexcept;
+    Vec4 operator*(const Vec4& v, const Mat4x4& m) noexcept;
+}

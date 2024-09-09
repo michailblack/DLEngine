@@ -37,6 +37,11 @@
 #define NOMCX
 #endif
 
+// For ImGUI compilation
+#undef NOCLIPBOARD
+#undef NOCTLMGR
+#undef NONLS
+
 #define NOMINMAX
 
 #define STRICT

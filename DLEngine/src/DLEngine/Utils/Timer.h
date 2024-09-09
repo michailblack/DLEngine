@@ -6,7 +6,7 @@ namespace DLEngine
     class Timer
     {
     public:
-        Timer(double frameTimeMS = 0.0) noexcept
+        Timer(float frameTimeMS = 0.0) noexcept
             : m_FrameTimeMS(frameTimeMS)
         {
             Reset();
@@ -18,21 +18,15 @@ namespace DLEngine
         Timer& operator=(const Timer&) = delete;
         Timer& operator=(Timer&&) = delete;
 
-        void Reset() noexcept
+        void Reset() noexcept { m_Start = std::chrono::steady_clock::now(); }
+        float ElapsedMS() const noexcept
         {
-            m_Start = std::chrono::steady_clock::now();
+            return static_cast<float>(
+                std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - m_Start).count()
+            ) * 1.0e-3f;
         }
 
-        double GetDeltaTimeS() const noexcept
-        {
-            return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - m_Start).count()) * 1.e-10;
-        }
-        double GetDeltaTimeMS() const noexcept
-        {
-            return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - m_Start).count()) * 1.e-6;
-        }
-
-        bool FrameElapsed(double dtMS) const noexcept
+        bool FrameElapsed(float dtMS) const noexcept
         {
             if (dtMS >= m_FrameTimeMS)
                 return true;
@@ -41,6 +35,6 @@ namespace DLEngine
 
     private:
         std::chrono::time_point<std::chrono::steady_clock> m_Start;
-        double m_FrameTimeMS;
+        float m_FrameTimeMS;
     };
 }

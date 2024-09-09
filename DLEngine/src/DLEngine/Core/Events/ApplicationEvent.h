@@ -13,7 +13,8 @@ namespace DLEngine
         uint32_t GetWidth() const noexcept { return m_Width; }
         uint32_t GetHeight() const noexcept { return m_Height; }
 
-        EVENT_CLASS_TYPE(WindowResize)
+        EVENT_CLASS_TYPE(EventType::WindowResize)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication)
 
     private:
         uint32_t m_Width, m_Height;
@@ -24,7 +25,8 @@ namespace DLEngine
     public:
         WindowCloseEvent() = default;
 
-        EVENT_CLASS_TYPE(WindowClose)
+        EVENT_CLASS_TYPE(EventType::WindowClose)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 
     class AppTickEvent : public Event
@@ -32,7 +34,8 @@ namespace DLEngine
     public:
         AppTickEvent() = default;
 
-        EVENT_CLASS_TYPE(AppTick)
+        EVENT_CLASS_TYPE(EventType::AppTick)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 
     class AppUpdateEvent : public Event
@@ -40,7 +43,8 @@ namespace DLEngine
     public:
         AppUpdateEvent() = default;
 
-        EVENT_CLASS_TYPE(AppUpdate)
+        EVENT_CLASS_TYPE(EventType::AppUpdate)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 
     class AppRenderEvent : public Event
@@ -48,6 +52,7 @@ namespace DLEngine
     public:
         AppRenderEvent() = default;
 
-        EVENT_CLASS_TYPE(AppRender)
+        EVENT_CLASS_TYPE(EventType::AppRender)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 }

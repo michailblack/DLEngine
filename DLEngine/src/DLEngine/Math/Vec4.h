@@ -1,12 +1,9 @@
 ﻿#pragma once
 #include <DirectXMath.h>
 
-#include "DLEngine/Math/Vec3.h"
-
 namespace DLEngine::Math
 {
-    class Vec4
-        : public DirectX::XMFLOAT4
+    class Vec4 : public DirectX::XMFLOAT4
     {
     public:
         constexpr Vec4() noexcept
@@ -17,9 +14,6 @@ namespace DLEngine::Math
         {}
         constexpr explicit Vec4(float v) noexcept
             : XMFLOAT4{ v, v, v, v }
-        {}
-        constexpr explicit Vec4(const Vec3& v, float w = 0.0f) noexcept
-            : XMFLOAT4{ v.x, v.y, v.z, w }
         {}
         constexpr explicit Vec4(const XMFLOAT4& v) noexcept
             : XMFLOAT4{ v }
@@ -38,26 +32,20 @@ namespace DLEngine::Math
 
         explicit operator DirectX::XMVECTOR() const noexcept { return DirectX::XMLoadFloat4(this); }
 
-        inline bool operator==(const Vec4& v) const noexcept;
+        bool operator==(const Vec4& v) const noexcept;
 
-        inline void operator*=(float s) noexcept;
-        inline void operator/=(float s) noexcept;
-
-        constexpr Vec3 xyz() const noexcept { return Vec3{ x, y, z }; }
-        constexpr const float* data() const noexcept { return &x; }
+        void operator*=(float s) noexcept;
+        void operator/=(float s) noexcept;
     };
 
-    inline float Length(const Vec4& v) noexcept;
-    inline float Dot(const Vec4& v1, const Vec4& v2) noexcept;
-    inline Vec4 Normalize(const Vec4& v) noexcept;
+    float Length(const Vec4& v) noexcept;
+    float Dot(const Vec4& v1, const Vec4& v2) noexcept;
+    Vec4 Normalize(const Vec4& v) noexcept;
 
-    inline Vec4 operator+(const Vec4& v1, const Vec4& v2) noexcept;
-    inline Vec4 operator-(const Vec4& v1, const Vec4& v2) noexcept;
-    inline Vec4 operator*(const Vec4& v, float s) noexcept;
-    inline Vec4 operator*(float s, const Vec4& v) noexcept;
-    inline Vec4 operator/(const Vec4& v, float s) noexcept;
+    Vec4 operator+(const Vec4& v1, const Vec4& v2) noexcept;
+    Vec4 operator-(const Vec4& v1, const Vec4& v2) noexcept;
+    Vec4 operator*(const Vec4& v, float s) noexcept;
+    Vec4 operator*(float s, const Vec4& v) noexcept;
+    Vec4 operator/(const Vec4& v, float s) noexcept;
 
-    inline Vec3 RotateQuaternion(const Vec3& v, const Vec3& normalizedAxis, float angle) noexcept;
 }
-
-#include "Vec4.inl"
