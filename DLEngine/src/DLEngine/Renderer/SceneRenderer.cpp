@@ -7,6 +7,31 @@
 
 namespace DLEngine
 {
+    namespace Utils
+    {
+        namespace
+        {
+            void SubmitMeshBatch(const MeshRegistry& meshRegistry, std::string_view shaderName, bool setMaterial)
+            {
+                const auto& meshBatch{ meshRegistry.GetMeshBatch(shaderName) };
+                for (const auto& [mesh, submeshBatch] : meshBatch.SubmeshBatches)
+                {
+                    for (uint32_t submeshIndex{ 0u }; submeshIndex < mesh->GetSubmeshes().size(); ++submeshIndex)
+                    {
+                        for (const auto& [material, instanceBatch] : submeshBatch.MaterialBatches[submeshIndex].InstanceBatches)
+                        {
+                            if (setMaterial)
+                                Renderer::SetMaterial(material);
+                            
+                            const uint32_t instanceCount{ static_cast<uint32_t>(instanceBatch.SubmeshInstances.size()) };
+                            Renderer::SubmitStaticMeshInstanced(mesh, submeshIndex, instanceBatch.InstanceBuffers, instanceCount);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     namespace
     {
         enum BindingPoint : uint32_t
@@ -45,6 +70,12 @@ namespace DLEngine
             BP_TEX_IRRADIANCE_MAP  = 13u,
             BP_TEX_PREFILTERED_MAP = 14u,
             BP_TEX_BRDF_LUT        = 15u,
+
+            // G-Buffer textures
+            BP_TEX_GBUFFER_ALBEDO                   = 16u,
+            BP_TEX_GBUFFER_METALNESS_ROUGHNESS      = 17u,
+            BP_TEX_GBUFFER_GEOMETRY_SURFACE_NORMALS = 18u,
+            BP_TEX_GBUFFER_EMISSION                 = 19u,
 
             BP_TEX_NEXT_FREE,
         };
@@ -87,10 +118,9 @@ namespace DLEngine
 
         struct CBPostProcessingSettings
         {
-            uint32_t SamplesCount{ 1u };
             float EV100{ 0.0f };
             float Gamma{ 2.2f };
-            float _padding{ 0.0f };
+            float _padding[2u]{};
         };
 
         struct CBOmnidirectionalLightShadowData
@@ -149,7 +179,8 @@ namespace DLEngine
         PreRender();
 
         ShadowPass();
-        GeometryPass();
+        GBufferPass();
+        FullscreenPass();
         SkyboxPass();
         SmokeParticlesPass();
         PostProcessPass();
@@ -171,7 +202,6 @@ namespace DLEngine
     void SceneRenderer::SetPostProcessingSettings(const PostProcessingSettings& postProcessingSettings)
     {
         CBPostProcessingSettings postProcessingSettingsData{};
-        postProcessingSettingsData.SamplesCount = m_SamplesCount;
         postProcessingSettingsData.EV100 = postProcessingSettings.EV100;
         postProcessingSettingsData.Gamma = postProcessingSettings.Gamma;
 
@@ -198,143 +228,18 @@ namespace DLEngine
 
     void SceneRenderer::Init()
     {
-        m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
-        m_CBPBRSettings = ConstantBuffer::Create(sizeof(CBPBRSettings));
-        m_CBLightsCount = ConstantBuffer::Create(sizeof(CBLightsCount));
-        m_CBPostProcessSettings = ConstantBuffer::Create(sizeof(CBPostProcessingSettings));
-        m_SceneShadowEnvironment.CBPointLightData = ConstantBuffer::Create(sizeof(CBOmnidirectionalLightShadowData));
-        m_CBShadowMappingData = ConstantBuffer::Create(sizeof(CBShadowMappingData));
-        m_CBTextureAtlasData = ConstantBuffer::Create(sizeof(CBTextureAtlasData));
+        InitBuffers();
+        InitFramebuffers();
+        InitPipelines();
 
-        m_SBDirectionalLights = StructuredBuffer::Create(sizeof(DirectionalLight), 100u);
-        m_SBPointLights = StructuredBuffer::Create(sizeof(PointLight), 100u);
-        m_SBSpotLights = StructuredBuffer::Create(sizeof(SpotLight), 100u);
-        m_SceneShadowEnvironment.SBDirectionalLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
-        m_SceneShadowEnvironment.SBPointLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
-        m_SceneShadowEnvironment.SBSpotLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
-
-        FramebufferSpecification mainFramebufferSpec{};
-        mainFramebufferSpec.DebugName = "Main HDR Framebuffer";
-        mainFramebufferSpec.Attachments = {
-            { TextureFormat::RGBA16F     , TextureUsage::TextureAttachment },
-            { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment }
-        };
-        mainFramebufferSpec.Width = m_ViewportWidth;
-        mainFramebufferSpec.Height = m_ViewportHeight;
-        mainFramebufferSpec.Samples = m_SamplesCount;
-        m_MainFramebuffer = Framebuffer::Create(mainFramebufferSpec);
-
-        PipelineSpecification pbrStaticPipelineSpec{};
-        pbrStaticPipelineSpec.DebugName = "PBR_Static Pipeline";
-        pbrStaticPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PBR_Static");
-        pbrStaticPipelineSpec.TargetFramebuffer = m_MainFramebuffer;
-        pbrStaticPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
-        pbrStaticPipelineSpec.DepthStencilState.DepthTest = true;
-        pbrStaticPipelineSpec.DepthStencilState.DepthWrite = true;
-        m_PBRStaticPipeline = Pipeline::Create(pbrStaticPipelineSpec);
-
-        PipelineSpecification dissolutionPipelineSpec{};
-        dissolutionPipelineSpec.DebugName = "PBR_Static Dissolution Pipeline";
-        dissolutionPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PBR_Static_Dissolution");
-        dissolutionPipelineSpec.TargetFramebuffer = m_MainFramebuffer;
-        dissolutionPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
-        dissolutionPipelineSpec.DepthStencilState.DepthTest = true;
-        dissolutionPipelineSpec.DepthStencilState.DepthWrite = true;
-        dissolutionPipelineSpec.BlendState = BlendState::AlphaToCoverage;
-        m_DissolutionPipeline = Pipeline::Create(dissolutionPipelineSpec);
-
-        PipelineSpecification emissionPipelineSpec{};
-        emissionPipelineSpec.DebugName = "Emission Pipeline";
-        emissionPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Emission");
-        emissionPipelineSpec.TargetFramebuffer = m_MainFramebuffer;
-        emissionPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
-        emissionPipelineSpec.DepthStencilState.DepthTest = true;
-        emissionPipelineSpec.DepthStencilState.DepthWrite = true;
-        m_EmissionPipeline = Pipeline::Create(emissionPipelineSpec);
-
-        PipelineSpecification skyboxPipelineSpec{};
-        skyboxPipelineSpec.DebugName = "Skybox Pipeline";
-        skyboxPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Skybox");
-        skyboxPipelineSpec.TargetFramebuffer = m_MainFramebuffer;
-        skyboxPipelineSpec.DepthStencilState.CompareOp = CompareOperator::GreaterOrEqual;
-        skyboxPipelineSpec.DepthStencilState.DepthTest = true;
-        skyboxPipelineSpec.DepthStencilState.DepthWrite = false;
-        m_SkyboxPipeline = Pipeline::Create(skyboxPipelineSpec);
-
-        PipelineSpecification postProcessPipelineSpec{};
-        postProcessPipelineSpec.DebugName = "Post Process Pipeline";
-        postProcessPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PostProcess");
-        postProcessPipelineSpec.TargetFramebuffer = Renderer::GetSwapChainTargetFramebuffer();
-        postProcessPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Always;
-        postProcessPipelineSpec.DepthStencilState.DepthTest = false;
-        postProcessPipelineSpec.DepthStencilState.DepthWrite = false;
-        m_PostProcessPipeline = Pipeline::Create(postProcessPipelineSpec);
-
-        FramebufferSpecification directionalShadowMapFBSpec{};
-        directionalShadowMapFBSpec.DebugName = "Directional Shadow Map Framebuffer";
-        directionalShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
-        directionalShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
-        directionalShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
-        m_DirectionalShadowMapFramebuffer = Framebuffer::Create(directionalShadowMapFBSpec);
-
-        m_SceneShadowEnvironment.DirectionalShadowMaps = AsRef<Texture2D>(m_DirectionalShadowMapFramebuffer->GetDepthAttachment());
-
-        PipelineSpecification directionalShadowMapPipelineSpec{};
-        directionalShadowMapPipelineSpec.DebugName = "Directional Shadow Map Pipeline";
-        directionalShadowMapPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("DirectionalLightShadowMap");
-        directionalShadowMapPipelineSpec.TargetFramebuffer = m_DirectionalShadowMapFramebuffer;
-        directionalShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
-        directionalShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
-        directionalShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        directionalShadowMapPipelineSpec.RasterizerState.Cull = CullMode::None;
-        m_DirectionalShadowMapPipeline = Pipeline::Create(directionalShadowMapPipelineSpec);
-
-        FramebufferSpecification pointShadowMapFBSpec{};
-        pointShadowMapFBSpec.DebugName = "Point Shadow Map Framebuffer";
-        pointShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
-        pointShadowMapFBSpec.AttachmentsType = TextureType::TextureCube;
-        pointShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
-        pointShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
-        m_PointShadowMapFramebuffer = Framebuffer::Create(pointShadowMapFBSpec);
-
-        m_SceneShadowEnvironment.PointShadowMaps = AsRef<TextureCube>(m_PointShadowMapFramebuffer->GetDepthAttachment());
-
-        PipelineSpecification pointShadowMapPipelineSpec{};
-        pointShadowMapPipelineSpec.DebugName = "Point Shadow Map Pipeline";
-        pointShadowMapPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("OmnidirectionalLightShadowMap");
-        pointShadowMapPipelineSpec.TargetFramebuffer = m_PointShadowMapFramebuffer;
-        pointShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
-        pointShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
-        pointShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        pointShadowMapPipelineSpec.RasterizerState.Cull = CullMode::None;
-        m_PointShadowMapPipeline = Pipeline::Create(pointShadowMapPipelineSpec);
-
-        FramebufferSpecification spotShadowMapFBSpec{};
-        spotShadowMapFBSpec.DebugName = "Spot Shadow Map Framebuffer";
-        spotShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
-        spotShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
-        spotShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
-        m_SpotShadowMapFramebuffer = Framebuffer::Create(spotShadowMapFBSpec);
-
-        m_SceneShadowEnvironment.SpotShadowMaps = AsRef<Texture2D>(m_SpotShadowMapFramebuffer->GetDepthAttachment());
-
-        PipelineSpecification spotShadowMapPipelineSpec{};
-        spotShadowMapPipelineSpec.DebugName = "Spot Shadow Map Pipeline";
-        spotShadowMapPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("DirectionalLightShadowMap");
-        spotShadowMapPipelineSpec.TargetFramebuffer = m_SpotShadowMapFramebuffer;
-        spotShadowMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
-        spotShadowMapPipelineSpec.DepthStencilState.DepthTest = true;
-        spotShadowMapPipelineSpec.DepthStencilState.DepthWrite = true;
-        spotShadowMapPipelineSpec.RasterizerState.Cull = CullMode::None;
-        m_SpotShadowMapPipeline = Pipeline::Create(spotShadowMapPipelineSpec);
-
+#if 0
         PipelineSpecification smokeParticlePipelineSpec{};
         const auto& smokeParticleShader{ Renderer::GetShaderLibrary()->Get("SmokeParticle") };
 
         smokeParticlePipelineSpec.DebugName = "Smoke Particle Pipeline";
         smokeParticlePipelineSpec.Shader = smokeParticleShader;
-        smokeParticlePipelineSpec.TargetFramebuffer = m_MainFramebuffer;
-        smokeParticlePipelineSpec.DepthStencilState.CompareOp = CompareOperator::Greater;
+        smokeParticlePipelineSpec.TargetFramebuffer = m_HDRFramebuffer;
+        smokeParticlePipelineSpec.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
         smokeParticlePipelineSpec.DepthStencilState.DepthTest = true;
         smokeParticlePipelineSpec.DepthStencilState.DepthWrite = false;
         smokeParticlePipelineSpec.RasterizerState.Cull = CullMode::Back;
@@ -371,33 +276,284 @@ namespace DLEngine
         textureAtlasData.TilesCountX = 8u;
         textureAtlasData.TilesCountY = 8u;
         m_CBTextureAtlasData->SetData(Buffer{ &textureAtlasData, sizeof(CBTextureAtlasData) });
-
-        FramebufferSpecification maxDepthFramebufferSpec{};
-        maxDepthFramebufferSpec.DebugName = "Max Depth Framebuffer";
-        maxDepthFramebufferSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment } };
-        maxDepthFramebufferSpec.Width = m_ViewportWidth;
-        maxDepthFramebufferSpec.Height = m_ViewportHeight;
-        m_MaxDepthFramebuffer = Framebuffer::Create(maxDepthFramebufferSpec);
-
-        PipelineSpecification maxDepthPipelineSpec{};
-        maxDepthPipelineSpec.DebugName = "Max Depth Pipeline";
-        maxDepthPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("MaxDepth");
-        maxDepthPipelineSpec.TargetFramebuffer = m_MaxDepthFramebuffer;
-        maxDepthPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Always;
-        maxDepthPipelineSpec.DepthStencilState.DepthTest = true;
-        maxDepthPipelineSpec.DepthStencilState.DepthWrite = true;
-        m_MaxDepthPipeline = Pipeline::Create(maxDepthPipelineSpec);
+#endif
 
         TextureSpecification nullTextureSpec{};
         nullTextureSpec.DebugName = "Null Texture";
         nullTextureSpec.Usage = TextureUsage::TextureAttachment;
         nullTextureSpec.Width = 1u;
         nullTextureSpec.Height = 1u;
-        nullTextureSpec.Format = TextureFormat::R8;
+        nullTextureSpec.Format = TextureFormat::R8_UNORM;
         m_NullTexture = Texture2D::Create(nullTextureSpec);
 
         BuildIrradianceMap();
         BuildPrefilteredMap();
+    }
+
+    void SceneRenderer::InitBuffers()
+    {
+        m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
+        m_CBPBRSettings = ConstantBuffer::Create(sizeof(CBPBRSettings));
+        m_CBLightsCount = ConstantBuffer::Create(sizeof(CBLightsCount));
+        m_CBPostProcessSettings = ConstantBuffer::Create(sizeof(CBPostProcessingSettings));
+        m_SceneShadowEnvironment.CBPointLightData = ConstantBuffer::Create(sizeof(CBOmnidirectionalLightShadowData));
+        m_CBShadowMappingData = ConstantBuffer::Create(sizeof(CBShadowMappingData));
+        m_CBTextureAtlasData = ConstantBuffer::Create(sizeof(CBTextureAtlasData));
+
+        m_SBDirectionalLights = StructuredBuffer::Create(sizeof(DirectionalLight), 100u);
+        m_SBPointLights = StructuredBuffer::Create(sizeof(PointLight), 100u);
+        m_SBSpotLights = StructuredBuffer::Create(sizeof(SpotLight), 100u);
+        m_SceneShadowEnvironment.SBDirectionalLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
+        m_SceneShadowEnvironment.SBPointLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
+        m_SceneShadowEnvironment.SBSpotLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
+    }
+
+    void SceneRenderer::InitFramebuffers()
+    {
+        TextureSpecification gBufferAlbedoSpecification{};
+        gBufferAlbedoSpecification.DebugName = "G-Buffer Albedo";
+        gBufferAlbedoSpecification.Format = TextureFormat::RGBA8_UNORM;
+        gBufferAlbedoSpecification.Usage = TextureUsage::TextureAttachment;
+        gBufferAlbedoSpecification.Width = m_ViewportWidth;
+        gBufferAlbedoSpecification.Height = m_ViewportHeight;
+        m_GBufferAlbedo = Texture2D::Create(gBufferAlbedoSpecification);
+
+        TextureSpecification gBufferMetalnessRoughnessSpecification{};
+        gBufferMetalnessRoughnessSpecification.DebugName = "G-Buffer Metalness + Roughness";
+        gBufferMetalnessRoughnessSpecification.Format = TextureFormat::RG8_UNORM;
+        gBufferMetalnessRoughnessSpecification.Usage = TextureUsage::TextureAttachment;
+        gBufferMetalnessRoughnessSpecification.Width = m_ViewportWidth;
+        gBufferMetalnessRoughnessSpecification.Height = m_ViewportHeight;
+        m_GBufferMetalnessRoughness = Texture2D::Create(gBufferMetalnessRoughnessSpecification);
+
+        TextureSpecification gBufferGeometrySurfaceNormalsSpecification{};
+        gBufferGeometrySurfaceNormalsSpecification.DebugName = "G-Buffer Geometry + Surface Normals";
+        gBufferGeometrySurfaceNormalsSpecification.Format = TextureFormat::RGBA16_SNORM;
+        gBufferGeometrySurfaceNormalsSpecification.Usage = TextureUsage::TextureAttachment;
+        gBufferGeometrySurfaceNormalsSpecification.Width = m_ViewportWidth;
+        gBufferGeometrySurfaceNormalsSpecification.Height = m_ViewportHeight;
+        m_GBufferGeometrySurfaceNormals = Texture2D::Create(gBufferGeometrySurfaceNormalsSpecification);
+
+        TextureSpecification gBufferEmissionSpecification{};
+        gBufferEmissionSpecification.DebugName = "G-Buffer Emission";
+        gBufferEmissionSpecification.Format = TextureFormat::RGBA16_FLOAT;
+        gBufferEmissionSpecification.Usage = TextureUsage::TextureAttachment;
+        gBufferEmissionSpecification.Width = m_ViewportWidth;
+        gBufferEmissionSpecification.Height = m_ViewportHeight;
+        m_GBufferEmission = Texture2D::Create(gBufferEmissionSpecification);
+
+        TextureSpecification gBufferDepthSpecification{};
+        gBufferDepthSpecification.DebugName = "G-Buffer Depth";
+        gBufferDepthSpecification.Format = TextureFormat::DEPTH_R24G8_TYPELESS;
+        gBufferDepthSpecification.Usage = TextureUsage::TextureAttachment;
+        gBufferDepthSpecification.Width = m_ViewportWidth;
+        gBufferDepthSpecification.Height = m_ViewportHeight;
+        m_GBufferDepthStencil = Texture2D::Create(gBufferDepthSpecification);
+
+        TextureSpecification hdrResolveTextureSpecification{};
+        hdrResolveTextureSpecification.DebugName = "HDR Resolve Texture";
+        hdrResolveTextureSpecification.Format = TextureFormat::RGBA16_FLOAT;
+        hdrResolveTextureSpecification.Usage = TextureUsage::TextureAttachment;
+        hdrResolveTextureSpecification.Width = m_ViewportWidth;
+        hdrResolveTextureSpecification.Height = m_ViewportHeight;
+        m_HDR_ResolveTexture = Texture2D::Create(hdrResolveTextureSpecification);
+
+        FramebufferSpecification gBufferPBR_StaticFramebufferSpecification{};
+        gBufferPBR_StaticFramebufferSpecification.DebugName = "G-Buffer PBR_Static Framebuffer";
+        gBufferPBR_StaticFramebufferSpecification.ExistingAttachments = {
+            { 0u, m_GBufferAlbedo                 },
+            { 1u, m_GBufferMetalnessRoughness     },
+            { 2u, m_GBufferGeometrySurfaceNormals },
+            { 3u, m_GBufferEmission               },
+            { 4u, m_GBufferDepthStencil           }
+        };
+        gBufferPBR_StaticFramebufferSpecification.Width = m_ViewportWidth;
+        gBufferPBR_StaticFramebufferSpecification.Height = m_ViewportHeight;
+        gBufferPBR_StaticFramebufferSpecification.StencilReferenceValue = 1u;
+        m_GBuffer_PBR_StaticFramebuffer = Framebuffer::Create(gBufferPBR_StaticFramebufferSpecification);
+
+        FramebufferSpecification gBufferEmissionFramebufferSpecification{};
+        gBufferEmissionFramebufferSpecification.DebugName = "G-Buffer Emission Framebuffer";
+        gBufferEmissionFramebufferSpecification.ExistingAttachments = {
+            { 0u, m_GBufferAlbedo                 },
+            { 1u, m_GBufferMetalnessRoughness     },
+            { 2u, m_GBufferGeometrySurfaceNormals },
+            { 3u, m_GBufferEmission               },
+            { 4u, m_GBufferDepthStencil           }
+        };
+        gBufferEmissionFramebufferSpecification.Width = m_ViewportWidth;
+        gBufferEmissionFramebufferSpecification.Height = m_ViewportHeight;
+        gBufferEmissionFramebufferSpecification.StencilReferenceValue = 2u;
+        m_GBuffer_EmissionFramebuffer = Framebuffer::Create(gBufferEmissionFramebufferSpecification);
+
+        FramebufferSpecification hdrResolvePBR_StaticFramebufferSpecification{};
+        hdrResolvePBR_StaticFramebufferSpecification.DebugName = "HDR Resolve PBR_Static Framebuffer";
+        hdrResolvePBR_StaticFramebufferSpecification.ExistingAttachments = {
+            { 0u, m_HDR_ResolveTexture  },
+            { 1u, m_GBufferDepthStencil }
+        };
+        hdrResolvePBR_StaticFramebufferSpecification.Width = m_ViewportWidth;
+        hdrResolvePBR_StaticFramebufferSpecification.Height = m_ViewportHeight;
+        hdrResolvePBR_StaticFramebufferSpecification.StencilReferenceValue = 1u;
+        m_HDR_ResolvePBR_StaticFramebuffer = Framebuffer::Create(hdrResolvePBR_StaticFramebufferSpecification);
+
+        FramebufferSpecification hdrResolveEmissionFramebufferSpecification{};
+        hdrResolveEmissionFramebufferSpecification.DebugName = "HDR Resolve Emission Framebuffer";
+        hdrResolveEmissionFramebufferSpecification.ExistingAttachments = {
+            { 0u, m_HDR_ResolveTexture  },
+            { 1u, m_GBufferDepthStencil }
+        };
+        hdrResolveEmissionFramebufferSpecification.Width = m_ViewportWidth;
+        hdrResolveEmissionFramebufferSpecification.Height = m_ViewportHeight;
+        hdrResolveEmissionFramebufferSpecification.StencilReferenceValue = 2u;
+        m_HDR_ResolveEmissionFramebuffer = Framebuffer::Create(hdrResolveEmissionFramebufferSpecification);
+
+        FramebufferSpecification hdrResolveFramebufferSpecification{};
+        hdrResolveFramebufferSpecification.DebugName = "HDR Resolve Framebuffer";
+        hdrResolveFramebufferSpecification.ExistingAttachments = {
+            { 0u, m_HDR_ResolveTexture  },
+            { 1u, m_GBufferDepthStencil }
+        };
+        hdrResolveFramebufferSpecification.Width = m_ViewportWidth;
+        hdrResolveFramebufferSpecification.Height = m_ViewportHeight;
+        m_HDR_ResolveFramebuffer = Framebuffer::Create(hdrResolveFramebufferSpecification);
+
+        FramebufferSpecification directionalShadowMapFramebufferSpecification{};
+        directionalShadowMapFramebufferSpecification.DebugName = "Directional Shadow Map Framebuffer";
+        directionalShadowMapFramebufferSpecification.Attachments = { { TextureFormat::DEPTH_R24G8_TYPELESS, TextureUsage::TextureAttachment } };
+        directionalShadowMapFramebufferSpecification.Width = m_SceneShadowEnvironment.Settings.MapSize;
+        directionalShadowMapFramebufferSpecification.Height = m_SceneShadowEnvironment.Settings.MapSize;
+        m_DirectionalShadowMapFramebuffer = Framebuffer::Create(directionalShadowMapFramebufferSpecification);
+
+        FramebufferSpecification pointShadowMapFramebufferSpecification{};
+        pointShadowMapFramebufferSpecification.DebugName = "Point Shadow Map Framebuffer";
+        pointShadowMapFramebufferSpecification.Attachments = { { TextureFormat::DEPTH_R24G8_TYPELESS, TextureUsage::TextureAttachment } };
+        pointShadowMapFramebufferSpecification.AttachmentsType = TextureType::TextureCube;
+        pointShadowMapFramebufferSpecification.Width = m_SceneShadowEnvironment.Settings.MapSize;
+        pointShadowMapFramebufferSpecification.Height = m_SceneShadowEnvironment.Settings.MapSize;
+        m_PointShadowMapFramebuffer = Framebuffer::Create(pointShadowMapFramebufferSpecification);
+
+        FramebufferSpecification spotShadowMapFramebufferSpecification{};
+        spotShadowMapFramebufferSpecification.DebugName = "Spot Shadow Map Framebuffer";
+        spotShadowMapFramebufferSpecification.Attachments = { { TextureFormat::DEPTH_R24G8_TYPELESS, TextureUsage::TextureAttachment } };
+        spotShadowMapFramebufferSpecification.Width = m_SceneShadowEnvironment.Settings.MapSize;
+        spotShadowMapFramebufferSpecification.Height = m_SceneShadowEnvironment.Settings.MapSize;
+        m_SpotShadowMapFramebuffer = Framebuffer::Create(spotShadowMapFramebufferSpecification);
+
+        m_SceneShadowEnvironment.DirectionalShadowMaps = AsRef<Texture2D>(m_DirectionalShadowMapFramebuffer->GetDepthAttachment());
+        m_SceneShadowEnvironment.PointShadowMaps = AsRef<TextureCube>(m_PointShadowMapFramebuffer->GetDepthAttachment());
+        m_SceneShadowEnvironment.SpotShadowMaps = AsRef<Texture2D>(m_SpotShadowMapFramebuffer->GetDepthAttachment());
+    }
+
+    void SceneRenderer::InitPipelines()
+    {
+        PipelineSpecification gBufferPBR_StaticPipelineSpecification{};
+        gBufferPBR_StaticPipelineSpecification.DebugName = "G-Buffer PBR_Static Pipeline";
+        gBufferPBR_StaticPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static");
+        gBufferPBR_StaticPipelineSpecification.TargetFramebuffer = m_GBuffer_PBR_StaticFramebuffer;
+        gBufferPBR_StaticPipelineSpecification.DepthStencilState.DepthTest = true;
+        gBufferPBR_StaticPipelineSpecification.DepthStencilState.DepthWrite = true;
+        gBufferPBR_StaticPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        gBufferPBR_StaticPipelineSpecification.DepthStencilState.StencilTest = true;
+        gBufferPBR_StaticPipelineSpecification.DepthStencilState.FrontFace.PassOp = StencilOperator::Replace;
+        gBufferPBR_StaticPipelineSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Always;
+        gBufferPBR_StaticPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
+        m_GBuffer_PBR_StaticPipeline = Pipeline::Create(gBufferPBR_StaticPipelineSpecification);
+
+        PipelineSpecification gBufferPBR_Static_DissolutionPipelineSpecification{};
+        gBufferPBR_Static_DissolutionPipelineSpecification.DebugName = "G-Buffer PBR_Static Dissolution Pipeline";
+        gBufferPBR_Static_DissolutionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static_Dissolution");
+        gBufferPBR_Static_DissolutionPipelineSpecification.TargetFramebuffer = m_GBuffer_PBR_StaticFramebuffer;
+        gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.DepthTest = true;
+        gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.DepthWrite = true;
+        gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.StencilTest = true;
+        gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.FrontFace.PassOp = StencilOperator::Replace;
+        gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Always;
+        gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
+        m_GBuffer_PBR_Static_DissolutionPipeline = Pipeline::Create(gBufferPBR_Static_DissolutionPipelineSpecification);
+
+        PipelineSpecification gBufferEmissionPipelineSpecification{};
+        gBufferEmissionPipelineSpecification.DebugName = "G-Buffer Emission Pipeline";
+        gBufferEmissionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBuffer_Emission");
+        gBufferEmissionPipelineSpecification.TargetFramebuffer = m_GBuffer_EmissionFramebuffer;
+        gBufferEmissionPipelineSpecification.DepthStencilState.DepthTest = true;
+        gBufferEmissionPipelineSpecification.DepthStencilState.DepthWrite = true;
+        gBufferEmissionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        gBufferEmissionPipelineSpecification.DepthStencilState.StencilTest = true;
+        gBufferEmissionPipelineSpecification.DepthStencilState.FrontFace.PassOp = StencilOperator::Replace;
+        gBufferEmissionPipelineSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Always;
+        gBufferEmissionPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
+        m_GBuffer_EmissionPipeline = Pipeline::Create(gBufferEmissionPipelineSpecification);
+
+        PipelineSpecification gBufferResolve_PBR_StaticPipelineSpecification{};
+        gBufferResolve_PBR_StaticPipelineSpecification.DebugName = "G-Buffer Resolve PBR_Static Pipeline";
+        gBufferResolve_PBR_StaticPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBufferResolve_PBR_Static");
+        gBufferResolve_PBR_StaticPipelineSpecification.TargetFramebuffer = m_HDR_ResolvePBR_StaticFramebuffer;
+        gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.DepthTest = false;
+        gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.DepthWrite = false;
+        gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Always;
+        gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.StencilTest = true;
+        gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Equal;
+        gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
+        m_GBufferResolve_PBR_StaticPipeline = Pipeline::Create(gBufferResolve_PBR_StaticPipelineSpecification);
+
+        PipelineSpecification gBufferResolve_EmissionPipelineSpecification{};
+        gBufferResolve_EmissionPipelineSpecification.DebugName = "G-Buffer Resolve Emission Pipeline";
+        gBufferResolve_EmissionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBufferResolve_Emission");
+        gBufferResolve_EmissionPipelineSpecification.TargetFramebuffer = m_HDR_ResolveEmissionFramebuffer;
+        gBufferResolve_EmissionPipelineSpecification.DepthStencilState.DepthTest = false;
+        gBufferResolve_EmissionPipelineSpecification.DepthStencilState.DepthWrite = false;
+        gBufferResolve_EmissionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Always;
+        gBufferResolve_EmissionPipelineSpecification.DepthStencilState.StencilTest = true;
+        gBufferResolve_EmissionPipelineSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Equal;
+        gBufferResolve_EmissionPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
+        m_GBufferResolve_EmissionPipeline = Pipeline::Create(gBufferResolve_EmissionPipelineSpecification);
+
+        PipelineSpecification skyboxPipelineSpecification{};
+        skyboxPipelineSpecification.DebugName = "Skybox Pipeline";
+        skyboxPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("Skybox");
+        skyboxPipelineSpecification.TargetFramebuffer = m_HDR_ResolveFramebuffer;
+        skyboxPipelineSpecification.DepthStencilState.DepthTest = true;
+        skyboxPipelineSpecification.DepthStencilState.DepthWrite = false;
+        skyboxPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::GreaterOrEqual;
+        m_SkyboxPipeline = Pipeline::Create(skyboxPipelineSpecification);
+
+        PipelineSpecification postProcessPipelineSpecification{};
+        postProcessPipelineSpecification.DebugName = "Post Process Pipeline";
+        postProcessPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("PostProcess");
+        postProcessPipelineSpecification.TargetFramebuffer = Renderer::GetSwapChainTargetFramebuffer();
+        postProcessPipelineSpecification.DepthStencilState.DepthTest = false;
+        postProcessPipelineSpecification.DepthStencilState.DepthWrite = false;
+        postProcessPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Always;
+        m_PostProcessPipeline = Pipeline::Create(postProcessPipelineSpecification);
+
+        PipelineSpecification directionalShadowMapPipelineSpecification{};
+        directionalShadowMapPipelineSpecification.DebugName = "Directional Shadow Map Pipeline";
+        directionalShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional");
+        directionalShadowMapPipelineSpecification.TargetFramebuffer = m_DirectionalShadowMapFramebuffer;
+        directionalShadowMapPipelineSpecification.DepthStencilState.DepthTest = true;
+        directionalShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
+        directionalShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_DirectionalShadowMapPipeline = Pipeline::Create(directionalShadowMapPipelineSpecification);
+
+        PipelineSpecification pointShadowMapPipelineSpecification{};
+        pointShadowMapPipelineSpecification.DebugName = "Point Shadow Map Pipeline";
+        pointShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Omnidirectional");
+        pointShadowMapPipelineSpecification.TargetFramebuffer = m_PointShadowMapFramebuffer;
+        pointShadowMapPipelineSpecification.DepthStencilState.DepthTest = true;
+        pointShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
+        pointShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_PointShadowMapPipeline = Pipeline::Create(pointShadowMapPipelineSpecification);
+
+        PipelineSpecification spotShadowMapPipelineSpecification{};
+        spotShadowMapPipelineSpecification.DebugName = "Spot Shadow Map Pipeline";
+        spotShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional");
+        spotShadowMapPipelineSpecification.TargetFramebuffer = m_SpotShadowMapFramebuffer;
+        spotShadowMapPipelineSpecification.DepthStencilState.DepthTest = true;
+        spotShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
+        spotShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_SpotShadowMapPipeline = Pipeline::Create(spotShadowMapPipelineSpecification);
     }
 
     void SceneRenderer::PreRender()
@@ -458,32 +614,90 @@ namespace DLEngine
         UpdateSpotLightsData();
         UpdateSmokeParticlesData();
 
-        m_MainFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+        // Resizing 
+        m_GBuffer_PBR_StaticFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+        m_GBuffer_EmissionFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+        m_HDR_ResolvePBR_StaticFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+        m_HDR_ResolveEmissionFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+        m_HDR_ResolveFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 
-        TextureViewSpecification mainDepthAttachmentViewSpec{};
-        mainDepthAttachmentViewSpec.Format = TextureFormat::DEPTH24STENCIL8;
-        m_MainFramebuffer->SetDepthAttachmentViewSpecification(mainDepthAttachmentViewSpec);
+        if (m_DirectionalShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < lightsCount.DirectionalLightsCount)
+        {
+            FramebufferSpecification directionalShadowMapFBSpec{};
+            directionalShadowMapFBSpec.DebugName = "Directional Shadow Map Framebuffer";
+            directionalShadowMapFBSpec.Attachments = {
+                { TextureFormat::DEPTH_R24G8_TYPELESS, TextureUsage::TextureAttachment, 1u, lightsCount.DirectionalLightsCount }
+            };
+            directionalShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
+            directionalShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
+            m_DirectionalShadowMapFramebuffer = Framebuffer::Create(directionalShadowMapFBSpec);
+
+            m_SceneShadowEnvironment.DirectionalShadowMaps = AsRef<Texture2D>(m_DirectionalShadowMapFramebuffer->GetDepthAttachment());
+
+            PipelineSpecification directionalShadowMapPipelineSpecification{};
+            directionalShadowMapPipelineSpecification.DebugName = "Directional Shadow Map Pipeline";
+            directionalShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional");
+            directionalShadowMapPipelineSpecification.TargetFramebuffer = m_DirectionalShadowMapFramebuffer;
+            directionalShadowMapPipelineSpecification.DepthStencilState.DepthTest = true;
+            directionalShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
+            directionalShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_DirectionalShadowMapPipeline = Pipeline::Create(directionalShadowMapPipelineSpecification);
+        }
+
+        if (m_PointShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < lightsCount.PointLightsCount)
+        {
+            FramebufferSpecification pointShadowMapFBSpec{};
+            pointShadowMapFBSpec.DebugName = "Point Shadow Map Framebuffer";
+            pointShadowMapFBSpec.Attachments = {
+                { TextureFormat::DEPTH_R24G8_TYPELESS, TextureUsage::TextureAttachment, 1u, lightsCount.PointLightsCount }
+            };
+            pointShadowMapFBSpec.AttachmentsType = TextureType::TextureCube;
+            pointShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
+            pointShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
+            m_PointShadowMapFramebuffer = Framebuffer::Create(pointShadowMapFBSpec);
+
+            m_SceneShadowEnvironment.PointShadowMaps = AsRef<TextureCube>(m_PointShadowMapFramebuffer->GetDepthAttachment());
+
+            PipelineSpecification pointShadowMapPipelineSpecification{};
+            pointShadowMapPipelineSpecification.DebugName = "Point Shadow Map Pipeline";
+            pointShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Omnidirectional");
+            pointShadowMapPipelineSpecification.TargetFramebuffer = m_PointShadowMapFramebuffer;
+            pointShadowMapPipelineSpecification.DepthStencilState.DepthTest = true;
+            pointShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
+            pointShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_PointShadowMapPipeline = Pipeline::Create(pointShadowMapPipelineSpecification);
+        }
+
+        if (m_SpotShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < lightsCount.SpotLightsCount)
+        {
+            FramebufferSpecification spotShadowMapFBSpec{};
+            spotShadowMapFBSpec.DebugName = "Spot Shadow Map Framebuffer";
+            spotShadowMapFBSpec.Attachments = {
+                { TextureFormat::DEPTH_R24G8_TYPELESS, TextureUsage::TextureAttachment, 1u, lightsCount.SpotLightsCount }
+            };
+            spotShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
+            spotShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
+            m_SpotShadowMapFramebuffer = Framebuffer::Create(spotShadowMapFBSpec);
+
+            m_SceneShadowEnvironment.SpotShadowMaps = AsRef<Texture2D>(m_SpotShadowMapFramebuffer->GetDepthAttachment());
+
+            PipelineSpecification spotShadowMapPipelineSpecification{};
+            spotShadowMapPipelineSpecification.DebugName = "Spot Shadow Map Pipeline";
+            spotShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional");
+            spotShadowMapPipelineSpecification.TargetFramebuffer = m_SpotShadowMapFramebuffer;
+            spotShadowMapPipelineSpecification.DepthStencilState.DepthTest = true;
+            spotShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
+            spotShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_SpotShadowMapPipeline = Pipeline::Create(spotShadowMapPipelineSpecification);
+        }
+
+        m_DirectionalShadowMapFramebuffer->Resize(m_SceneShadowEnvironment.Settings.MapSize, m_SceneShadowEnvironment.Settings.MapSize);
+        m_PointShadowMapFramebuffer->Resize(m_SceneShadowEnvironment.Settings.MapSize, m_SceneShadowEnvironment.Settings.MapSize);
+        m_SpotShadowMapFramebuffer->Resize(m_SceneShadowEnvironment.Settings.MapSize, m_SceneShadowEnvironment.Settings.MapSize);
     }
 
     void SceneRenderer::ShadowPass()
     {
-        constexpr auto submitAllMeshes{ [](const MeshRegistry& meshRegistry, std::string_view shaderName)
-            {
-                const auto& meshBatch{ meshRegistry.GetMeshBatch(shaderName) };
-                for (const auto& [mesh, submeshBatch] : meshBatch.SubmeshBatches)
-                {
-                    for (uint32_t submeshIndex{ 0u }; submeshIndex < mesh->GetSubmeshes().size(); ++submeshIndex)
-                    {
-                        for (const auto& [material, instanceBatch] : submeshBatch.MaterialBatches[submeshIndex].InstanceBatches)
-                        {
-                            const uint32_t instanceCount{ static_cast<uint32_t>(instanceBatch.SubmeshInstances.size()) };
-                            Renderer::SubmitStaticMeshInstanced(mesh, submeshIndex, instanceBatch.InstanceBuffer, instanceCount);
-                        }
-                    }
-                }
-            }
-        };
-
         const auto& lightsCount{ m_CBLightsCount->GetLocalData().As<CBLightsCount>() };
 
         // Building directional shadow maps
@@ -501,9 +715,9 @@ namespace DLEngine
             depthAttachmentViewSpec.Subresource.LayersCount = 1u;
             m_DirectionalShadowMapFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentViewSpec);
 
-            Renderer::SetPipeline(m_DirectionalShadowMapPipeline, true);
-            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static");
-            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
+            Renderer::SetPipeline(m_DirectionalShadowMapPipeline, DL_CLEAR_DEPTH_ATTACHMENT);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", false);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", false);
         }
 
         // Building point shadow maps
@@ -528,9 +742,9 @@ namespace DLEngine
             depthAttachmentViewSpec.Subresource.LayersCount = 1u;
             m_PointShadowMapFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentViewSpec);
 
-            Renderer::SetPipeline(m_PointShadowMapPipeline, true);
-            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static");
-            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
+            Renderer::SetPipeline(m_PointShadowMapPipeline, DL_CLEAR_DEPTH_ATTACHMENT);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", false);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", false);
         }
 
         // Building spot shadow maps
@@ -548,49 +762,47 @@ namespace DLEngine
             depthAttachmentViewSpec.Subresource.LayersCount = 1u;
             m_SpotShadowMapFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentViewSpec);
 
-            Renderer::SetPipeline(m_SpotShadowMapPipeline, true);
-            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static");
-            submitAllMeshes(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
+            Renderer::SetPipeline(m_SpotShadowMapPipeline, DL_CLEAR_DEPTH_ATTACHMENT);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", false);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", false);
         }
     }
 
-    void SceneRenderer::GeometryPass()
+    void SceneRenderer::GBufferPass()
     {
-        constexpr auto submitAllMeshesWithMaterial{ [](const MeshRegistry& meshRegistry, std::string_view shaderName)
-            {
-                const auto& meshBatch{ meshRegistry.GetMeshBatch(shaderName) };
-                for (const auto& [mesh, submeshBatch] : meshBatch.SubmeshBatches)
-                {
-                    for (uint32_t submeshIndex{ 0u }; submeshIndex < mesh->GetSubmeshes().size(); ++submeshIndex)
-                    {
-                        for (const auto& [material, instanceBatch] : submeshBatch.MaterialBatches[submeshIndex].InstanceBatches)
-                        {
-                            const uint32_t instanceCount{ static_cast<uint32_t>(instanceBatch.SubmeshInstances.size()) };
-                            Renderer::SetMaterial(material);
-                            Renderer::SubmitStaticMeshInstanced(mesh, submeshIndex, instanceBatch.InstanceBuffer, instanceCount);
-                        }
-                    }
-                }
-            }
-        };
+        UpdateCBCamera(m_Scene->m_SceneCameraController.GetCamera());
 
-        const auto& sceneCamera{ m_Scene->m_SceneCameraController.GetCamera() };
-        UpdateCBCamera(sceneCamera);
+        TextureViewSpecification depthAttachmentWriteSpecification{};
+        depthAttachmentWriteSpecification.Format = TextureFormat::DEPTH24STENCIL8;
+
+        m_GBuffer_EmissionFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteSpecification);
+        Renderer::SetPipeline(m_GBuffer_EmissionPipeline, DL_CLEAR_COLOR_ATTACHMENT | DL_CLEAR_DEPTH_ATTACHMENT | DL_CLEAR_STENCIL_ATTACHMENT);
+        Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_Emission", true);
+
+        m_GBuffer_PBR_StaticFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteSpecification);
+        Renderer::SetPipeline(m_GBuffer_PBR_StaticPipeline, DL_CLEAR_NONE);
+        Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", true);
+
+        Renderer::SetPipeline(m_GBuffer_PBR_Static_DissolutionPipeline, DL_CLEAR_NONE);
+        Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", true);
+    }
+
+    void SceneRenderer::FullscreenPass()
+    {
+        m_GBufferDepthStencilCopy = Texture2D::Copy(m_GBufferDepthStencil);
 
         const auto& lightsCount{ m_CBLightsCount->GetLocalData().As<CBLightsCount>() };
 
-        Renderer::SetPipeline(m_PBRStaticPipeline, true);
-        
         TextureViewSpecification directionalShadowMaps{};
-        directionalShadowMaps.Format = TextureFormat::R24X8;
+        directionalShadowMaps.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
         directionalShadowMaps.Subresource.BaseMip = 0u;
         directionalShadowMaps.Subresource.MipsCount = 1u;
         directionalShadowMaps.Subresource.BaseLayer = 0u;
         directionalShadowMaps.Subresource.LayersCount = lightsCount->DirectionalLightsCount;
         Renderer::SetTexture2Ds(BP_TEX_DIRECTIONAL_SHADOW_MAPS, DL_PIXEL_SHADER_BIT, { m_SceneShadowEnvironment.DirectionalShadowMaps }, { directionalShadowMaps });
-        
+
         TextureViewSpecification pointShadowMaps{};
-        pointShadowMaps.Format = TextureFormat::R24X8;
+        pointShadowMaps.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
         pointShadowMaps.Subresource.BaseMip = 0u;
         pointShadowMaps.Subresource.MipsCount = 1u;
         pointShadowMaps.Subresource.BaseLayer = 0u;
@@ -598,26 +810,56 @@ namespace DLEngine
         Renderer::SetTextureCubes(BP_TEX_POINT_SHADOW_MAPS, DL_PIXEL_SHADER_BIT, { m_SceneShadowEnvironment.PointShadowMaps }, { pointShadowMaps });
 
         TextureViewSpecification spotShadowMaps{};
-        spotShadowMaps.Format = TextureFormat::R24X8;
+        spotShadowMaps.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
         spotShadowMaps.Subresource.BaseMip = 0u;
         spotShadowMaps.Subresource.MipsCount = 1u;
         spotShadowMaps.Subresource.BaseLayer = 0u;
         spotShadowMaps.Subresource.LayersCount = lightsCount->SpotLightsCount;
         Renderer::SetTexture2Ds(BP_TEX_SPOT_SHADOW_MAPS, DL_PIXEL_SHADER_BIT, { m_SceneShadowEnvironment.SpotShadowMaps }, { spotShadowMaps });
 
-        submitAllMeshesWithMaterial(m_Scene->m_MeshRegistry, "PBR_Static");
+        TextureViewSpecification defaultTextureViewSpecification{};
 
-        Renderer::SetPipeline(m_DissolutionPipeline, false);
-        submitAllMeshesWithMaterial(m_Scene->m_MeshRegistry, "PBR_Static_Dissolution");
+        TextureViewSpecification depthAttachmentViewReadSpecification{};
+        depthAttachmentViewReadSpecification.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
 
-        Renderer::SetPipeline(m_EmissionPipeline, false);
-        submitAllMeshesWithMaterial(m_Scene->m_MeshRegistry, "Emission");
+        TextureViewSpecification depthAttachmentViewWriteSpecification{};
+        depthAttachmentViewWriteSpecification.Format = TextureFormat::DEPTH24STENCIL8;
+
+        m_HDR_ResolvePBR_StaticFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentViewWriteSpecification);
+        Renderer::SetPipeline(m_GBufferResolve_PBR_StaticPipeline, DL_CLEAR_COLOR_ATTACHMENT);
+        Renderer::SetTexture2Ds(BP_TEX_GBUFFER_ALBEDO, DL_PIXEL_SHADER_BIT,
+            {
+                m_GBufferAlbedo,
+                m_GBufferMetalnessRoughness,
+                m_GBufferGeometrySurfaceNormals,
+                m_GBufferEmission,
+                m_GBufferDepthStencilCopy
+            },
+            {
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                depthAttachmentViewReadSpecification
+            }
+        );
+        Renderer::SubmitFullscreenQuad();
+
+        m_HDR_ResolveEmissionFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentViewWriteSpecification);
+        Renderer::SetPipeline(m_GBufferResolve_EmissionPipeline, DL_CLEAR_NONE);
+        Renderer::SubmitFullscreenQuad();
     }
 
     void SceneRenderer::SkyboxPass()
     {
-        Renderer::SetPipeline(m_SkyboxPipeline, false);
-        Renderer::SetTextureCubes(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_SceneEnvironment.Skybox }, { TextureViewSpecification{} });
+        TextureViewSpecification defaultTextureViewSpecification{};
+        
+        TextureViewSpecification depthAttachmentViewWriteSpecification{};
+        depthAttachmentViewWriteSpecification.Format = TextureFormat::DEPTH24STENCIL8;
+
+        m_HDR_ResolveFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentViewWriteSpecification);
+        Renderer::SetPipeline(m_SkyboxPipeline, DL_CLEAR_NONE);
+        Renderer::SetTextureCubes(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_SceneEnvironment.Skybox }, { defaultTextureViewSpecification });
         Renderer::SubmitFullscreenQuad();
     }
 
@@ -626,11 +868,12 @@ namespace DLEngine
         if (m_Scene->m_SmokeEnvironment.SortedSmokeParticles.empty())
             return;
 
+#if 0
         TextureViewSpecification depthWriteAttachmentViewSpec{};
         depthWriteAttachmentViewSpec.Format = TextureFormat::DEPTH24STENCIL8;
 
         TextureViewSpecification depthReadAttachmentViewSpec{};
-        depthReadAttachmentViewSpec.Format = TextureFormat::R24X8;
+        depthReadAttachmentViewSpec.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
 
         // Building max depth framebuffer
         m_MaxDepthFramebuffer->SetDepthAttachmentViewSpecification(depthWriteAttachmentViewSpec);
@@ -638,7 +881,7 @@ namespace DLEngine
 
         Renderer::SetConstantBuffers(BP_CB_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_CBPostProcessSettings });
         
-        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { AsRef<Texture2D>(m_MainFramebuffer->GetDepthAttachment()) }, { depthReadAttachmentViewSpec });
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { AsRef<Texture2D>(m_HDRFramebuffer->GetDepthAttachment()) }, { depthReadAttachmentViewSpec });
 
         Renderer::SubmitFullscreenQuad();
 
@@ -663,13 +906,14 @@ namespace DLEngine
         );
         
         Renderer::SubmitParticleBillboard(m_SmokeParticlesInstanceBuffer);
+#endif
     }
 
     void SceneRenderer::PostProcessPass()
     {
-        Renderer::SetPipeline(m_PostProcessPipeline, true);
+        Renderer::SetPipeline(m_PostProcessPipeline, DL_CLEAR_COLOR_ATTACHMENT);
         Renderer::SetConstantBuffers(BP_CB_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_CBPostProcessSettings });
-        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { AsRef<Texture2D>(m_MainFramebuffer->GetColorAttachment(0u)) }, { TextureViewSpecification{} });
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_HDR_ResolveTexture }, { TextureViewSpecification{} });
         Renderer::SubmitFullscreenQuad();
     }
 
@@ -705,22 +949,6 @@ namespace DLEngine
 
         if (m_SceneShadowEnvironment.SBDirectionalLightsPOVs->GetElementsCount() < directionalLightsCount)
             m_SceneShadowEnvironment.SBDirectionalLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), directionalLightsCount);
-
-        // Recreate directional shadow map framebuffer if needed
-        if (m_DirectionalShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < directionalLightsCount ||
-            m_DirectionalShadowMapFramebuffer->GetSpecification().Width != m_SceneShadowEnvironment.Settings.MapSize)
-        {
-            FramebufferSpecification directionalShadowMapFBSpec{};
-            directionalShadowMapFBSpec.DebugName = "Directional Shadow Map Framebuffer";
-            directionalShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment, 1u, directionalLightsCount } };
-            directionalShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
-            directionalShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
-            m_DirectionalShadowMapFramebuffer = Framebuffer::Create(directionalShadowMapFBSpec);
-
-            m_SceneShadowEnvironment.DirectionalShadowMaps = AsRef<Texture2D>(m_DirectionalShadowMapFramebuffer->GetDepthAttachment());
-
-            m_DirectionalShadowMapPipeline->SetFramebuffer(m_DirectionalShadowMapFramebuffer);
-        }
 
         const bool lightEnvironmentHasChanged{ static_cast<uint32_t>(m_SceneShadowEnvironment.DirectionalLightsData.size()) > directionalLightsCount };
 
@@ -863,23 +1091,6 @@ namespace DLEngine
         if (m_SceneShadowEnvironment.SBPointLightsPOVs->GetElementsCount() < pointLightsCount * 6u)
             m_SceneShadowEnvironment.SBPointLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), pointLightsCount * 6u);
 
-        // Recreate point shadow map framebuffer if needed
-        if (m_PointShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < pointLightsCount ||
-            m_PointShadowMapFramebuffer->GetSpecification().Width != m_SceneShadowEnvironment.Settings.MapSize)
-        {
-            FramebufferSpecification pointShadowMapFBSpec{};
-            pointShadowMapFBSpec.DebugName = "Point Shadow Map Framebuffer";
-            pointShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment, 1u, pointLightsCount } };
-            pointShadowMapFBSpec.AttachmentsType = TextureType::TextureCube;
-            pointShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
-            pointShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
-            m_PointShadowMapFramebuffer = Framebuffer::Create(pointShadowMapFBSpec);
-
-            m_SceneShadowEnvironment.PointShadowMaps = AsRef<TextureCube>(m_PointShadowMapFramebuffer->GetDepthAttachment());
-
-            m_PointShadowMapPipeline->SetFramebuffer(m_PointShadowMapFramebuffer);
-        }
-
         m_SceneShadowEnvironment.PointLightsData.resize(pointLightsCount);
 
         auto pointLightsSB{ m_SBPointLights->Map().As<PointLight>() };
@@ -960,22 +1171,6 @@ namespace DLEngine
 
         if (m_SceneShadowEnvironment.SBSpotLightsPOVs->GetElementsCount() < spotLightsCount)
             m_SceneShadowEnvironment.SBSpotLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), spotLightsCount);
-
-        // Recreate spot shadow map framebuffer if needed
-        if (m_SpotShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < spotLightsCount ||
-            m_SpotShadowMapFramebuffer->GetSpecification().Width != m_SceneShadowEnvironment.Settings.MapSize)
-        {
-            FramebufferSpecification spotShadowMapFBSpec{};
-            spotShadowMapFBSpec.DebugName = "Spot Shadow Map Framebuffer";
-            spotShadowMapFBSpec.Attachments = { { TextureFormat::DEPTH_R24G8T, TextureUsage::TextureAttachment, 1u, spotLightsCount } };
-            spotShadowMapFBSpec.Width = m_SceneShadowEnvironment.Settings.MapSize;
-            spotShadowMapFBSpec.Height = m_SceneShadowEnvironment.Settings.MapSize;
-            m_SpotShadowMapFramebuffer = Framebuffer::Create(spotShadowMapFBSpec);
-
-            m_SceneShadowEnvironment.SpotShadowMaps = AsRef<Texture2D>(m_SpotShadowMapFramebuffer->GetDepthAttachment());
-
-            m_SpotShadowMapPipeline->SetFramebuffer(m_SpotShadowMapFramebuffer);
-        }
 
         m_SceneShadowEnvironment.SpotLightsData.resize(spotLightsCount);
 
@@ -1060,7 +1255,7 @@ namespace DLEngine
 
         TextureSpecification irradianceMapSpec{};
         irradianceMapSpec.DebugName = "Irradiance Map";
-        irradianceMapSpec.Format = TextureFormat::RGBA16F;
+        irradianceMapSpec.Format = TextureFormat::RGBA16_FLOAT;
         irradianceMapSpec.Usage = TextureUsage::TextureAttachment;
         irradianceMapSpec.Width = brdfLUTSize;
         irradianceMapSpec.Height = brdfLUTSize;
@@ -1080,7 +1275,7 @@ namespace DLEngine
         irradianceMapPipelineSpec.DebugName = "Irradiance Map Pipeline";
         irradianceMapPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("EnvironmentIrradiance");
         irradianceMapPipelineSpec.TargetFramebuffer = irradianceMapFB;
-        irradianceMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Always;
+        irradianceMapPipelineSpec.DepthStencilState.DepthCompareOp = CompareOperator::Always;
         irradianceMapPipelineSpec.DepthStencilState.DepthTest = false;
         irradianceMapPipelineSpec.DepthStencilState.DepthWrite = false;
         const Ref<Pipeline> irradianceMapPipeline{ Pipeline::Create(irradianceMapPipelineSpec) };
@@ -1097,7 +1292,7 @@ namespace DLEngine
         Ref<ConstantBuffer> cbEnvironmentMapping{ ConstantBuffer::Create(sizeof(CBEnvironmentMapping)) };
         cbEnvironmentMapping->SetData(Buffer{ &CBEnvironmentMapping, sizeof(CBEnvironmentMapping) });
 
-        Renderer::SetPipeline(irradianceMapPipeline, true);
+        Renderer::SetPipeline(irradianceMapPipeline, DL_CLEAR_COLOR_ATTACHMENT);
         Renderer::SetConstantBuffers(0u, DL_PIXEL_SHADER_BIT, { cbEnvironmentMapping });
         Renderer::SetSamplerStates(0u, DL_PIXEL_SHADER_BIT, { SamplerSpecification{ SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Anisotropic8, CompareOperator::Never } } });
         Renderer::SetTextureCubes(0u, DL_PIXEL_SHADER_BIT, { m_SceneEnvironment.Skybox }, { TextureViewSpecification{} });
@@ -1110,46 +1305,13 @@ namespace DLEngine
         
         TextureSpecification prefilteredMapSpec{};
         prefilteredMapSpec.DebugName = "Prefiltered Map";
-        prefilteredMapSpec.Format = TextureFormat::RGBA16F;
+        prefilteredMapSpec.Format = TextureFormat::RGBA16_FLOAT;
         prefilteredMapSpec.Usage = TextureUsage::TextureAttachment;
         prefilteredMapSpec.Width = brdfLUTSize;
         prefilteredMapSpec.Height = brdfLUTSize;
         prefilteredMapSpec.Mips = static_cast<uint32_t>(Math::Log2(static_cast<float>(brdfLUTSize))) + 1u;
         prefilteredMapSpec.Layers = 1u;
         m_SceneEnvironment.PrefilteredMap = TextureCube::Create(prefilteredMapSpec);
-
-        FramebufferSpecification prefilteredMapFBSpec{};
-        prefilteredMapFBSpec.DebugName = "Prefiltered Map Framebuffer";
-        prefilteredMapFBSpec.ExistingAttachments[0] = m_SceneEnvironment.PrefilteredMap;
-        prefilteredMapFBSpec.ClearColor = Math::Vec4{ 0.0f, 0.0f, 0.0f, 0.0f };
-        prefilteredMapFBSpec.AttachmentsType = TextureType::TextureCube;
-        std::vector<Ref<Framebuffer>> prefilteredMapMipFBs{ prefilteredMapSpec.Mips };
-        for (uint32_t mip{ 0u }; mip < prefilteredMapSpec.Mips; ++mip)
-        {
-            prefilteredMapFBSpec.Width = brdfLUTSize >> mip;
-            prefilteredMapFBSpec.Height = brdfLUTSize >> mip;
-            prefilteredMapMipFBs[mip] = Framebuffer::Create(prefilteredMapFBSpec);
-
-            TextureViewSpecification framebufferViewSpec{};
-            framebufferViewSpec.Subresource.BaseMip = mip;
-            framebufferViewSpec.Subresource.MipsCount = 1u; // Actually ignored in D3D11TextureCube
-            framebufferViewSpec.Subresource.BaseLayer = 0u;
-            framebufferViewSpec.Subresource.LayersCount = 1u;
-            prefilteredMapMipFBs[mip]->SetColorAttachmentViewSpecification(0u, framebufferViewSpec);
-        }
-
-        PipelineSpecification prefilteredMapPipelineSpec{};
-        prefilteredMapPipelineSpec.DebugName = "Prefiltered Map Pipeline";
-        prefilteredMapPipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PrefilteredEnvironment");
-        prefilteredMapPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Always;
-        prefilteredMapPipelineSpec.DepthStencilState.DepthTest = false;
-        prefilteredMapPipelineSpec.DepthStencilState.DepthWrite = false;
-        std::vector<Ref<Pipeline>> prefilteredMapMipPipelines{ prefilteredMapSpec.Mips };
-        for (uint32_t i{ 0u }; i < prefilteredMapSpec.Mips; ++i)
-        {
-            prefilteredMapPipelineSpec.TargetFramebuffer = prefilteredMapMipFBs[i];
-            prefilteredMapMipPipelines[i] = Pipeline::Create(prefilteredMapPipelineSpec);
-        }
 
         struct
         {
@@ -1166,13 +1328,40 @@ namespace DLEngine
         Renderer::SetSamplerStates(0u, DL_PIXEL_SHADER_BIT, { SamplerSpecification{ SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Anisotropic8, CompareOperator::Never } } });
         Renderer::SetTextureCubes(0u, DL_PIXEL_SHADER_BIT, { m_SceneEnvironment.Skybox }, { TextureViewSpecification{} });
 
+        FramebufferSpecification prefilteredMapFramebufferSpecification{};
+        prefilteredMapFramebufferSpecification.ExistingAttachments[0] = m_SceneEnvironment.PrefilteredMap;
+        prefilteredMapFramebufferSpecification.ClearColor = Math::Vec4{ 0.0f, 0.0f, 0.0f, 0.0f };
+        prefilteredMapFramebufferSpecification.AttachmentsType = TextureType::TextureCube;
+
+        PipelineSpecification prefilteredMapPipelineSpecification{};
+        prefilteredMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("PrefilteredEnvironment");
+        prefilteredMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Always;
+        prefilteredMapPipelineSpecification.DepthStencilState.DepthTest = false;
+        prefilteredMapPipelineSpecification.DepthStencilState.DepthWrite = false;
+
         const float roughnessStep{ 1.0f / static_cast<float>(prefilteredMapSpec.Mips - 1u) };
         for (uint32_t mip{ 0u }; mip < prefilteredMapSpec.Mips; ++mip)
         {
+            prefilteredMapFramebufferSpecification.DebugName = "Prefiltered Map Framebuffer Mip " + mip;
+            prefilteredMapFramebufferSpecification.Width = brdfLUTSize >> mip;
+            prefilteredMapFramebufferSpecification.Height = brdfLUTSize >> mip;
+            Ref<Framebuffer> prefilteredMapFramebuffer{ Framebuffer::Create(prefilteredMapFramebufferSpecification) };
+
+            TextureViewSpecification framebufferViewSpec{};
+            framebufferViewSpec.Subresource.BaseMip = mip;
+            framebufferViewSpec.Subresource.MipsCount = 1u; // Actually ignored in D3D11TextureCube
+            framebufferViewSpec.Subresource.BaseLayer = 0u;
+            framebufferViewSpec.Subresource.LayersCount = 1u;
+            prefilteredMapFramebuffer->SetColorAttachmentViewSpecification(0u, framebufferViewSpec);
+
+            prefilteredMapPipelineSpecification.DebugName = "Prefiltered Map Pipeline Mip " + mip;
+            prefilteredMapPipelineSpecification.TargetFramebuffer = prefilteredMapFramebuffer;
+            Ref<Pipeline> prefilteredMapPipeline{ Pipeline::Create(prefilteredMapPipelineSpecification) };
+
             CBEnvironmentMapping.Roughness = static_cast<float>(mip) * roughnessStep;
             cbEnvironmentMapping->SetData(Buffer{ &CBEnvironmentMapping, sizeof(CBEnvironmentMapping) });
 
-            Renderer::SetPipeline(prefilteredMapMipPipelines[mip], true);
+            Renderer::SetPipeline(prefilteredMapPipeline, DL_CLEAR_COLOR_ATTACHMENT);
             Renderer::SubmitFullscreenQuad();
         }
     }

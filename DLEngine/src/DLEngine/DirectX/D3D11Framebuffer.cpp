@@ -28,12 +28,18 @@ namespace DLEngine
         m_Specification.Width = width;
         m_Specification.Height = height;
 
-        Invalidate();
-
         if (m_Specification.SwapChainTarget)
+        {
+            Invalidate();
             CreateFramebufferForSwapChain();
-        else
-            CreateAttachments();
+            return;
+        }
+
+        for (auto& colorAttachment : m_ColorAttachments)
+            colorAttachment->Resize(width, height);
+
+        if (m_DepthAttachment)
+            m_DepthAttachment->Resize(width, height);
     }
 
     void D3D11Framebuffer::Invalidate() noexcept
@@ -114,6 +120,8 @@ namespace DLEngine
 
     void D3D11Framebuffer::CreateAttachments()
     {
+        DL_ASSERT(!m_Specification.Attachments.Attachments.empty(), "Framebuffer [{0}] has no attachments", m_Specification.DebugName);
+
         TextureSpecification textureSpec{};
         textureSpec.Width = m_Specification.Width;
         textureSpec.Height = m_Specification.Height;
@@ -181,7 +189,10 @@ namespace DLEngine
 
     void D3D11Framebuffer::ProcessExistingAttachments()
     {
-        m_Specification.Attachments.Attachments.clear();
+        DL_ASSERT(m_Specification.Width > 0u && m_Specification.Height > 0u,
+            "Framebuffer [{0}] has invalid size. It must be set explicitly", m_Specification.DebugName
+        );
+
         uint32_t prevIndex{ 0u };
         for (const auto& [index, attachment] : m_Specification.ExistingAttachments)
         {
@@ -191,21 +202,21 @@ namespace DLEngine
             const auto& attachmentSpec{ attachment->GetSpecification() };
 
             DL_ASSERT(attachmentSpec.Usage != TextureUsage::None && attachmentSpec.Usage != TextureUsage::Texture,
-                "Framebuffer [{0}] has invalid attachment usage", m_Specification.DebugName
+                "Framebuffer [{0}] has invalid attachment usage for attachment [{1}]", m_Specification.DebugName, attachmentSpec.DebugName
             );
 
             DL_ASSERT(attachment->GetType() == m_Specification.AttachmentsType,
-                "Framebuffer [{0}] has invalid attachments type", m_Specification.DebugName
+                "Framebuffer [{0}] has invalid attachment type for attachment [{1}]", m_Specification.DebugName, attachmentSpec.DebugName
             );
 
             DL_ASSERT(attachmentSpec.Samples == m_Specification.Samples,
-                "Framebuffer [{0}] has invalid samples count", m_Specification.DebugName
+                "Framebuffer [{0}] has invalid samples count for attachment [{1}]", m_Specification.DebugName, attachmentSpec.DebugName
             );
 
             if (Utils::IsDepthFormat(attachmentSpec.Format))
             {
                 DL_ASSERT(!m_DepthAttachment,
-                    "Framebuffer [{0}] has more than one depht attachment", m_Specification.DebugName
+                    "Framebuffer [{0}] has more than one depth attachment", m_Specification.DebugName
                 );
                 m_DepthAttachment = attachment;
 
@@ -220,8 +231,6 @@ namespace DLEngine
 
                 m_ColorAttachmentViewSpecifications.emplace_back(TextureViewSpecification{});
             }
-
-            m_Specification.Attachments.Attachments.emplace_back(attachmentSpec.Format, attachmentSpec.Usage, attachmentSpec.Mips, attachmentSpec.Layers);
         }
         m_Specification.ExistingAttachments.clear();
     }

@@ -21,7 +21,7 @@ namespace DLEngine
         const std::string& GetName() const noexcept override { return m_Name; }
 
     private:
-        void GenerateElementMap(const VertexBufferLayout& instanceLayout) noexcept;
+        void GenerateElementMap(const VertexBufferLayout& instanceLayout, size_t offset) noexcept;
 
     private:
         std::string m_Name;
@@ -30,6 +30,6 @@ namespace DLEngine
 
         Buffer m_InstanceData;
 
-        std::unordered_map<std::string, const VertexBufferElement*> m_ElementMap;
+        std::unordered_map<std::string, std::pair<const VertexBufferElement*, size_t>> m_ElementMap;
     };
 }

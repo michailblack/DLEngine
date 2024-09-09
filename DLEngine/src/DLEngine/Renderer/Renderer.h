@@ -37,10 +37,10 @@ namespace DLEngine
         static void SetStructuredBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<StructuredBuffer>>& structuredBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept;
         static void SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept;
 
-        static void SetPipeline(const Ref<Pipeline>& pipeline, bool clearAttachments) noexcept;
+        static void SetPipeline(const Ref<Pipeline>& pipeline, uint8_t clearAttachmentEnums) noexcept;
         static void SetMaterial(const Ref<Material>& material) noexcept;
 
-        static void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<VertexBuffer>& instanceBuffer, uint32_t instanceCount) noexcept;
+        static void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const std::map<uint32_t, Ref<VertexBuffer>>& instanceBuffers, uint32_t instanceCount) noexcept;
         static void SubmitFullscreenQuad() noexcept;
         static void SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept;
 

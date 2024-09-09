@@ -476,7 +476,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     }
 
     auto baseSamuraiMaterial{ DLEngine::Material::Create(shader, std::format("{0} Base Samurai Material", shaderName).c_str()) };
-    if (shaderName == "PBR_Static_Dissolution")
+    if (shaderName == "GBuffer_PBR_Static_Dissolution")
     {
         const auto& dissolutionMap{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "Noise_2.dds")) };
         baseSamuraiMaterial->Set("t_DissolutionNoiseMap", dissolutionMap);
@@ -664,7 +664,7 @@ void WorldLayer::AddObjectsToScene()
     const auto& textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
     const auto& textureDirectoryPath{ DLEngine::Texture::GetTextureDirectoryPath() };
     
-    const auto& pbrStaticShader{ DLEngine::Renderer::GetShaderLibrary()->Get("PBR_Static") };
+    const auto& pbrStaticShader{ DLEngine::Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static") };
 
     const auto& cube{ meshLibrary->Get("cube") };
     const auto& flashlight{ meshLibrary->Get("flashlight") };
@@ -794,12 +794,12 @@ void WorldLayer::AddObjectsToScene()
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{  1.5f, 0.0f, 2.0f }),
     } };
 
-    AddPBRSamuraiToScene("PBR_Static",
+    AddPBRSamuraiToScene("GBuffer_PBR_Static",
         {
             { "TRANSFORM", DLEngine::Buffer{ &transforms[0u], sizeof(DLEngine::Math::Mat4x4) } },
         });
 
-    AddPBRSamuraiToScene("PBR_Static",
+    AddPBRSamuraiToScene("GBuffer_PBR_Static",
         {
             { "TRANSFORM", DLEngine::Buffer{ &transforms[1u], sizeof(DLEngine::Math::Mat4x4) } },
         });
@@ -856,11 +856,12 @@ void WorldLayer::SwapDissolutionGroupInstances(DLEngine::DeltaTime dt)
 {
     using namespace DLEngine;
 
-    auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
-    auto& dissolutionMeshBatch{ sceneMeshRegistry.GetMeshBatch("PBR_Static_Dissolution") };
     std::unordered_map<Ref<Instance>, std::pair<Ref<Instance>, bool>> dissolutionToPBR_StaticInstances{};
     std::unordered_set<MeshRegistry::SubmeshID, MeshRegistry::SubmeshIDHash, MeshRegistry::SubmeshIDEqual> submeshIDsToRemove{};
-    const auto& pbrStaticShader{ Renderer::GetShaderLibrary()->Get("PBR_Static") };
+    const auto& pbrStaticShader{ Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static") };
+
+    auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
+    auto& dissolutionMeshBatch{ sceneMeshRegistry.GetMeshBatch("GBuffer_PBR_Static_Dissolution") };
     for (auto& [mesh, submeshBatch] : dissolutionMeshBatch.SubmeshBatches)
     {
         for (uint32_t submeshIndex{ 0u }; submeshIndex < submeshBatch.MaterialBatches.size(); ++submeshIndex)
@@ -945,7 +946,7 @@ bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)
             const float duration{ DLEngine::RandomGenerator::GenerateRandomInRange(m_DissolutionGroupSpawnSettings.MinDissolutionDuration, m_DissolutionGroupSpawnSettings.MaxDissolutionDuration) * 1.0e3f }; // Seconds to milliseconds
             const float elapsedTime{ 0.0f };
 
-            AddPBRSamuraiToScene("PBR_Static_Dissolution",
+            AddPBRSamuraiToScene("GBuffer_PBR_Static_Dissolution",
                 {
                     { "TRANSFORM"           , DLEngine::Buffer{ &transform  , sizeof(DLEngine::Math::Mat4x4) } },
                     { "DISSOLUTION_DURATION", DLEngine::Buffer{ &duration   , sizeof(float)                  } },

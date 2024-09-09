@@ -1,15 +1,18 @@
-#include "Include/Lighting.hlsli"
+#include "Include/Buffers.hlsli"
+#include "Include/Common.hlsli"
+#include "Include/PBR_Resources.hlsli"
+#include "Include/Samplers.hlsli"
 
 struct VertexInput
 {
     float3 a_Position  : POSITION;
     float3 a_Normal    : NORMAL;
     float3 a_Tangent   : TANGENT;
-    float3 a_Bitangent : BITANGENT;  
+    float3 a_Bitangent : BITANGENT;
     float2 a_TexCoords : TEXCOORDS;
 };
 
-struct InstanceInput
+struct TransformInput
 {
     float4x4 a_Transform : TRANSFORM;
 };
@@ -19,11 +22,11 @@ struct VertexOutput
     float4   v_Position       : SV_POSITION;
     float3   v_WorldPos       : WORLD_POS;
     float3   v_Normal         : NORMAL;
-    float2   v_TexCoords      : TEXCOORDS;
     float3x3 v_TangentToWorld : TANGENT_TO_WORLD;
+    float2   v_TexCoords      : TEXCOORDS;
 };
 
-VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
+VertexOutput mainVS(VertexInput vsInput, TransformInput instInput)
 {
     VertexOutput vsOutput;
 
@@ -46,7 +49,15 @@ VertexOutput mainVS(VertexInput vsInput, InstanceInput instInput)
     return vsOutput;
 }
 
-float4 mainPS(VertexOutput psInput) : SV_TARGET
+struct PixelOutput
+{
+    float4 o_Albedo                 : SV_TARGET0;
+    float2 o_MetalnessRoughness     : SV_TARGET1;
+    float4 o_GeometrySurfaceNormals : SV_TARGET2;
+    float4 o_Emission               : SV_TARGET3;
+};
+
+PixelOutput mainPS(VertexOutput psInput)
 {
     const float3 albedo = t_Albedo.Sample(s_ActiveSampler, psInput.v_TexCoords).rgb;
     
@@ -56,7 +67,7 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
 
     float roughness = c_DefaultRoughness;
     if (c_HasRoughnessMap)
-        roughness = t_Roughness.Sample(s_ActiveSampler, psInput.v_TexCoords).r;    
+        roughness = t_Roughness.Sample(s_ActiveSampler, psInput.v_TexCoords).r;
 
     float3 surfaceNormal = psInput.v_Normal;
     if (c_UseNormalMap)
@@ -72,32 +83,11 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
             psInput.v_TangentToWorld
         ));
     }
-
-    float rough = roughness;
-    if (c_OverwriteRoughness)
-        rough = c_OverwrittenRoughness;
-
-    rough = max(rough, 0.01); // To keep specular highlight for small values
-
-    Surface surface;
-    surface.Albedo = albedo;
-    surface.GeometryNormal = psInput.v_Normal;
-    surface.SurfaceNormal = surfaceNormal;
-    surface.Metalness = metalness;
-    surface.Roughness = rough;
-    surface.F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metalness);
-
-    View view;
-    view.ViewDir = normalize(c_CameraPosition - psInput.v_WorldPos);
-    view.ReflectionDir = normalize(reflect(-view.ViewDir, surface.SurfaceNormal));
-    view.NoV = max(dot(surface.SurfaceNormal, view.ViewDir), Epsilon);
-    view.NoL = -1.0;
-
-    float3 indirectLighting = IBL(view, surface);
-    if (!c_UseIBL)
-        indirectLighting = c_IndirectLightingRadiance * albedo;
-
-    const float3 directLighting = CalculateDirectLighting(view, surface, psInput.v_WorldPos);
-
-    return float4(indirectLighting + directLighting, 1.0);
+    
+    PixelOutput psOutput;
+    psOutput.o_Albedo = float4(albedo, 1.0);
+    psOutput.o_MetalnessRoughness = float2(metalness, roughness);
+    psOutput.o_GeometrySurfaceNormals = float4(packOctahedron(normalize(psInput.v_Normal)), packOctahedron(surfaceNormal));
+    psOutput.o_Emission = float4(0.0, 0.0, 0.0, 1.0);
+    return psOutput;
 }

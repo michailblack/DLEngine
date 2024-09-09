@@ -2,6 +2,7 @@
 #include "DLEngine/Core/Base.h"
 #include "DLEngine/Core/Buffer.h"
 
+#include "DLEngine/Renderer/RendererEnums.h"
 #include "DLEngine/Renderer/Sampler.h"
 
 #include <cstdint>
@@ -15,47 +16,6 @@ namespace DLEngine
     {
         class Vec2;
     }
-
-    enum class TextureFormat
-    {
-        None = 0,
-        R8,
-        RG16F,
-        RG32F,
-        RGBA,
-        RGBA16F,
-        RGBA32F,
-        R24X8,
-
-        BC1U,
-        BC2U,
-        BC3U,
-        BC4U,
-        BC4S,
-        BC5U,
-        BC5S,
-        BC6H,
-        BC6S,
-        BC7U,
-
-        DEPTH24STENCIL8,
-        DEPTH_R24G8T,
-    };
-
-    enum class TextureUsage
-    {
-        None = 0,
-        Texture,           // Can be sampled from in shader
-        Attachment,        // Can be written to in shader
-        TextureAttachment, // Can be sampled from and written to in shader
-    };
-
-    enum class TextureType
-    {
-        None = 0,
-        Texture2D,
-        TextureCube,
-    };
 
     struct TextureSpecification
     {
@@ -77,6 +37,8 @@ namespace DLEngine
     {
     public:
         virtual ~Texture() = default;
+
+        virtual void Resize(uint32_t width, uint32_t height, bool forceRecreate = false) = 0;
 
         virtual TextureType GetType() const noexcept = 0;
 
@@ -103,6 +65,7 @@ namespace DLEngine
 
         static Ref<Texture2D> Create(const TextureSpecification& specification);
         static Ref<Texture2D> Create(const TextureSpecification& specification, const std::filesystem::path& path);
+        static Ref<Texture2D> Copy(const Ref<Texture2D>& other);
     };
 
     class TextureCube : public Texture
@@ -134,13 +97,7 @@ namespace DLEngine
         uint32_t BaseLayer{ 0u };
         uint32_t LayersCount{ 1u };
 
-        bool operator==(const TextureSubresource& other) const noexcept
-        {
-            return BaseMip == other.BaseMip &&
-                MipsCount == other.MipsCount &&
-                BaseLayer == other.BaseLayer &&
-                LayersCount == other.LayersCount;
-        }
+        bool operator==(const TextureSubresource& other) const noexcept { return memcmp(this, &other, sizeof(TextureSubresource)) == 0; }
     };
 
     struct TextureViewSpecification
@@ -148,22 +105,7 @@ namespace DLEngine
         TextureSubresource Subresource{};
         TextureFormat Format{ TextureFormat::None };
 
-        bool operator==(const TextureViewSpecification& other) const noexcept
-        {
-            return Format == other.Format && Subresource == other.Subresource;
-        }
-    };
-
-    struct TextureViewSpecificationHash
-    {
-        std::size_t operator()(const TextureViewSpecification& specification) const noexcept
-        {
-            return std::hash<TextureFormat>{}(specification.Format) ^
-                std::hash<uint32_t>{}(specification.Subresource.BaseMip) ^
-                std::hash<uint32_t>{}(specification.Subresource.MipsCount) ^
-                std::hash<uint32_t>{}(specification.Subresource.BaseLayer) ^
-                std::hash<uint32_t>{}(specification.Subresource.LayersCount);
-        }
+        bool operator==(const TextureViewSpecification& other) const noexcept { return memcmp(this, &other, sizeof(TextureViewSpecification)) == 0; }
     };
     
     namespace Utils
@@ -171,7 +113,7 @@ namespace DLEngine
         inline bool IsDepthFormat(TextureFormat format)
         {
             return format == TextureFormat::DEPTH24STENCIL8 ||
-                format == TextureFormat::DEPTH_R24G8T;
+                format == TextureFormat::DEPTH_R24G8_TYPELESS;
         }
     }
 }

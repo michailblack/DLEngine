@@ -110,10 +110,15 @@ namespace DLEngine
     private:
         void Init();
 
+        void InitBuffers();
+        void InitFramebuffers();
+        void InitPipelines();
+
         void PreRender();
 
         void ShadowPass();
-        void GeometryPass();
+        void GBufferPass();
+        void FullscreenPass();
         void SkyboxPass();
         void SmokeParticlesPass();
         void PostProcessPass();
@@ -142,26 +147,44 @@ namespace DLEngine
         Ref<ConstantBuffer> m_CBPostProcessSettings;
         Ref<ConstantBuffer> m_CBTextureAtlasData;
 
-        Ref<Framebuffer> m_MainFramebuffer;
-        
-        Ref<Pipeline> m_PBRStaticPipeline;
-        Ref<Pipeline> m_DissolutionPipeline;
-        Ref<Pipeline> m_EmissionPipeline;
-        Ref<Pipeline> m_PostProcessPipeline;
-        Ref<Pipeline> m_SkyboxPipeline;
-
         Ref<StructuredBuffer> m_SBDirectionalLights;
         Ref<StructuredBuffer> m_SBPointLights;
         Ref<StructuredBuffer> m_SBSpotLights;
 
-        Ref<Pipeline> m_DirectionalShadowMapPipeline;
+        Ref<Texture2D> m_GBufferAlbedo;
+        Ref<Texture2D> m_GBufferMetalnessRoughness;
+        Ref<Texture2D> m_GBufferGeometrySurfaceNormals;
+        Ref<Texture2D> m_GBufferEmission;
+        Ref<Texture2D> m_GBufferDepthStencil;
+
+        Ref<Texture2D> m_HDR_ResolveTexture;
+        Ref<Texture2D> m_GBufferDepthStencilCopy;
+
+        Ref<Framebuffer> m_GBuffer_PBR_StaticFramebuffer;
+        Ref<Pipeline> m_GBuffer_PBR_StaticPipeline;
+        Ref<Pipeline> m_GBuffer_PBR_Static_DissolutionPipeline;
+
+        Ref<Framebuffer> m_GBuffer_EmissionFramebuffer;
+        Ref<Pipeline> m_GBuffer_EmissionPipeline;
+
+        Ref<Framebuffer> m_HDR_ResolvePBR_StaticFramebuffer;
+        Ref<Pipeline> m_GBufferResolve_PBR_StaticPipeline;
+        
+        Ref<Framebuffer> m_HDR_ResolveEmissionFramebuffer;
+        Ref<Pipeline> m_GBufferResolve_EmissionPipeline;
+
+        Ref<Framebuffer> m_HDR_ResolveFramebuffer;
+        Ref<Pipeline> m_SkyboxPipeline;
+        Ref<Pipeline> m_PostProcessPipeline;
+
         Ref<Framebuffer> m_DirectionalShadowMapFramebuffer;
+        Ref<Pipeline> m_DirectionalShadowMapPipeline;
 
-        Ref<Pipeline> m_PointShadowMapPipeline;
         Ref<Framebuffer> m_PointShadowMapFramebuffer;
+        Ref<Pipeline> m_PointShadowMapPipeline;
 
-        Ref<Pipeline> m_SpotShadowMapPipeline;
         Ref<Framebuffer> m_SpotShadowMapFramebuffer;
+        Ref<Pipeline> m_SpotShadowMapPipeline;
 
         Ref<VertexBuffer> m_SmokeParticlesInstanceBuffer;
         Ref<Pipeline> m_SmokeParticlePipeline;
@@ -169,15 +192,10 @@ namespace DLEngine
         Ref<Texture2D> m_SmokeParticlesDBF;
         Ref<Texture2D> m_SmokeParticlesEMVA;
 
-        Ref<Pipeline> m_MaxDepthPipeline;
-        Ref<Framebuffer> m_MaxDepthFramebuffer;
-
         // Used for unbinding textures
         Ref<Texture2D> m_NullTexture;
 
         uint32_t m_ViewportWidth;
         uint32_t m_ViewportHeight;
-
-        const uint32_t m_SamplesCount{ 4u };
     };
 }

@@ -21,103 +21,104 @@ namespace DLEngine
 
     void ShaderLibrary::Init()
     {
-        ShaderSpecification textureOnlyShaderSpec{};
-        textureOnlyShaderSpec.Path = Shader::GetShaderDirectoryPath() / "TextureOnly.hlsl";
-        textureOnlyShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
-        textureOnlyShaderSpec.InstanceLayout = VertexBufferLayout{
-            { "TRANSFORM", ShaderDataType::Mat4 }
+        ShaderSpecification gBufferPBR_StaticSpecification{};
+        gBufferPBR_StaticSpecification.Path = Shader::GetShaderDirectoryPath() / "GBuffer_PBR_Static.hlsl";
+        gBufferPBR_StaticSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        gBufferPBR_StaticSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
         };
-        textureOnlyShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        textureOnlyShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(textureOnlyShaderSpec);
+        gBufferPBR_StaticSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        gBufferPBR_StaticSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(gBufferPBR_StaticSpecification);
 
-        ShaderSpecification pbrShaderSpec{};
-        pbrShaderSpec.Path = Shader::GetShaderDirectoryPath() / "PBR_Static.hlsl";
-        pbrShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
-        pbrShaderSpec.InstanceLayout = VertexBufferLayout{
-            { "TRANSFORM", ShaderDataType::Mat4 }
+        ShaderSpecification gBufferPBR_Static_DissolutionSpecification{};
+        gBufferPBR_Static_DissolutionSpecification.Path = Shader::GetShaderDirectoryPath() / "GBuffer_PBR_Static_Dissolution.hlsl";
+        gBufferPBR_Static_DissolutionSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        gBufferPBR_Static_DissolutionSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
         };
-        pbrShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        pbrShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(pbrShaderSpec);
-
-        ShaderSpecification emissionShaderSpec{};
-        emissionShaderSpec.Path = Shader::GetShaderDirectoryPath() / "Emission.hlsl";
-        emissionShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
-        emissionShaderSpec.InstanceLayout = VertexBufferLayout{
-            { "TRANSFORM", ShaderDataType::Mat4 },
-            { "RADIANCE" , ShaderDataType::Float3 },
+        gBufferPBR_Static_DissolutionSpecification.InputLayouts[2u] = {
+            VertexBufferLayout{
+                { "DISSOLUTION_DURATION", ShaderDataType::Float },
+                { "ELAPSED_TIME"        , ShaderDataType::Float }
+            },
+            InputLayoutType::PerInstance, 1u
         };
-        emissionShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        emissionShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(emissionShaderSpec);
+        gBufferPBR_Static_DissolutionSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        gBufferPBR_Static_DissolutionSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(gBufferPBR_Static_DissolutionSpecification);
 
-        ShaderSpecification skyboxShaderSpec{};
-        skyboxShaderSpec.Path = Shader::GetShaderDirectoryPath() / "Skybox.hlsl";
-        skyboxShaderSpec.VertexLayout = VertexBufferLayout{};
-        skyboxShaderSpec.InstanceLayout = VertexBufferLayout{};
-        skyboxShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        skyboxShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(skyboxShaderSpec);
-
-        ShaderSpecification postProcessShaderSpec{};
-        postProcessShaderSpec.Path = Shader::GetShaderDirectoryPath() / "PostProcess.hlsl";
-        postProcessShaderSpec.VertexLayout = VertexBufferLayout{};
-        postProcessShaderSpec.InstanceLayout = VertexBufferLayout{};
-        postProcessShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        postProcessShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(postProcessShaderSpec);
-
-        ShaderSpecification environmentIrradianceShaderSpec{};
-        environmentIrradianceShaderSpec.Path = Shader::GetShaderDirectoryPath() / "EnvironmentIrradiance.hlsl";
-        environmentIrradianceShaderSpec.VertexLayout = VertexBufferLayout{};
-        environmentIrradianceShaderSpec.InstanceLayout = VertexBufferLayout{};
-        environmentIrradianceShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        environmentIrradianceShaderSpec.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
-        environmentIrradianceShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(environmentIrradianceShaderSpec);
-
-        ShaderSpecification prefilteredEnvironmentShaderSpec{};
-        prefilteredEnvironmentShaderSpec.Path = Shader::GetShaderDirectoryPath() / "PrefilteredEnvironment.hlsl";
-        prefilteredEnvironmentShaderSpec.VertexLayout = VertexBufferLayout{};
-        prefilteredEnvironmentShaderSpec.InstanceLayout = VertexBufferLayout{};
-        prefilteredEnvironmentShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        prefilteredEnvironmentShaderSpec.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
-        prefilteredEnvironmentShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(prefilteredEnvironmentShaderSpec);
-
-        ShaderSpecification directionalLightShadowMapShaderSpec{};
-        directionalLightShadowMapShaderSpec.Path = Shader::GetShaderDirectoryPath() / "DirectionalLightShadowMap.hlsl";
-        directionalLightShadowMapShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
-        directionalLightShadowMapShaderSpec.InstanceLayout = VertexBufferLayout{
-            { "TRANSFORM", ShaderDataType::Mat4 }
+        ShaderSpecification gBufferEmissionSpecification{};
+        gBufferEmissionSpecification.Path = Shader::GetShaderDirectoryPath() / "GBuffer_Emission.hlsl";
+        gBufferEmissionSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        gBufferEmissionSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
         };
-        directionalLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        Load(directionalLightShadowMapShaderSpec);
-
-        ShaderSpecification pointLightShadowMapShaderSpec{};
-        pointLightShadowMapShaderSpec.Path = Shader::GetShaderDirectoryPath() / "OmnidirectionalLightShadowMap.hlsl";
-        pointLightShadowMapShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
-        pointLightShadowMapShaderSpec.InstanceLayout = VertexBufferLayout{
-            { "TRANSFORM", ShaderDataType::Mat4 }
+        gBufferEmissionSpecification.InputLayouts[2u] = {
+            VertexBufferLayout{ { "RADIANCE", ShaderDataType::Float3 } }, InputLayoutType::PerInstance, 1u
         };
-        pointLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        pointLightShadowMapShaderSpec.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
-        Load(pointLightShadowMapShaderSpec);
+        gBufferEmissionSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        gBufferEmissionSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(gBufferEmissionSpecification);
 
-        ShaderSpecification dissolutionShaderSpec{};
-        dissolutionShaderSpec.Path = Shader::GetShaderDirectoryPath() / "PBR_Static_Dissolution.hlsl";
-        dissolutionShaderSpec.VertexLayout = Mesh::GetCommonVertexBufferLayout();
-        dissolutionShaderSpec.InstanceLayout = VertexBufferLayout{
-            { "TRANSFORM"           , ShaderDataType::Mat4  },
-            { "DISSOLUTION_DURATION", ShaderDataType::Float },
-            { "ELAPSED_TIME"        , ShaderDataType::Float }
+        ShaderSpecification gBufferResolvePBR_StaticSpecification{};
+        gBufferResolvePBR_StaticSpecification.Path = Shader::GetShaderDirectoryPath() / "GBufferResolve_PBR_Static.hlsl";
+        gBufferResolvePBR_StaticSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        gBufferResolvePBR_StaticSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(gBufferResolvePBR_StaticSpecification);
+
+        ShaderSpecification gBufferResolveEmissionSpecification{};
+        gBufferResolveEmissionSpecification.Path = Shader::GetShaderDirectoryPath() / "GBufferResolve_Emission.hlsl";
+        gBufferResolveEmissionSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        gBufferResolveEmissionSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(gBufferResolveEmissionSpecification);
+
+        ShaderSpecification skyboxSpecification{};
+        skyboxSpecification.Path = Shader::GetShaderDirectoryPath() / "Skybox.hlsl";
+        skyboxSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        skyboxSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(skyboxSpecification);
+
+        ShaderSpecification postProcessSpecification{};
+        postProcessSpecification.Path = Shader::GetShaderDirectoryPath() / "PostProcess.hlsl";
+        postProcessSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        postProcessSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(postProcessSpecification);
+
+        ShaderSpecification environmentIrradianceSpecification{};
+        environmentIrradianceSpecification.Path = Shader::GetShaderDirectoryPath() / "EnvironmentIrradiance.hlsl";
+        environmentIrradianceSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        environmentIrradianceSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
+        environmentIrradianceSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(environmentIrradianceSpecification);
+
+        ShaderSpecification prefilteredEnvironmentSpecification{};
+        prefilteredEnvironmentSpecification.Path = Shader::GetShaderDirectoryPath() / "PrefilteredEnvironment.hlsl";
+        prefilteredEnvironmentSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        prefilteredEnvironmentSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
+        prefilteredEnvironmentSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(prefilteredEnvironmentSpecification);
+
+        ShaderSpecification shadowMapDirectionalSpecification{};
+        shadowMapDirectionalSpecification.Path = Shader::GetShaderDirectoryPath() / "ShadowMap_Directional.hlsl";
+        shadowMapDirectionalSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        shadowMapDirectionalSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
         };
-        dissolutionShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        dissolutionShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(dissolutionShaderSpec);
+        shadowMapDirectionalSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        Load(shadowMapDirectionalSpecification);
 
-        ShaderSpecification smokeParticleShaderSpec{};
+        ShaderSpecification shadowMapOmnidirectionalSpecification{};
+        shadowMapOmnidirectionalSpecification.Path = Shader::GetShaderDirectoryPath() / "ShadowMap_Omnidirectional.hlsl";
+        shadowMapOmnidirectionalSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        shadowMapOmnidirectionalSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
+        };
+        shadowMapOmnidirectionalSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        shadowMapOmnidirectionalSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
+        Load(shadowMapOmnidirectionalSpecification);
+
+        /*ShaderSpecification smokeParticleShaderSpec{};
         smokeParticleShaderSpec.Path = Shader::GetShaderDirectoryPath() / "SmokeParticle.hlsl";
         smokeParticleShaderSpec.VertexLayout = VertexBufferLayout{};
         smokeParticleShaderSpec.InstanceLayout = VertexBufferLayout{
@@ -132,15 +133,7 @@ namespace DLEngine
         };
         smokeParticleShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
         smokeParticleShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(smokeParticleShaderSpec);
-
-        ShaderSpecification maxDepthShaderSpec{};
-        maxDepthShaderSpec.Path = Shader::GetShaderDirectoryPath() / "MaxDepth.hlsl";
-        maxDepthShaderSpec.VertexLayout = VertexBufferLayout{};
-        maxDepthShaderSpec.InstanceLayout = VertexBufferLayout{};
-        maxDepthShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
-        maxDepthShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        Load(maxDepthShaderSpec);
+        Load(smokeParticleShaderSpec);*/
     }
 
     void ShaderLibrary::Add(const Ref<Shader>& shader) noexcept

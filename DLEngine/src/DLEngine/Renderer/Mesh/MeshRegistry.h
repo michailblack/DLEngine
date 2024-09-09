@@ -49,7 +49,7 @@ namespace DLEngine
         struct InstanceBatch
         {
             std::vector<Ref<Instance>> SubmeshInstances;
-            Ref<VertexBuffer> InstanceBuffer;
+            std::map<uint32_t, Ref<VertexBuffer>> InstanceBuffers;
         };
 
         struct MaterialBatch

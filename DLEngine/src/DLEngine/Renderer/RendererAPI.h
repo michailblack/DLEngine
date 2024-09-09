@@ -28,9 +28,9 @@ namespace DLEngine
         virtual void SetStructuredBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<StructuredBuffer>>& structuredBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept = 0;
         virtual void SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept = 0;
 
-        virtual void SetPipeline(const Ref<Pipeline>& pipeline, bool clearAttachments) noexcept = 0;
+        virtual void SetPipeline(const Ref<Pipeline>& pipeline, uint8_t clearAttachmentEnums) noexcept = 0;
         virtual void SetMaterial(const Ref<Material>& material) noexcept = 0;
-        virtual void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<VertexBuffer>& instanceBuffer, uint32_t instanceCount) noexcept = 0;
+        virtual void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const std::map<uint32_t, Ref<VertexBuffer>>& instanceBuffers, uint32_t instanceCount) noexcept = 0;
         virtual void SubmitFullscreenQuad() noexcept = 0;
         virtual void SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept = 0;
     };

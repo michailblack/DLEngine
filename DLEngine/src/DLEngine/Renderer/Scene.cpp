@@ -69,7 +69,7 @@ namespace DLEngine
 
     void Scene::AddPointLight(const Math::Vec3& position, const Math::Vec3& irradiance, float radius, float distance, const Math::Vec3& emissionMeshTranslation)
     {
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("GBuffer_Emission") };
         const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
 
         const auto& material{ Material::Create(emissionShader) };
@@ -99,7 +99,7 @@ namespace DLEngine
 
     void Scene::AddSpotLight(const Math::Vec3& position, const Math::Vec3& direction, float radius, float innerCutoffCos, float outerCutoffCos, const Math::Vec3& irradiance, float distance, const Math::Vec3& emissionMeshTranslation)
     {
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("GBuffer_Emission") };
         const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
 
         const auto& material{ Material::Create(emissionShader) };
@@ -135,7 +135,7 @@ namespace DLEngine
 
     void Scene::AddSmokeEmitter(const SmokeEmitter& emitter, const Math::Vec3& emissionMeshTranslation)
     {
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("GBuffer_Emission") };
         const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
 
         const auto& material{ Material::Create(emissionShader) };
@@ -157,7 +157,7 @@ namespace DLEngine
     void Scene::ClearSmokeEmitters()
     {
         const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("GBuffer_Emission") };
         const auto& material{ Material::Create(emissionShader) };
 
         for (const auto& smokeEmitterData : m_SmokeEnvironment.SmokeEmitters)

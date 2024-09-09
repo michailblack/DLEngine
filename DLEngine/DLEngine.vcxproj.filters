@@ -189,12 +189,6 @@
     <ClInclude Include="src\DLEngine\Renderer\Sampler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\DLEngine\Renderer\Common.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\DLEngine\DirectX\D3D11Common.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\DLEngine\Renderer\Mesh\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -229,6 +223,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DLEngine\Utils\RadixSort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\RendererEnums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -388,22 +385,23 @@
     <None Include="src\DLEngine\Shaders\Include\PBR_Resources.hlsli" />
     <None Include="src\DLEngine\Shaders\Include\ShadowMapping.hlsli" />
     <None Include="src\DLEngine\Shaders\Include\Lighting.hlsli" />
+    <None Include="src\DLEngine\Shaders\Include\GBufferResources.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\DLEngine\Shaders\Include\Samplers.hlsli" />
-    <FxCompile Include="src\DLEngine\Shaders\TextureOnly.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\Skybox.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\PostProcess.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\Emission.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\BRDFLUT.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\Include\EnvironmentMapping.hlsli" />
     <FxCompile Include="src\DLEngine\Shaders\EnvironmentIrradiance.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\PrefilteredEnvironment.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\DirectionalLightShadowMap.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\OmnidirectionalLightShadowMap.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\PBR_Static.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\PBR_Static_Dissolution.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\ShadowMap_DIrectional.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\ShadowMap_Omnidirectional.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GBufferResolve_PBR_Static.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\SmokeParticle.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\MaxDepth.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GBuffer_PBR_Static.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GBuffer_PBR_Static_Dissolution.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GBuffer_Emission.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GBufferResolve_Emission.hlsl" />
   </ItemGroup>
 </Project>

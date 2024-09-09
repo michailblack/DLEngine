@@ -138,9 +138,9 @@ namespace DLEngine
         s_RendererAPI->SetSamplerStates(startSlot, shaderStageFlags, samplerStates);
     }
 
-    void Renderer::SetPipeline(const Ref<Pipeline>& pipeline, bool clearAttachments) noexcept
+    void Renderer::SetPipeline(const Ref<Pipeline>& pipeline, uint8_t clearAttachmentEnums) noexcept
     {
-        s_RendererAPI->SetPipeline(pipeline, clearAttachments);
+        s_RendererAPI->SetPipeline(pipeline, clearAttachmentEnums);
     }
 
     void Renderer::SetMaterial(const Ref<Material>& material) noexcept
@@ -148,9 +148,9 @@ namespace DLEngine
         s_RendererAPI->SetMaterial(material);
     }
 
-    void Renderer::SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<VertexBuffer>& instanceBuffer, uint32_t instanceCount) noexcept
+    void Renderer::SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const std::map<uint32_t, Ref<VertexBuffer>>& instanceBuffers, uint32_t instanceCount) noexcept
     {
-        s_RendererAPI->SubmitStaticMeshInstanced(mesh, submeshIndex, instanceBuffer, instanceCount);
+        s_RendererAPI->SubmitStaticMeshInstanced(mesh, submeshIndex, instanceBuffers, instanceCount);
     }
 
     void Renderer::SubmitFullscreenQuad() noexcept
@@ -167,7 +167,7 @@ namespace DLEngine
     {
         TextureSpecification brdfLUTSpec{};
         brdfLUTSpec.DebugName = "BRDF LUT";
-        brdfLUTSpec.Format = TextureFormat::RG16F;
+        brdfLUTSpec.Format = TextureFormat::RG16_FLOAT;
         brdfLUTSpec.Usage = TextureUsage::TextureAttachment;
         brdfLUTSpec.Width = s_BRDFLUTSize;
         brdfLUTSpec.Height = s_BRDFLUTSize;
@@ -177,8 +177,6 @@ namespace DLEngine
         brdfLUTShaderSpec.Path = Shader::GetShaderDirectoryPath() / "BRDFLUT.hlsl";
         brdfLUTShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
         brdfLUTShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
-        brdfLUTShaderSpec.VertexLayout = VertexBufferLayout{};
-        brdfLUTShaderSpec.InstanceLayout = VertexBufferLayout{};
         const Ref<Shader> brdfLUTShader{ Shader::Create(brdfLUTShaderSpec) };
 
         FramebufferSpecification brdfLUTFBSpec{};
@@ -193,7 +191,7 @@ namespace DLEngine
         brdfLUTPipelineSpec.DebugName = "BRDF LUT Pipeline";
         brdfLUTPipelineSpec.Shader = brdfLUTShader;
         brdfLUTPipelineSpec.TargetFramebuffer = brdfLUTFB;
-        brdfLUTPipelineSpec.DepthStencilState.CompareOp = CompareOperator::Always;
+        brdfLUTPipelineSpec.DepthStencilState.DepthCompareOp = CompareOperator::Always;
         brdfLUTPipelineSpec.DepthStencilState.DepthTest = false;
         brdfLUTPipelineSpec.DepthStencilState.DepthWrite = false;
         const Ref<Pipeline> brdfLUTPipeline{ Pipeline::Create(brdfLUTPipelineSpec) };
@@ -208,7 +206,7 @@ namespace DLEngine
         Ref<ConstantBuffer> cbEnvironmentMapping{ ConstantBuffer::Create(sizeof(CBEnvironmentMapping)) };
         cbEnvironmentMapping->SetData(Buffer{ &CBEnvironmentMapping, sizeof(CBEnvironmentMapping) });
 
-        SetPipeline(brdfLUTPipeline, true);
+        SetPipeline(brdfLUTPipeline, DL_CLEAR_COLOR_ATTACHMENT);
         SetConstantBuffers(0u, ShaderStage::DL_PIXEL_SHADER_BIT, { cbEnvironmentMapping });
         SubmitFullscreenQuad();
     }

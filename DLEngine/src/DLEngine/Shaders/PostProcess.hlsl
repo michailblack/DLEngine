@@ -1,6 +1,7 @@
+#include "Include/Samplers.hlsli"
+
 cbuffer PostProcessing : register(b4)
 {
-	uint  c_SamplesCount;
     float c_EV100;
     float c_Gamma;
 }
@@ -53,22 +54,13 @@ float3 correctGamma(float3 color, float gamma)
     return pow(abs(color), 1.0f / gamma);
 }
 
-Texture2DMS<float4> t_TextureHDR : register(t16);
+Texture2D<float3> t_TextureHDR : register(t20);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-	float3 outputColor = float3(0.0f, 0.0f, 0.0f);
-	
-    for (uint i = 0; i < c_SamplesCount; i++)
-    {
-        float3 sampleColor = t_TextureHDR.Load(int2(psInput.v_Position.xy), i).rgb;
-	    sampleColor = adjustExposure(sampleColor, c_EV100);
-        sampleColor = acesHdr2Ldr(sampleColor);
-		outputColor += sampleColor;
-    }
-	outputColor /= c_SamplesCount;
-
-    outputColor = correctGamma(outputColor, c_Gamma);
-
-    return float4(outputColor, 1.0);
+    float3 color = t_TextureHDR.Sample(s_TrilinearClamp, psInput.v_TexCoords).rgb;
+    color = adjustExposure(color, c_EV100);
+    color = acesHdr2Ldr(color);
+    color = correctGamma(color, c_Gamma);
+    return float4(color, 1.0);
 }

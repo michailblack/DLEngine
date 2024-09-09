@@ -3,7 +3,6 @@
 
 #include "DLEngine/Core/Application.h"
 
-#include "DLEngine/DirectX/D3D11Common.h"
 #include "DLEngine/DirectX/D3D11ConstantBuffer.h"
 #include "DLEngine/DirectX/D3D11Context.h"
 #include "DLEngine/DirectX/D3D11Framebuffer.h"
@@ -23,8 +22,11 @@ namespace DLEngine
     {
         namespace
         {
-            D3D11_TEXTURE_ADDRESS_MODE D3D11AddressFromTextureAddress(TextureAddress address);
-            D3D11_FILTER D3D11FilterFromTextureFilter(TextureFilter filter);
+            D3D11_TEXTURE_ADDRESS_MODE D3D11AddressFromTextureAddress(TextureAddress address) noexcept;
+            D3D11_FILTER D3D11FilterFromTextureFilter(TextureFilter filter) noexcept;
+            D3D11_COMPARISON_FUNC D3D11ComparisonFuncFromCompareOp(CompareOperator compareOp) noexcept;
+            D3D11_STENCIL_OP D3D11StencilOpFromStencilOp(StencilOperator stencilOp) noexcept;
+            D3D11_PRIMITIVE_TOPOLOGY D3D11PrimitiveTopologyFromPrimitiveTopology(PrimitiveTopology topology) noexcept;
         }
     }
 
@@ -34,15 +36,15 @@ namespace DLEngine
         {
             size_t operator()(const std::pair<RasterizerSpecification, bool>& key) const
             {
-                return RasterizerSpecificationHash{}(key.first) ^ std::hash<bool>{}(key.second);
+                return ByteBufferHash<RasterizerSpecification>{}(key.first) ^ std::hash<bool>{}(key.second);
             }
         };
 
         struct D3D11RendererData
         {
-            std::unordered_map<SamplerSpecification, ComPtr<ID3D11SamplerState>, SamplerSpecificationHash> SamplersCache;
+            std::unordered_map<SamplerSpecification, ComPtr<ID3D11SamplerState>, ByteBufferHash<SamplerSpecification>> SamplersCache;
             std::unordered_map<std::pair<RasterizerSpecification, bool>, ComPtr<ID3D11RasterizerState2>, RasterizerSpecificationCacheHash> RasterizerStatesCache;
-            std::unordered_map<DepthStencilSpecification, ComPtr<ID3D11DepthStencilState>, DepthStencilSpecificationHash> DepthStencilStatesCache;
+            std::unordered_map<DepthStencilSpecification, ComPtr<ID3D11DepthStencilState>, ByteBufferHash<DepthStencilSpecification>> DepthStencilStatesCache;
             std::unordered_map<BlendState, ComPtr<ID3D11BlendState1>> BlendStatesCache;
 
             Ref<IndexBuffer> QuadIndexBuffer;
@@ -70,19 +72,19 @@ namespace DLEngine
 
     void D3D11Renderer::BeginFrame()
     {
-        const auto& d3d11deviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
 
-        d3d11deviceContext->ClearState();
+        d3d11DeviceContext->ClearState();
 
         const std::vector<SamplerSpecification> globalSamplers{
-            SamplerSpecification{ TextureAddress::Wrap, TextureFilter::Anisotropic8, CompareOperator::Never},
-            SamplerSpecification{ TextureAddress::Wrap, TextureFilter::Nearest, CompareOperator::Never },
-            SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Nearest, CompareOperator::Never },
-            SamplerSpecification{ TextureAddress::Wrap, TextureFilter::Trilinear, CompareOperator::Never },
-            SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Trilinear, CompareOperator::Never },
-            SamplerSpecification{ TextureAddress::Wrap, TextureFilter::Anisotropic8, CompareOperator::Never },
-            SamplerSpecification{ TextureAddress::Clamp, TextureFilter::Anisotropic8, CompareOperator::Never },
-            SamplerSpecification{ TextureAddress::Border, TextureFilter::BilinearCmp, CompareOperator::GreaterOrEqual },
+            SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Anisotropic8, CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Nearest     , CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Clamp , TextureFilter::Nearest     , CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Trilinear   , CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Clamp , TextureFilter::Trilinear   , CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Anisotropic8, CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Clamp , TextureFilter::Anisotropic8, CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Border, TextureFilter::BilinearCmp , CompareOperator::GreaterOrEqual },
         };
 
         SetSamplerStates(0u, DL_PIXEL_SHADER_BIT, globalSamplers);
@@ -114,7 +116,7 @@ namespace DLEngine
 
     void D3D11Renderer::SetConstantBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<ConstantBuffer>>& constantBuffers) noexcept
     {
-        const auto& d3d11deviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
 
         std::vector<ID3D11Buffer*> d3d11ConstantBuffers;
         d3d11ConstantBuffers.reserve(constantBuffers.size());
@@ -123,22 +125,22 @@ namespace DLEngine
             d3d11ConstantBuffers.push_back(AsRef<D3D11ConstantBuffer>(constantBuffer)->GetD3D11ConstantBuffer().Get());
 
         if (shaderStageFlags & ShaderStage::DL_VERTEX_SHADER_BIT)
-            d3d11deviceContext->VSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
+            d3d11DeviceContext->VSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
 
         if (shaderStageFlags & ShaderStage::DL_PIXEL_SHADER_BIT)
-            d3d11deviceContext->PSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
+            d3d11DeviceContext->PSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
 
         if (shaderStageFlags & ShaderStage::DL_HULL_SHADER_BIT)
-            d3d11deviceContext->HSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
+            d3d11DeviceContext->HSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
 
         if (shaderStageFlags & ShaderStage::DL_DOMAIN_SHADER_BIT)
-            d3d11deviceContext->DSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
+            d3d11DeviceContext->DSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
 
         if (shaderStageFlags & ShaderStage::DL_GEOMETRY_SHADER_BIT)
-            d3d11deviceContext->GSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
+            d3d11DeviceContext->GSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
 
         if (shaderStageFlags & ShaderStage::DL_COMPUTE_SHADER_BIT)
-            d3d11deviceContext->CSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
+            d3d11DeviceContext->CSSetConstantBuffers(startSlot, static_cast<UINT>(d3d11ConstantBuffers.size()), d3d11ConstantBuffers.data());
     }
 
     void D3D11Renderer::SetTexture2Ds(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<Texture2D>>& textures, const std::vector<TextureViewSpecification>& viewSpecifications) noexcept
@@ -182,7 +184,7 @@ namespace DLEngine
 
     void D3D11Renderer::SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept
     {
-        const auto& d3d11deviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
 
         std::vector<ID3D11SamplerState*> d3d11SamplerStates;
         d3d11SamplerStates.reserve(samplerStates.size());
@@ -191,25 +193,25 @@ namespace DLEngine
             d3d11SamplerStates.push_back(GetSamplerState(samplerState).Get());
 
         if (shaderStageFlags & ShaderStage::DL_VERTEX_SHADER_BIT)
-            d3d11deviceContext->VSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
+            d3d11DeviceContext->VSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
 
         if (shaderStageFlags & ShaderStage::DL_PIXEL_SHADER_BIT)
-            d3d11deviceContext->PSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
+            d3d11DeviceContext->PSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
 
         if (shaderStageFlags & ShaderStage::DL_HULL_SHADER_BIT)
-            d3d11deviceContext->HSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
+            d3d11DeviceContext->HSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
 
         if (shaderStageFlags & ShaderStage::DL_DOMAIN_SHADER_BIT)
-            d3d11deviceContext->DSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
+            d3d11DeviceContext->DSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
 
         if (shaderStageFlags & ShaderStage::DL_GEOMETRY_SHADER_BIT)
-            d3d11deviceContext->GSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
+            d3d11DeviceContext->GSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
 
         if (shaderStageFlags & ShaderStage::DL_COMPUTE_SHADER_BIT)
-            d3d11deviceContext->CSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
+            d3d11DeviceContext->CSSetSamplers(startSlot, static_cast<UINT>(d3d11SamplerStates.size()), d3d11SamplerStates.data());
     }
 
-    void D3D11Renderer::SetPipeline(const Ref<Pipeline>& pipeline, bool clearAttachments) noexcept
+    void D3D11Renderer::SetPipeline(const Ref<Pipeline>& pipeline, uint8_t clearAttachmentEnums) noexcept
     {
         const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
         const auto& d3d11Pipeline{ AsRef<D3D11Pipeline>(pipeline) };
@@ -217,6 +219,7 @@ namespace DLEngine
         const auto& d3d11Framebuffer{ AsRef<D3D11Framebuffer>(d3d11Pipeline->GetSpecification().TargetFramebuffer) };
 
         const auto& d3d11FramebufferSpec{ d3d11Framebuffer->GetSpecification() };
+        const auto& d3d11PipelineSpec{ d3d11Pipeline->GetSpecification() };
 
         D3D11_VIEWPORT viewport{};
         viewport.TopLeftX = 0.0f;
@@ -228,7 +231,7 @@ namespace DLEngine
 
         d3d11DeviceContext->RSSetViewports(1u, &viewport);
 
-        d3d11DeviceContext->IASetPrimitiveTopology(d3d11Pipeline->GetD3D11PrimitiveTopology());
+        d3d11DeviceContext->IASetPrimitiveTopology(Utils::D3D11PrimitiveTopologyFromPrimitiveTopology(d3d11PipelineSpec.Topology));
         d3d11DeviceContext->IASetInputLayout(d3d11Shader->GetD3D11InputLayout().Get());
         d3d11DeviceContext->VSSetShader(d3d11Shader->GetD3D11VertexShader().Get(), nullptr, 0u);
         d3d11DeviceContext->PSSetShader(d3d11Shader->GetD3D11PixelShader().Get(), nullptr, 0u);
@@ -236,9 +239,9 @@ namespace DLEngine
         d3d11DeviceContext->DSSetShader(d3d11Shader->GetD3D11DomainShader().Get(), nullptr, 0u);
         d3d11DeviceContext->GSSetShader(d3d11Shader->GetD3D11GeometryShader().Get(), nullptr, 0u);
 
-        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11Pipeline->GetSpecification().RasterizerState, d3d11FramebufferSpec.Samples > 1u).Get());
-        d3d11DeviceContext->OMSetDepthStencilState(GetDepthStencilState(d3d11Pipeline->GetSpecification().DepthStencilState).Get(), 0u);
-        d3d11DeviceContext->OMSetBlendState(GetBlendState(d3d11Pipeline->GetSpecification().BlendState).Get(), nullptr, 0xFFFFFFFF);
+        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11PipelineSpec.RasterizerState, d3d11FramebufferSpec.Samples > 1u).Get());
+        d3d11DeviceContext->OMSetDepthStencilState(GetDepthStencilState(d3d11PipelineSpec.DepthStencilState).Get(), d3d11FramebufferSpec.StencilReferenceValue);
+        d3d11DeviceContext->OMSetBlendState(GetBlendState(d3d11PipelineSpec.BlendState).Get(), nullptr, 0xFFFFFFFF);
 
         const uint32_t colorAttachmentCount{ d3d11Framebuffer->GetColorAttachmentCount() };
 
@@ -283,15 +286,28 @@ namespace DLEngine
 
         d3d11DeviceContext->OMSetRenderTargets(colorAttachmentCount, renderTargetViews.data(), depthStencilView);
 
-        if (clearAttachments)
+        if (clearAttachmentEnums & DL_CLEAR_COLOR_ATTACHMENT)
         {
             for (uint32_t i{ 0u }; i < colorAttachmentCount; ++i)
                 d3d11DeviceContext->ClearRenderTargetView(renderTargetViews[i], &d3d11FramebufferSpec.ClearColor.x);
+        }
 
-            if (depthStencilView)
-            {
-                d3d11DeviceContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, d3d11FramebufferSpec.DepthClearValue, 0u);
-            }
+        if (clearAttachmentEnums & (DL_CLEAR_DEPTH_ATTACHMENT | DL_CLEAR_STENCIL_ATTACHMENT))
+        {
+            uint32_t clearFlags{ 0u };
+
+            if (clearAttachmentEnums | DL_CLEAR_DEPTH_ATTACHMENT)
+                clearFlags |= D3D11_CLEAR_DEPTH;
+
+            if (clearAttachmentEnums | DL_CLEAR_STENCIL_ATTACHMENT)
+                clearFlags |= D3D11_CLEAR_STENCIL;
+
+            d3d11DeviceContext->ClearDepthStencilView(
+                depthStencilView,
+                clearFlags,
+                d3d11FramebufferSpec.DepthClearValue,
+                d3d11FramebufferSpec.StencilClearValue
+            );
         }
     }
 
@@ -403,24 +419,46 @@ namespace DLEngine
         }
     }
 
-    void D3D11Renderer::SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<VertexBuffer>& instanceBuffer, uint32_t instanceCount) noexcept
+    void D3D11Renderer::SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const std::map<uint32_t, Ref<VertexBuffer>>& instanceBuffers, uint32_t instanceCount) noexcept
     {
         const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
 
         const auto& d3d11VertexBuffer{ AsRef<D3D11VertexBuffer>(mesh->GetVertexBuffer()) };
         const auto& d3d11IndexBuffer{ AsRef<D3D11IndexBuffer>(mesh->GetIndexBuffer()) };
-        const auto& d3d11InstanceBuffer{ AsRef<D3D11VertexBuffer>(instanceBuffer) };
+        
+        std::vector<ID3D11Buffer*> d3d11VertexBuffers;
+        std::vector<uint32_t> strides;
+        std::vector<uint32_t> offsets;
+        d3d11VertexBuffers.reserve(instanceBuffers.size());
+        strides.reserve(instanceBuffers.size());
+        offsets.reserve(instanceBuffers.size());
 
-        std::array<ID3D11Buffer*, 2u> d3d11VertexBuffers{
-            d3d11VertexBuffer->GetD3D11VertexBuffer().Get(),
-            d3d11InstanceBuffer->GetD3D11VertexBuffer().Get()
-        };
-        const std::array<uint32_t, 2u> strides{
-            static_cast<uint32_t>(d3d11VertexBuffer->GetLayout().GetStride()),
-            static_cast<uint32_t>(d3d11InstanceBuffer->GetLayout().GetStride())
-        };
-        const std::array<uint32_t, 2u> offsets{ 0u, 0u };
-        d3d11DeviceContext->IASetVertexBuffers(0u, 2u, d3d11VertexBuffers.data(), strides.data(), offsets.data());
+        d3d11VertexBuffers.push_back(d3d11VertexBuffer->GetD3D11VertexBuffer().Get());
+        strides.push_back(static_cast<uint32_t>(d3d11VertexBuffer->GetLayout().GetStride()));
+        offsets.push_back(0u);
+
+        uint32_t prevBindingPoint{ 0u };
+        uint32_t startBindingPoint{ 0u };
+        for (const auto& [bindingPoint, instanceBuffer] : instanceBuffers)
+        {
+            if (bindingPoint != prevBindingPoint + 1u)
+            {
+                d3d11DeviceContext->IASetVertexBuffers(startBindingPoint, static_cast<UINT>(d3d11VertexBuffers.size()), d3d11VertexBuffers.data(), strides.data(), offsets.data());
+
+                d3d11VertexBuffers.clear();
+                strides.clear();
+                offsets.clear();
+                startBindingPoint = bindingPoint;
+            }
+            
+            d3d11VertexBuffers.push_back(AsRef<D3D11VertexBuffer>(instanceBuffer)->GetD3D11VertexBuffer().Get());
+            strides.push_back(static_cast<uint32_t>(AsRef<D3D11VertexBuffer>(instanceBuffer)->GetLayout().GetStride()));
+            offsets.push_back(0u);
+            prevBindingPoint = bindingPoint;
+        }
+
+        d3d11DeviceContext->IASetVertexBuffers(startBindingPoint, static_cast<UINT>(d3d11VertexBuffers.size()), d3d11VertexBuffers.data(), strides.data(), offsets.data());
+
         d3d11DeviceContext->IASetIndexBuffer(d3d11IndexBuffer->GetD3D11IndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
 
         const auto& submeshRange{ mesh->GetRanges()[submeshIndex] };
@@ -560,8 +598,21 @@ namespace DLEngine
         D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
         depthStencilDesc.DepthEnable = specification.DepthTest ? TRUE : FALSE;
         depthStencilDesc.DepthWriteMask = specification.DepthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-        depthStencilDesc.DepthFunc = Utils::D3D11ComparisonFuncFromCompareOp(specification.CompareOp);
-        depthStencilDesc.StencilEnable = FALSE;
+        depthStencilDesc.DepthFunc = Utils::D3D11ComparisonFuncFromCompareOp(specification.DepthCompareOp);
+        
+        depthStencilDesc.StencilEnable = specification.StencilTest ? TRUE : FALSE;
+        depthStencilDesc.StencilReadMask = specification.StencilReadMask;
+        depthStencilDesc.StencilWriteMask = specification.StencilWriteMask;
+        
+        depthStencilDesc.FrontFace.StencilFailOp = Utils::D3D11StencilOpFromStencilOp(specification.FrontFace.FailOp);
+        depthStencilDesc.FrontFace.StencilDepthFailOp = Utils::D3D11StencilOpFromStencilOp(specification.FrontFace.DepthFailOp);
+        depthStencilDesc.FrontFace.StencilPassOp = Utils::D3D11StencilOpFromStencilOp(specification.FrontFace.PassOp);
+        depthStencilDesc.FrontFace.StencilFunc = Utils::D3D11ComparisonFuncFromCompareOp(specification.FrontFace.CompareOp);
+
+        depthStencilDesc.BackFace.StencilFailOp = Utils::D3D11StencilOpFromStencilOp(specification.BackFace.FailOp);
+        depthStencilDesc.BackFace.StencilDepthFailOp = Utils::D3D11StencilOpFromStencilOp(specification.BackFace.DepthFailOp);
+        depthStencilDesc.BackFace.StencilPassOp = Utils::D3D11StencilOpFromStencilOp(specification.BackFace.PassOp);
+        depthStencilDesc.BackFace.StencilFunc = Utils::D3D11ComparisonFuncFromCompareOp(specification.BackFace.CompareOp);
 
         ComPtr<ID3D11DepthStencilState> depthStencilState{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateDepthStencilState(&depthStencilDesc, &depthStencilState));
@@ -663,7 +714,7 @@ namespace DLEngine
     {
         namespace
         {
-            D3D11_TEXTURE_ADDRESS_MODE D3D11AddressFromTextureAddress(TextureAddress address)
+            D3D11_TEXTURE_ADDRESS_MODE D3D11AddressFromTextureAddress(TextureAddress address) noexcept
             {
                 switch (address)
                 {
@@ -675,7 +726,7 @@ namespace DLEngine
                 }
             }
 
-            D3D11_FILTER D3D11FilterFromTextureFilter(TextureFilter filter)
+            D3D11_FILTER D3D11FilterFromTextureFilter(TextureFilter filter) noexcept
             {
                 switch (filter)
                 {
@@ -685,6 +736,50 @@ namespace DLEngine
                 case TextureFilter::BilinearCmp:  return D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
                 case TextureFilter::None:
                 default: DL_ASSERT(false); return D3D11_FILTER_MIN_MAG_MIP_POINT;
+                }
+            }
+
+            D3D11_COMPARISON_FUNC D3D11ComparisonFuncFromCompareOp(CompareOperator compareOp) noexcept
+            {
+                switch (compareOp)
+                {
+                case CompareOperator::Never:          return D3D11_COMPARISON_NEVER;
+                case CompareOperator::NotEqual:       return D3D11_COMPARISON_NOT_EQUAL;
+                case CompareOperator::Less:           return D3D11_COMPARISON_LESS;
+                case CompareOperator::LessOrEqual:    return D3D11_COMPARISON_LESS_EQUAL;
+                case CompareOperator::Greater:        return D3D11_COMPARISON_GREATER;
+                case CompareOperator::GreaterOrEqual: return D3D11_COMPARISON_GREATER_EQUAL;
+                case CompareOperator::Equal:          return D3D11_COMPARISON_EQUAL;
+                case CompareOperator::Always:         return D3D11_COMPARISON_ALWAYS;
+                case CompareOperator::None:
+                default: DL_ASSERT(false); return D3D11_COMPARISON_NEVER;
+                }
+            }
+
+            D3D11_STENCIL_OP D3D11StencilOpFromStencilOp(StencilOperator stencilOp) noexcept
+            {
+                switch (stencilOp)
+                {                                        
+                case StencilOperator::Keep:              return D3D11_STENCIL_OP_KEEP;
+                case StencilOperator::Zero:              return D3D11_STENCIL_OP_ZERO;
+                case StencilOperator::Replace:           return D3D11_STENCIL_OP_REPLACE;
+                case StencilOperator::IncrementAndClamp: return D3D11_STENCIL_OP_INCR_SAT;
+                case StencilOperator::DecrementAndClamp: return D3D11_STENCIL_OP_DECR_SAT;
+                case StencilOperator::Invert:            return D3D11_STENCIL_OP_INVERT;
+                case StencilOperator::IncrementAndWrap:  return D3D11_STENCIL_OP_INCR;
+                case StencilOperator::DecrementAndWrap:  return D3D11_STENCIL_OP_DECR;
+                default: DL_ASSERT(false);               return D3D11_STENCIL_OP_KEEP;
+                }
+            }
+
+            D3D11_PRIMITIVE_TOPOLOGY D3D11PrimitiveTopologyFromPrimitiveTopology(PrimitiveTopology topology) noexcept
+            {
+                switch (topology)
+                {
+                case PrimitiveTopology::TrianglesList: return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+                case PrimitiveTopology::TriangleStrip: return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+                case PrimitiveTopology::None:
+                default: DL_ASSERT(false);             return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
                 }
             }
         }

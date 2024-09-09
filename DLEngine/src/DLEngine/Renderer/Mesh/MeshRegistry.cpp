@@ -46,9 +46,15 @@ namespace DLEngine
         {
             instanceBatch = &materialBatch->InstanceBatches[material];
 
-            const auto& instanceBufferLayout{ instance->GetShader()->GetInstanceLayout() };
-            const size_t instanceBufferSize{ instanceBufferLayout.GetStride() };
-            instanceBatch->InstanceBuffer = VertexBuffer::Create(instanceBufferLayout, instanceBufferSize);
+            const auto& inputLayout{ instance->GetShader()->GetInputLayout() };
+            for (const auto& [bindingPoint, inputLayoutEntry] : inputLayout)
+            {
+                if (inputLayoutEntry.Type == InputLayoutType::PerVertex)
+                    continue;
+
+                const auto& instanceBufferLayout{ inputLayoutEntry.Layout };
+                instanceBatch->InstanceBuffers.emplace(bindingPoint, VertexBuffer::Create(instanceBufferLayout, instanceBufferLayout.GetStride()));
+            }
         }
         else
             instanceBatch = &instanceBatchIt->second;
@@ -136,16 +142,40 @@ namespace DLEngine
         if (instanceBatch.SubmeshInstances.empty())
             return;
 
-        const auto& instanceBufferLayout{ instanceBatch.SubmeshInstances.front()->GetShader()->GetInstanceLayout() };
-        const size_t instanceBufferSize{ instanceBufferLayout.GetStride() };
-        const size_t requiredInstanceBufferSize{ instanceBufferSize * instanceBatch.SubmeshInstances.size() };
-        if (instanceBatch.InstanceBuffer->GetSize() != requiredInstanceBufferSize)
-            instanceBatch.InstanceBuffer = VertexBuffer::Create(instanceBufferLayout, requiredInstanceBufferSize);
+        const auto& inputLayout{ instanceBatch.SubmeshInstances.front()->GetShader()->GetInputLayout() };
+        std::map<uint32_t, Buffer> mapBuffers{};
 
-        Buffer buffer{ instanceBatch.InstanceBuffer->Map() };
-        for (size_t i{ 0 }; i < instanceBatch.SubmeshInstances.size(); ++i)
-            buffer.Write(instanceBatch.SubmeshInstances[i]->GetInstanceData().Data, instanceBufferSize, instanceBufferSize * i);
-        instanceBatch.InstanceBuffer->Unmap();
+        for (const auto& [bindingPoint, inputLayoutEntry] : inputLayout)
+        {
+            if (inputLayoutEntry.Type == InputLayoutType::PerVertex)
+                continue;
+
+            const auto& instanceBufferLayout{ inputLayoutEntry.Layout };
+            const size_t instanceBufferStride{ instanceBufferLayout.GetStride() };
+            const size_t requiredInstanceBufferSize{ instanceBufferStride * instanceBatch.SubmeshInstances.size() };
+            if (instanceBatch.InstanceBuffers[bindingPoint]->GetSize() != requiredInstanceBufferSize)
+                instanceBatch.InstanceBuffers[bindingPoint] = VertexBuffer::Create(instanceBufferLayout, requiredInstanceBufferSize);
+
+            mapBuffers.emplace(bindingPoint, instanceBatch.InstanceBuffers[bindingPoint]->Map());
+        }
+
+        for (uint32_t submeshInstanceIndex{ 0u }; submeshInstanceIndex < instanceBatch.SubmeshInstances.size(); ++submeshInstanceIndex)
+        {
+            for (auto& [bindingPoint, mapBuffer] : mapBuffers)
+            {
+                const auto& instanceBufferLayout{ inputLayout.at(bindingPoint).Layout };
+                const size_t instanceBufferStride{ instanceBufferLayout.GetStride() };
+                for (const auto& bufferElement : instanceBufferLayout)
+                {
+                    const Buffer instanceData{ instanceBatch.SubmeshInstances[submeshInstanceIndex]->Get(bufferElement.Name) };
+                    const size_t offset{ instanceBufferStride * submeshInstanceIndex + bufferElement.Offset };
+                    mapBuffer.Write(instanceData.Data, instanceData.Size, offset);
+                }
+            }
+        }
+
+        for (const auto& [bindingPoint, instanceBuffer] : instanceBatch.InstanceBuffers)
+            instanceBuffer->Unmap();
     }
 
     void MeshRegistry::ClearEmptyBatches()
