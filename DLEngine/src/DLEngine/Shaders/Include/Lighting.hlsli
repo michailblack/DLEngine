@@ -90,7 +90,7 @@ float3 DirectionalLightContribution(in const View view, in const Surface surface
         float3 lightContribution = PBR_RenderingEquation(currentView, surface, light);
 
         if (c_UseDirectionalShadows)
-            lightContribution *= VisibilityForDirectionalLight(directionalLightIndex, worldPos, surface.GeometryNormal);
+            lightContribution *= VisibilityForDirectionalLight(directionalLightIndex, worldPos, surface.SurfaceNormal);
 
         directLighting += lightContribution;
     }
@@ -144,7 +144,7 @@ float3 PointLightContribution(in const View view, in const Surface surface, in c
         float3 lightContribution = PBR_RenderingEquation(currentView, surface, light) * falloff;
         
         if (c_UseOmnidirectionalShadows)
-            lightContribution *= VisibilityForPointLight(pointLightIndex, worldPos, surface.GeometryNormal);
+            lightContribution *= VisibilityForPointLight(pointLightIndex, worldPos, surface.SurfaceNormal);
 
         directLighting += lightContribution;
     }
@@ -188,7 +188,7 @@ float3 SpotLightContribution(in const View view, in const Surface surface, in co
             float3 lightContribution = PBR_RenderingEquation(currentView, surface, light) * intensity;
 
             if (c_UseSpotShadows)
-                lightContribution *= VisibilityForSpotLight(spotLightIndex, worldPos, surface.GeometryNormal);
+                lightContribution *= VisibilityForSpotLight(spotLightIndex, worldPos, surface.SurfaceNormal);
 
             directLighting += lightContribution;
         }

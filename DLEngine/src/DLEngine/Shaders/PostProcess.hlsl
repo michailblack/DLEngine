@@ -50,7 +50,7 @@ float3 adjustExposure(float3 color, float EV100)
 
 float3 correctGamma(float3 color, float gamma)
 {
-	return pow(color, 1.0f / gamma);
+    return pow(abs(color), 1.0f / gamma);
 }
 
 Texture2DMS<float4> t_TextureHDR : register(t16);
