@@ -21,6 +21,7 @@ struct InstanceInput
 {
     float a_DissolutionDuration : DISSOLUTION_DURATION;
     float a_ElapsedTime         : ELAPSED_TIME;
+    uint2 a_InstanceUUID        : INSTANCE_UUID;
 };
 
 struct VertexOutput
@@ -30,6 +31,7 @@ struct VertexOutput
     float3                v_Normal         : NORMAL;
     float3x3              v_TangentToWorld : TANGENT_TO_WORLD;
     float2                v_TexCoords      : TEXCOORDS;
+    nointerpolation uint2 v_InstanceUUID   : INSTANCE_UUID;
     nointerpolation float v_Dissolution    : DISSOLUTION_FACTOR;
 };
 
@@ -45,15 +47,15 @@ VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, Instance
     vsOutput.v_TexCoords = vsInput.a_TexCoords;
 
     const float3x3 normalMatrix = ConstructNormalMatrix(transformInput.a_Transform);
-    
     vsOutput.v_Normal = mul(vsInput.a_Normal, normalMatrix);
     
     const float3 T = mul(vsInput.a_Tangent, normalMatrix);
     const float3 B = mul(vsInput.a_Bitangent, normalMatrix);
-    
     vsOutput.v_TangentToWorld = float3x3(T, B, vsOutput.v_Normal);
 
     vsOutput.v_Dissolution = saturate(instInput.a_ElapsedTime / instInput.a_DissolutionDuration);
+    
+    vsOutput.v_InstanceUUID = instInput.a_InstanceUUID;
     
     return vsOutput;
 }
@@ -64,6 +66,7 @@ struct PixelOutput
     float2 o_MetalnessRoughness     : SV_TARGET1;
     float4 o_GeometrySurfaceNormals : SV_TARGET2;
     float4 o_Emission               : SV_TARGET3;
+    uint2  o_InstanceUUID           : SV_TARGET4;
 };
 
 static const float3 EmissionColor = float3(32.0, 32.0, 0.0);
@@ -109,8 +112,9 @@ PixelOutput mainPS(VertexOutput psInput)
     
     const float falloff = 0.15 / Epsilon;
     const float dissolutionAlpha = saturate((psInput.v_Dissolution - dissolutionNoise) / max(fwidth(psInput.v_Dissolution), Epsilon) / falloff);
-    
     psOutput.o_Emission = lerp(float4(EmissionColor, 1.0), float4(0.0, 0.0, 0.0, 1.0), dissolutionAlpha);
+    
+    psOutput.o_InstanceUUID = psInput.v_InstanceUUID;
     
     return psOutput;
 }

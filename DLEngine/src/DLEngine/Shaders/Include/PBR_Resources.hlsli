@@ -1,7 +1,7 @@
 #ifndef _PBR_RESOURCES_HLSLI_
 #define _PBR_RESOURCES_HLSLI_
 
-cbuffer PBRMaterial : register(b4)
+cbuffer PBRMaterial : register(b5)
 {
     bool  c_UseNormalMap;
     bool  c_FlipNormalMapY;

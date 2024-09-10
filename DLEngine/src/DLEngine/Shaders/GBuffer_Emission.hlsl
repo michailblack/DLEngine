@@ -18,6 +18,7 @@ struct TransformInput
 struct InstanceInput
 {
     float3 a_EmissionRadiance : RADIANCE;
+    uint2 a_InstanceUUID      : INSTANCE_UUID;
 };
 
 struct VertexOutput
@@ -26,6 +27,7 @@ struct VertexOutput
     nointerpolation float3 v_EmissionRadiance : RADIANCE;
     float3                 v_Normal           : NORMAL;
     float3                 v_WorldPos         : WORLD_POS;
+    nointerpolation uint2  v_InstanceUUID     : INSTANCE_UUID;
 };
 
 VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, InstanceInput instInput)
@@ -41,13 +43,15 @@ VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, Instance
     vsOutput.v_Normal = mul(vsInput.a_Normal, normalMatrix);
     
     vsOutput.v_EmissionRadiance = instInput.a_EmissionRadiance;
+    vsOutput.v_InstanceUUID = instInput.a_InstanceUUID;
 
     return vsOutput;
 }
 
 struct PixelOutput
 {
-    float4 o_Emission : SV_TARGET3;
+    float4 o_Emission     : SV_TARGET3;
+    uint2  o_InstanceUUID : SV_TARGET4;
 };
 
 PixelOutput mainPS(VertexOutput psInput)
@@ -62,6 +66,7 @@ PixelOutput mainPS(VertexOutput psInput)
     float NoV = dot(normal, viewDir);
     
     psOutput.o_Emission = float4(lerp(normedEmission * 0.33, psInput.v_EmissionRadiance, pow(max(0.0, NoV), 8.0)), 1.0);
+    psOutput.o_InstanceUUID = psInput.v_InstanceUUID;
 
     return psOutput;
 }

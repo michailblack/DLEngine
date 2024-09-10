@@ -15,6 +15,7 @@ namespace DLEngine
         RGBA16_SNORM,
 
         RG32_FLOAT,
+        RG32_UINT,
         RGBA32_FLOAT,
 
         R24_UNORM_X8_TYPELESS,
@@ -62,6 +63,7 @@ namespace DLEngine
     {
         None = 0,
         Nearest,
+        Bilinear,
         Trilinear,
         Anisotropic8,
         BilinearCmp,
@@ -112,12 +114,9 @@ namespace DLEngine
         DecrementAndWrap,
     };
 
-    enum class BlendState
+    enum class BlendType
     {
-        None = 0,
-
-        AlphaToCoverage,
-        General,
+        General = 0,
         PremultipliedAlpha,
         Additive,
     };

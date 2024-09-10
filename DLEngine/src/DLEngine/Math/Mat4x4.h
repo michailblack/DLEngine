@@ -24,6 +24,7 @@ namespace DLEngine::Math
         {
             DirectX::XMStoreFloat4x4(this, matrix);
         }
+        explicit Mat4x4(const Vec3& row0, const Vec3& row1, const Vec3& row2, const Vec3& row3) noexcept;
 
         ~Mat4x4() = default;
 
@@ -48,6 +49,8 @@ namespace DLEngine::Math
         static Mat4x4 Scale(const Vec3& scale) noexcept;
         static Mat4x4 Rotate(float pitch, float yaw, float roll) noexcept;
         static Mat4x4 Rotate(const Vec3& normalizedAxis, float angle) noexcept;
+
+        static void Decompose(const Mat4x4& mat, Mat4x4& outScale, Mat4x4& outRotation, Mat4x4& outTranslation) noexcept;
     };
 
     Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs) noexcept;

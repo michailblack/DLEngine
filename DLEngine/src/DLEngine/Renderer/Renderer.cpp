@@ -158,9 +158,9 @@ namespace DLEngine
         s_RendererAPI->SubmitFullscreenQuad();
     }
 
-    void Renderer::SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept
+    void Renderer::SubmitParticleBillboard(const Ref<VertexBuffer>& particleInstanceBuffer) noexcept
     {
-        s_RendererAPI->SubmitParticleBillboard(instanceBuffer);
+        s_RendererAPI->SubmitParticleBillboard(particleInstanceBuffer);
     }
 
     void Renderer::InitBRDFLUT()

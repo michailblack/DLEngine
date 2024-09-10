@@ -27,6 +27,7 @@ namespace DLEngine
             D3D11_COMPARISON_FUNC D3D11ComparisonFuncFromCompareOp(CompareOperator compareOp) noexcept;
             D3D11_STENCIL_OP D3D11StencilOpFromStencilOp(StencilOperator stencilOp) noexcept;
             D3D11_PRIMITIVE_TOPOLOGY D3D11PrimitiveTopologyFromPrimitiveTopology(PrimitiveTopology topology) noexcept;
+            D3D11_RENDER_TARGET_BLEND_DESC1 D3D11RenderTargetBlendDescFromBlendType(BlendType blendType) noexcept;
         }
     }
 
@@ -45,7 +46,7 @@ namespace DLEngine
             std::unordered_map<SamplerSpecification, ComPtr<ID3D11SamplerState>, ByteBufferHash<SamplerSpecification>> SamplersCache;
             std::unordered_map<std::pair<RasterizerSpecification, bool>, ComPtr<ID3D11RasterizerState2>, RasterizerSpecificationCacheHash> RasterizerStatesCache;
             std::unordered_map<DepthStencilSpecification, ComPtr<ID3D11DepthStencilState>, ByteBufferHash<DepthStencilSpecification>> DepthStencilStatesCache;
-            std::unordered_map<BlendState, ComPtr<ID3D11BlendState1>> BlendStatesCache;
+            std::unordered_map<BlendSpecification, ComPtr<ID3D11BlendState1>, ByteBufferHash<BlendSpecification>> BlendStatesCache;
 
             Ref<IndexBuffer> QuadIndexBuffer;
         };
@@ -80,6 +81,8 @@ namespace DLEngine
             SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Anisotropic8, CompareOperator::Never          },
             SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Nearest     , CompareOperator::Never          },
             SamplerSpecification{ TextureAddress::Clamp , TextureFilter::Nearest     , CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Bilinear    , CompareOperator::Never          },
+            SamplerSpecification{ TextureAddress::Clamp , TextureFilter::Bilinear    , CompareOperator::Never          },
             SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Trilinear   , CompareOperator::Never          },
             SamplerSpecification{ TextureAddress::Clamp , TextureFilter::Trilinear   , CompareOperator::Never          },
             SamplerSpecification{ TextureAddress::Wrap  , TextureFilter::Anisotropic8, CompareOperator::Never          },
@@ -478,16 +481,16 @@ namespace DLEngine
         d3d11DeviceContext->Draw(3u, 0u);
     }
 
-    void D3D11Renderer::SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept
+    void D3D11Renderer::SubmitParticleBillboard(const Ref<VertexBuffer>& particleInstanceBuffer) noexcept
     {
         const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
-        const auto& d3d11InstanceBuffer{ AsRef<D3D11VertexBuffer>(instanceBuffer) };
+        const auto& d3d11InstanceBuffer{ AsRef<D3D11VertexBuffer>(particleInstanceBuffer) };
 
         const uint32_t instanceCount{ static_cast<uint32_t>(d3d11InstanceBuffer->GetSize() / d3d11InstanceBuffer->GetLayout().GetStride()) };
 
         const uint32_t stride{ static_cast<uint32_t>(d3d11InstanceBuffer->GetLayout().GetStride()) };
         const uint32_t offset{ 0u };
-        d3d11DeviceContext->IASetVertexBuffers(1u, 1u, d3d11InstanceBuffer->GetD3D11VertexBuffer().GetAddressOf(), &stride, &offset);
+        d3d11DeviceContext->IASetVertexBuffers(0u, 1u, d3d11InstanceBuffer->GetD3D11VertexBuffer().GetAddressOf(), &stride, &offset);
 
         d3d11DeviceContext->IASetIndexBuffer(AsRef<D3D11IndexBuffer>(s_Data->QuadIndexBuffer)->GetD3D11IndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
 
@@ -622,67 +625,52 @@ namespace DLEngine
         return depthStencilState;
     }
 
-    ComPtr<ID3D11BlendState1> D3D11Renderer::GetBlendState(BlendState blendState)
+    ComPtr<ID3D11BlendState1> D3D11Renderer::GetBlendState(const BlendSpecification& specification)
     {
-        const auto it{ s_Data->BlendStatesCache.find(blendState) };
+        const auto it{ s_Data->BlendStatesCache.find(specification) };
         if (it != s_Data->BlendStatesCache.end())
             return it->second;
+        
+        DL_ASSERT(
+            specification.BlendTypes.size() <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT,
+            "Blend types count exceeds the maximum number of simultaneous render targets availabe in D3D11"
+        );
 
         D3D11_BLEND_DESC1 blendDesc{};
-        blendDesc.AlphaToCoverageEnable = FALSE;
-        blendDesc.IndependentBlendEnable = FALSE;
-        
-        blendDesc.RenderTarget[0u].BlendEnable = FALSE;
-        blendDesc.RenderTarget[0u].LogicOpEnable = FALSE;
-        blendDesc.RenderTarget[0u].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        blendDesc.AlphaToCoverageEnable = specification.AlphaToCoverage ? TRUE : FALSE;
+        blendDesc.IndependentBlendEnable = specification.IndependentBlend ? TRUE : FALSE;
 
-        switch (blendState)
+        if (specification.IndependentBlend)
         {
-        case BlendState::AlphaToCoverage:
-            blendDesc.AlphaToCoverageEnable = TRUE;
-            break;
-        case BlendState::General:
-            blendDesc.RenderTarget[0u].BlendEnable = TRUE;
+            for (uint32_t bindingPoint{ 0u }; bindingPoint < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++bindingPoint)
+            {
+                if (!specification.BlendTypes.contains(bindingPoint))
+                {
+                    blendDesc.RenderTarget[bindingPoint].BlendEnable = FALSE;
+                    blendDesc.RenderTarget[bindingPoint].LogicOpEnable = FALSE;
+                    blendDesc.RenderTarget[bindingPoint].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+                    continue;
+                }
 
-            blendDesc.RenderTarget[0u].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-            blendDesc.RenderTarget[0u].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-            blendDesc.RenderTarget[0u].BlendOp = D3D11_BLEND_OP_ADD;
-
-            blendDesc.RenderTarget[0u].SrcBlendAlpha = D3D11_BLEND_ONE;
-            blendDesc.RenderTarget[0u].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-            blendDesc.RenderTarget[0u].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-            break;
-        case BlendState::PremultipliedAlpha:
-            blendDesc.RenderTarget[0u].BlendEnable = TRUE;
-
-            blendDesc.RenderTarget[0u].SrcBlend = D3D11_BLEND_ONE;
-            blendDesc.RenderTarget[0u].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-            blendDesc.RenderTarget[0u].BlendOp = D3D11_BLEND_OP_ADD;
-
-            blendDesc.RenderTarget[0u].SrcBlendAlpha = D3D11_BLEND_ONE;
-            blendDesc.RenderTarget[0u].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-            blendDesc.RenderTarget[0u].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-            break;
-        case BlendState::Additive:
-            blendDesc.RenderTarget[0u].BlendEnable = TRUE;
-
-            blendDesc.RenderTarget[0u].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-            blendDesc.RenderTarget[0u].DestBlend = D3D11_BLEND_ONE;
-            blendDesc.RenderTarget[0u].BlendOp = D3D11_BLEND_OP_ADD;
-
-            blendDesc.RenderTarget[0u].SrcBlendAlpha = D3D11_BLEND_ONE;
-            blendDesc.RenderTarget[0u].DestBlendAlpha = D3D11_BLEND_ONE;
-            blendDesc.RenderTarget[0u].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-            break;
-        case BlendState::None:
-        default:
-            break;
+                blendDesc.RenderTarget[bindingPoint] = Utils::D3D11RenderTargetBlendDescFromBlendType(specification.BlendTypes.at(bindingPoint));
+            }
+        }
+        else
+        {
+            if (!specification.BlendTypes.contains(0u))
+            {
+                blendDesc.RenderTarget[0u].BlendEnable = FALSE;
+                blendDesc.RenderTarget[0u].LogicOpEnable = FALSE;
+                blendDesc.RenderTarget[0u].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+            }
+            else
+                blendDesc.RenderTarget[0u] = Utils::D3D11RenderTargetBlendDescFromBlendType(specification.BlendTypes.at(0u));
         }
 
         ComPtr<ID3D11BlendState1> d3d11BlendState{};
         DL_THROW_IF_HR(D3D11Context::Get()->GetDevice5()->CreateBlendState1(&blendDesc, &d3d11BlendState));
 
-        s_Data->BlendStatesCache[blendState] = d3d11BlendState;
+        s_Data->BlendStatesCache[specification] = d3d11BlendState;
 
         return d3d11BlendState;
     }
@@ -731,6 +719,7 @@ namespace DLEngine
                 switch (filter)
                 {
                 case TextureFilter::Nearest:      return D3D11_FILTER_MIN_MAG_MIP_POINT;
+                case TextureFilter::Bilinear:     return D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
                 case TextureFilter::Trilinear:    return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
                 case TextureFilter::Anisotropic8: return D3D11_FILTER_ANISOTROPIC;
                 case TextureFilter::BilinearCmp:  return D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
@@ -781,6 +770,49 @@ namespace DLEngine
                 case PrimitiveTopology::None:
                 default: DL_ASSERT(false);             return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
                 }
+            }
+
+            D3D11_RENDER_TARGET_BLEND_DESC1 D3D11RenderTargetBlendDescFromBlendType(BlendType blendType) noexcept
+            {
+                D3D11_RENDER_TARGET_BLEND_DESC1 renderTargetBlendDesc{};
+                renderTargetBlendDesc.BlendEnable = TRUE;
+                renderTargetBlendDesc.LogicOpEnable = FALSE;
+                renderTargetBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+                switch (blendType)
+                {
+                case BlendType::General:
+                    renderTargetBlendDesc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+                    renderTargetBlendDesc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+                    renderTargetBlendDesc.BlendOp = D3D11_BLEND_OP_ADD;
+
+                    renderTargetBlendDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
+                    renderTargetBlendDesc.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+                    renderTargetBlendDesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                    break;
+                case BlendType::PremultipliedAlpha:
+                    renderTargetBlendDesc.SrcBlend = D3D11_BLEND_ONE;
+                    renderTargetBlendDesc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+                    renderTargetBlendDesc.BlendOp = D3D11_BLEND_OP_ADD;
+
+                    renderTargetBlendDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
+                    renderTargetBlendDesc.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+                    renderTargetBlendDesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                    break;
+                case BlendType::Additive:
+                    renderTargetBlendDesc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+                    renderTargetBlendDesc.DestBlend = D3D11_BLEND_ONE;
+                    renderTargetBlendDesc.BlendOp = D3D11_BLEND_OP_ADD;
+
+                    renderTargetBlendDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
+                    renderTargetBlendDesc.DestBlendAlpha = D3D11_BLEND_ONE;
+                    renderTargetBlendDesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                    break;
+                default:
+                    break;
+                }
+
+                return renderTargetBlendDesc;
             }
         }
     }

@@ -32,6 +32,6 @@ namespace DLEngine
         virtual void SetMaterial(const Ref<Material>& material) noexcept = 0;
         virtual void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const std::map<uint32_t, Ref<VertexBuffer>>& instanceBuffers, uint32_t instanceCount) noexcept = 0;
         virtual void SubmitFullscreenQuad() noexcept = 0;
-        virtual void SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept = 0;
+        virtual void SubmitParticleBillboard(const Ref<VertexBuffer>& particleInstanceBuffer) noexcept = 0;
     };
 }

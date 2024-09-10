@@ -1,9 +1,12 @@
 #include "Include/Samplers.hlsli"
 
-cbuffer PostProcessing : register(b4)
+cbuffer PostProcessing : register(b5)
 {
     float c_EV100;
     float c_Gamma;
+    float c_FXAA_QualitySubpix;
+    float c_FXAA_QualityEdgeThreshold;
+    float c_FXAA_QualityEdgeThresholdMin;
 }
 
 struct VertexOutput
@@ -54,13 +57,17 @@ float3 correctGamma(float3 color, float gamma)
     return pow(abs(color), 1.0f / gamma);
 }
 
-Texture2D<float3> t_TextureHDR : register(t20);
+Texture2D<float3> t_HDR_ResolveTexture : register(t20);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
-    float3 color = t_TextureHDR.Sample(s_TrilinearClamp, psInput.v_TexCoords).rgb;
+    float3 color = t_HDR_ResolveTexture.Sample(s_TrilinearClamp, psInput.v_TexCoords).rgb;
     color = adjustExposure(color, c_EV100);
     color = acesHdr2Ldr(color);
     color = correctGamma(color, c_Gamma);
-    return float4(color, 1.0);
+	
+	// Perceptual brightness used by FXAA
+	const float luma = dot(color, float3(0.2126, 0.7152, 0.0722));
+	
+    return float4(color, luma);
 }

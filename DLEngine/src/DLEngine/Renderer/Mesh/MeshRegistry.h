@@ -10,40 +10,13 @@ namespace DLEngine
     class MeshRegistry
     {
     public:
-        struct SubmeshID
-        {
-            Ref<Mesh> Mesh;
-            Ref<Material> Material;
-            Ref<Instance> Instance;
-            uint32_t SubmeshIndex{ static_cast<uint32_t>(-1) };
-        };
+        using MeshUUID = uint64_t;
 
-        struct SubmeshIDHash
-        {
-            std::size_t operator()(const MeshRegistry::SubmeshID& submeshID) const noexcept
-            {
-                return std::hash<Ref<Mesh>>{}(submeshID.Mesh) ^
-                    MaterialHash{}(submeshID.Material) ^
-                    std::hash<Ref<Instance>>{}(submeshID.Instance) ^
-                    std::hash<uint32_t>{}(submeshID.SubmeshIndex);
-            }
-        };
-
-        struct SubmeshIDEqual
-        {
-            bool operator()(const MeshRegistry::SubmeshID& lhs, const MeshRegistry::SubmeshID& rhs) const noexcept
-            {
-                return lhs.Mesh == rhs.Mesh &&
-                    *lhs.Material == *rhs.Material &&
-                    lhs.Instance == rhs.Instance &&
-                    lhs.SubmeshIndex == rhs.SubmeshIndex;
-            }
-        };
-
+    public:
         struct IntersectInfo
         {
             Submesh::IntersectInfo SubmeshIntersectInfo;
-            SubmeshID SubmeshID;
+            MeshUUID UUID;
         };
 
         struct InstanceBatch
@@ -68,10 +41,13 @@ namespace DLEngine
         };
 
     public:
-        void AddSubmesh(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<Material>& material, const Ref<Instance>& instance);
-        void RemoveSubmesh(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<Material>& material, const Ref<Instance>& instance);
+        MeshUUID AddSubmesh(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<Material>& material, const Ref<Instance>& instance);
+        void RemoveSubmesh(MeshUUID submeshUUID);
 
         void UpdateInstanceBuffers();
+
+        bool HasInstance(MeshUUID submeshUUID) const { return m_UUID_ToIntsance.contains(submeshUUID); }
+        Ref<Instance> GetInstance(MeshUUID submeshUUID) const;
 
         MeshBatch& GetMeshBatch(std::string_view shaderName) noexcept;
         const MeshBatch& GetMeshBatch(std::string_view shaderName) const noexcept;
@@ -85,6 +61,10 @@ namespace DLEngine
 
     private:
         std::unordered_map<std::string_view, MeshBatch> m_MeshBatches;
+
+        std::unordered_map<MeshUUID, Ref<Instance>> m_UUID_ToIntsance;
+        std::unordered_map<Ref<Instance>, MeshUUID> m_InstanceToUUID;
+
         MeshBatch m_EmptyMeshBatch;
     };
 }

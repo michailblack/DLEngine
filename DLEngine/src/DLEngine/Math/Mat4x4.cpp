@@ -6,6 +6,16 @@
 
 namespace DLEngine::Math
 {
+    Mat4x4::Mat4x4(const Vec3& row0, const Vec3& row1, const Vec3& row2, const Vec3& row3) noexcept
+        : DirectX::XMFLOAT4X4{
+        row0.x, row0.y, row0.z, 0.0f,
+        row1.x, row1.y, row1.z, 0.0f,
+        row2.x, row2.y, row2.z, 0.0f,
+        row3.x, row3.y, row3.z, 1.0f
+    }
+    {
+    }
+
     Mat4x4 Mat4x4::Identity() noexcept
     {
         Mat4x4 mat{};
@@ -97,6 +107,24 @@ namespace DLEngine::Math
     {
         const Vec4 quat = static_cast<Vec4>(DirectX::XMQuaternionRotationNormal(static_cast<DirectX::XMVECTOR>(normalizedAxis), angle));
         return static_cast<Mat4x4>(DirectX::XMMatrixRotationQuaternion(static_cast<DirectX::XMVECTOR>(quat)));
+    }
+
+    void Mat4x4::Decompose(const Mat4x4& mat, Mat4x4& outScale, Mat4x4& outRotation, Mat4x4& outTranslation) noexcept
+    {
+        const Vec3 translation{ mat._41, mat._42, mat._43 };
+        outTranslation = Translate(translation);
+        
+        const Vec3 scale{
+            Length(Vec3{ mat._11, mat._12, mat._13 }),
+            Length(Vec3{ mat._21, mat._22, mat._23 }),
+            Length(Vec3{ mat._31, mat._32, mat._33 })
+        };
+        outScale = Scale(scale);
+
+        const Vec3 row0{ mat._11 / scale.x, mat._12 / scale.x, mat._13 / scale.x };
+        const Vec3 row1{ mat._21 / scale.y, mat._22 / scale.y, mat._23 / scale.y };
+        const Vec3 row2{ mat._31 / scale.z, mat._32 / scale.z, mat._33 / scale.z };
+        outRotation = Mat4x4{ row0, row1, row2, Vec3{ 0.0f, 0.0f, 0.0f } };
     }
 
     Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs) noexcept

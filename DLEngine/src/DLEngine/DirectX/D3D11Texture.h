@@ -132,6 +132,7 @@ namespace DLEngine
             case TextureFormat::RGBA16_SNORM:          return DXGI_FORMAT_R16G16B16A16_SNORM;
                                                        
             case TextureFormat::RG32_FLOAT:            return DXGI_FORMAT_R32G32_FLOAT;
+            case TextureFormat::RG32_UINT:             return DXGI_FORMAT_R32G32_UINT;
             case TextureFormat::RGBA32_FLOAT:          return DXGI_FORMAT_R32G32B32A32_FLOAT;
             
             case TextureFormat::R24_UNORM_X8_TYPELESS: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -170,6 +171,7 @@ namespace DLEngine
             case DXGI_FORMAT_R16G16B16A16_SNORM: return TextureFormat::RGBA16_SNORM;
 
             case DXGI_FORMAT_R32G32_FLOAT:       return TextureFormat::RG32_FLOAT;
+            case DXGI_FORMAT_R32G32_UINT:        return TextureFormat::RG32_UINT;
             case DXGI_FORMAT_R32G32B32A32_FLOAT: return TextureFormat::RGBA32_FLOAT;
 
             case DXGI_FORMAT_BC1_UNORM:          return TextureFormat::BC1_UNORM;

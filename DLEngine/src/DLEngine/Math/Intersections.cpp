@@ -78,7 +78,7 @@ namespace DLEngine::Math
 
         outIntersectInfo.T = t;
         outIntersectInfo.IntersectionPoint = ray.Origin + ray.Direction * t;
-        outIntersectInfo.Normal = Normalize(Cross(e2, e1));
+        outIntersectInfo.Normal = Normalize(Cross(e1, e2));
 
         return true;
     }
@@ -289,10 +289,7 @@ namespace DLEngine::Math
                                     outIntersectInfo.SubmeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint - ray.Origin
                                 );
 
-                                outIntersectInfo.SubmeshID.Mesh = mesh;
-                                outIntersectInfo.SubmeshID.Material = material;
-                                outIntersectInfo.SubmeshID.Instance = instance;
-                                outIntersectInfo.SubmeshID.SubmeshIndex = submeshIndex;
+                                outIntersectInfo.UUID = instance->Get<uint64_t>("INSTANCE_UUID");
 
                                 intersects = true;
                             }

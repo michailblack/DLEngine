@@ -1,6 +1,6 @@
 #include "Include/Common.hlsli"
 
-cbuffer OmnidirectionalLightShadowData : register(b4)
+cbuffer OmnidirectionalLightShadowData : register(b5)
 {
     float4x4 c_ViewProjections[6];
 };

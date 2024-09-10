@@ -202,8 +202,7 @@ namespace DLEngine
         PreProcess();
 
         UINT compileFlags = D3DCOMPILE_PACK_MATRIX_ROW_MAJOR |
-            D3DCOMPILE_ENABLE_STRICTNESS |
-            D3DCOMPILE_WARNINGS_ARE_ERRORS;
+            D3DCOMPILE_ENABLE_STRICTNESS;
 
 #ifdef DL_DEBUG
         compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;

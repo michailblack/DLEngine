@@ -42,7 +42,7 @@ namespace DLEngine
 
         static void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const std::map<uint32_t, Ref<VertexBuffer>>& instanceBuffers, uint32_t instanceCount) noexcept;
         static void SubmitFullscreenQuad() noexcept;
-        static void SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept;
+        static void SubmitParticleBillboard(const Ref<VertexBuffer>& particleInstanceBuffer) noexcept;
 
     private:
         static void InitBRDFLUT();

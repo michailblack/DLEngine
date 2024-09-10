@@ -1,7 +1,15 @@
 #ifndef _BUFFERS_HLSLI_
 #define _BUFFERS_HLSLI_
 
-cbuffer Camera : register(b0)
+cbuffer SceneData : register(b0)
+{
+    float c_ViewportWidth;
+    float c_ViewportHeight;
+    float c_InvViewportWidth;
+    float c_InvViewportHeight;
+}
+
+cbuffer Camera : register(b1)
 {
     float4x4 c_Projection;
     float4x4 c_InvProjection;
@@ -17,7 +25,7 @@ cbuffer Camera : register(b0)
     float3   c_BL2BR;
 };
 
-cbuffer PBRSettings : register(b1)
+cbuffer PBRSettings : register(b2)
 {
     float3 c_IndirectLightingRadiance;
     float  c_OverwrittenRoughness;
@@ -28,7 +36,7 @@ cbuffer PBRSettings : register(b1)
     
 }
 
-cbuffer ShadowMapping : register(b2)
+cbuffer ShadowMapping : register(b3)
 {
     uint  c_ShadowMapSize;
     float c_ShadowBias;
@@ -38,7 +46,7 @@ cbuffer ShadowMapping : register(b2)
     bool  c_UsePCF;
 };
 
-cbuffer LightsCount : register(b3)
+cbuffer LightsCount : register(b4)
 {
     uint c_DirectionalLightsCount;
     uint c_PointLightsCount;

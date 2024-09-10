@@ -390,7 +390,7 @@
   <ItemGroup>
     <FxCompile Include="src\DLEngine\Shaders\Include\Samplers.hlsli" />
     <FxCompile Include="src\DLEngine\Shaders\Skybox.hlsl" />
-    <FxCompile Include="src\DLEngine\Shaders\PostProcess.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\HDR_To_LDR.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\BRDFLUT.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\Include\EnvironmentMapping.hlsli" />
     <FxCompile Include="src\DLEngine\Shaders\EnvironmentIrradiance.hlsl" />
@@ -403,5 +403,8 @@
     <FxCompile Include="src\DLEngine\Shaders\GBuffer_PBR_Static_Dissolution.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\GBuffer_Emission.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\GBufferResolve_Emission.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GBuffer_Decal.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\FXAA.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Include\Fxaa3_11.hlsl" />
   </ItemGroup>
 </Project>

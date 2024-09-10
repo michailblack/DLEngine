@@ -8,7 +8,7 @@ namespace DLEngine
     struct RasterizerSpecification
     {
         FillMode Fill{ FillMode::Solid };
-        CullMode Cull{ CullMode::Back };
+        CullMode Cull{ CullMode::Back  };
         int32_t DepthBias{ 0 };
         float SlopeScaledDepthBias{ 0.0f };
 
@@ -25,18 +25,27 @@ namespace DLEngine
 
     struct DepthStencilSpecification
     {
-        bool DepthTest{ true };
+        bool DepthTest { true };
         bool DepthWrite{ true };
         CompareOperator DepthCompareOp{ CompareOperator::None };
 
         bool StencilTest{ false };
-        uint8_t StencilReadMask{ 0xFF };
+        uint8_t StencilReadMask { 0xFF };
         uint8_t StencilWriteMask{ 0xFF };
 
         StencilFaceSpecification FrontFace;
         StencilFaceSpecification BackFace;
 
         bool operator==(const DepthStencilSpecification& other) const noexcept { return memcmp(this, &other, sizeof(DepthStencilSpecification)) == 0; }
+    };
+
+    struct BlendSpecification
+    {
+        std::map<uint32_t, BlendType> BlendTypes;
+        bool IndependentBlend{ false };
+        bool AlphaToCoverage{ false };
+
+        bool operator==(const BlendSpecification& other) const noexcept { return memcmp(this, &other, sizeof(BlendSpecification)) == 0; }
     };
 
     struct PipelineSpecification
@@ -48,7 +57,7 @@ namespace DLEngine
         PrimitiveTopology Topology{ PrimitiveTopology::TrianglesList };
         DepthStencilSpecification DepthStencilState;
         RasterizerSpecification RasterizerState;
-        BlendState BlendState{ BlendState::None };
+        BlendSpecification BlendState;
     };
     
     class Pipeline
