@@ -87,6 +87,10 @@ namespace DLEngine
             float ViewportHeight;
             float InvViewportWidth;
             float InvViewportHeight;
+            float TimeS;
+            float TimeMS;
+            float DeltaTimeS;
+            float DeltaTimeMS;
         };
 
         struct CBCamera
@@ -183,6 +187,18 @@ namespace DLEngine
             uint32_t TilesCountY;
             float _padding[2u];
         };
+
+        struct SBIncinerationParticle
+        {
+            static constexpr uint32_t MaxParticlesCount{ 4096u };
+
+            Math::Vec3 Position;
+            Math::Vec3 Velocity;
+            Math::Vec3 Emission;
+            uint32_t ParentMeshInstanceUUID[2u];
+            float LifetimeMS;
+            float LifetimePassedMS;
+        };
     }
 
     SceneRenderer::SceneRenderer(const SceneRendererSpecification& specification)
@@ -204,6 +220,7 @@ namespace DLEngine
 
         ShadowPass();
         GBufferPass();
+        IncinerationParticlesComputePass();
         FullscreenPass();
         SkyboxPass();
         SmokeParticlesPass();
@@ -278,6 +295,9 @@ namespace DLEngine
         m_SceneShadowEnvironment.SBDirectionalLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
         m_SceneShadowEnvironment.SBPointLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
         m_SceneShadowEnvironment.SBSpotLightsPOVs = StructuredBuffer::Create(sizeof(Math::Mat4x4), 100u);
+        m_SBIncinerationParticles = StructuredBuffer::Create(sizeof(SBIncinerationParticle), SBIncinerationParticle::MaxParticlesCount, BufferViewType::GPU_READ_WRITE);
+        
+        m_PBIncinerationParticleRangeBuffer = PrimitiveBuffer::Create(16u, BufferViewType::GPU_READ_WRITE, DL_BUFFER_MISC_FLAG_DRAWINDIRECT_ARGS);
 
         m_DecalsTransformBuffer = VertexBuffer::Create(
             Renderer::GetShaderLibrary()->Get("GBuffer_Decal")->GetInputLayout().at(1u).Layout, sizeof(VBDecalTransform)
@@ -376,6 +396,9 @@ namespace DLEngine
         textureSpecification.DebugName = "Smoke Particle Light Map EMVA";
         m_SmokeParticlesEMVA = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "smoke\\smoke_MVEA.dds");
 
+        textureSpecification.DebugName = "Incineration Particles Spark Texture";
+        m_IncinerationParticlesSparkTexture = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "Noise_22.dds");
+
         CBTextureAtlasData textureAtlasData{};
         textureAtlasData.Size = Math::Vec2{
             static_cast<float>(m_SmokeParticlesEMVA->GetWidth()),
@@ -388,14 +411,6 @@ namespace DLEngine
 
         textureSpecification.DebugName = "Decal Normal + Alpha Texture";
         m_DecalNormalAlpha = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "decal\\splatter-512.dds");
-
-        TextureSpecification nullTextureSpec{};
-        nullTextureSpec.DebugName = "Null Texture";
-        nullTextureSpec.Usage = TextureUsage::TextureAttachment;
-        nullTextureSpec.Width = 1u;
-        nullTextureSpec.Height = 1u;
-        nullTextureSpec.Format = TextureFormat::R8_UNORM;
-        m_NullTexture = Texture2D::Create(nullTextureSpec);
     }
 
     void SceneRenderer::InitFramebuffers()
@@ -541,6 +556,56 @@ namespace DLEngine
         gBufferPBR_Static_DissolutionPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
         m_GBuffer_PBR_Static_DissolutionPipeline = Pipeline::Create(gBufferPBR_Static_DissolutionPipelineSpecification);
 
+        PipelineSpecification gBufferPBR_Static_IncinerationPipelineSpecification{};
+        gBufferPBR_Static_IncinerationPipelineSpecification.DebugName = "G-Buffer PBR_Static Incineration Pipeline";
+        gBufferPBR_Static_IncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static_Incineration");
+        gBufferPBR_Static_IncinerationPipelineSpecification.TargetFramebuffer = m_GBuffer_PBR_StaticFramebuffer;
+        gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
+        gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
+        gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.StencilTest = true;
+        gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.FrontFace.PassOp = StencilOperator::Replace;
+        gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Always;
+        gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
+        m_GBuffer_PBR_Static_IncinerationPipeline = Pipeline::Create(gBufferPBR_Static_IncinerationPipelineSpecification);
+        
+        BufferViewSpecification incinerationParticlesBufferViewSpecification{};
+        incinerationParticlesBufferViewSpecification.ElementCount = SBIncinerationParticle::MaxParticlesCount;
+        incinerationParticlesBufferViewSpecification.FirstElementIndex = 0u;
+        m_GBuffer_PBR_Static_IncinerationPipeline->SetRWStructuredBuffer(5u, m_SBIncinerationParticles);
+        m_GBuffer_PBR_Static_IncinerationPipeline->SetRWStructuredBufferView(5u, incinerationParticlesBufferViewSpecification);
+
+        BufferViewSpecification incinerationParticleRangeBufferViewSpecification{};
+        incinerationParticleRangeBufferViewSpecification.ElementCount = 16u;
+        incinerationParticleRangeBufferViewSpecification.FirstElementIndex = 0u;
+        m_GBuffer_PBR_Static_IncinerationPipeline->SetRWPrimitiveBuffer(6u, m_PBIncinerationParticleRangeBuffer);
+        m_GBuffer_PBR_Static_IncinerationPipeline->SetRWPrimitiveBufferView(6u, incinerationParticleRangeBufferViewSpecification);
+
+        PipelineComputeSpecification incinerationParticleUpdateIndirectArgsPipelineSpecification{};
+        incinerationParticleUpdateIndirectArgsPipelineSpecification.DebugName = "Incineration Particle Update Indirect Args Pipeline";
+        incinerationParticleUpdateIndirectArgsPipelineSpecification.ComputeShader = Renderer::GetShaderLibrary()->Get("Compute_IncinerationParticlesUpdateIndirectArgs");
+        m_IncinerationParticlesUpdateIndirectArgsPipelineCompute = PipelineCompute::Create(incinerationParticleUpdateIndirectArgsPipelineSpecification);
+        m_IncinerationParticlesUpdateIndirectArgsPipelineCompute->SetRWPrimitiveBuffer(1u, m_PBIncinerationParticleRangeBuffer);
+        m_IncinerationParticlesUpdateIndirectArgsPipelineCompute->SetRWPrimitiveBufferView(1u, incinerationParticleRangeBufferViewSpecification);
+
+        PipelineComputeSpecification incinerationParticleUpdatePipelineSpecification{};
+        incinerationParticleUpdatePipelineSpecification.DebugName = "Incineration Particle Update Pipeline";
+        incinerationParticleUpdatePipelineSpecification.ComputeShader = Renderer::GetShaderLibrary()->Get("Compute_IncinerationParticlesUpdate");
+        m_IncinerationParticlesUpdatePipelineCompute = PipelineCompute::Create(incinerationParticleUpdatePipelineSpecification);
+        m_IncinerationParticlesUpdatePipelineCompute->SetRWStructuredBuffer(0u, m_SBIncinerationParticles);
+        m_IncinerationParticlesUpdatePipelineCompute->SetRWStructuredBufferView(0u, incinerationParticlesBufferViewSpecification);
+        m_IncinerationParticlesUpdatePipelineCompute->SetRWPrimitiveBuffer(1u, m_PBIncinerationParticleRangeBuffer);
+        m_IncinerationParticlesUpdatePipelineCompute->SetRWPrimitiveBufferView(1u, incinerationParticleRangeBufferViewSpecification);
+
+        PipelineComputeSpecification incinerationParticleUpdateAuxiliaryPipelineSpecification{};
+        incinerationParticleUpdateAuxiliaryPipelineSpecification.DebugName = "Incineration Particle Update Auxiliary Pipeline";
+        incinerationParticleUpdateAuxiliaryPipelineSpecification.ComputeShader = Renderer::GetShaderLibrary()->Get("Compute_IncinerationParticlesAuxiliary");
+        m_IncinerationParticlesUpdateAuxiliaryPipelineCompute = PipelineCompute::Create(incinerationParticleUpdateAuxiliaryPipelineSpecification);
+        m_IncinerationParticlesUpdateAuxiliaryPipelineCompute->SetRWStructuredBuffer(0u, m_SBIncinerationParticles);
+        m_IncinerationParticlesUpdateAuxiliaryPipelineCompute->SetRWStructuredBufferView(0u, incinerationParticlesBufferViewSpecification);
+        m_IncinerationParticlesUpdateAuxiliaryPipelineCompute->SetRWPrimitiveBuffer(1u, m_PBIncinerationParticleRangeBuffer);
+        m_IncinerationParticlesUpdateAuxiliaryPipelineCompute->SetRWPrimitiveBufferView(1u, incinerationParticleRangeBufferViewSpecification);
+
         PipelineSpecification gBufferEmissionPipelineSpecification{};
         gBufferEmissionPipelineSpecification.DebugName = "G-Buffer Emission Pipeline";
         gBufferEmissionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBuffer_Emission");
@@ -579,6 +644,31 @@ namespace DLEngine
         gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Equal;
         gBufferResolve_PBR_StaticPipelineSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
         m_GBufferResolve_PBR_StaticPipeline = Pipeline::Create(gBufferResolve_PBR_StaticPipelineSpecification);
+
+        PipelineSpecification incinerationParticlesInfluenceSpecification{};
+        incinerationParticlesInfluenceSpecification.DebugName = "Incineration Particles Influence Pipeline";
+        incinerationParticlesInfluenceSpecification.Shader = Renderer::GetShaderLibrary()->Get("IncinerationParticlesInfluence");
+        incinerationParticlesInfluenceSpecification.TargetFramebuffer = m_HDR_ResolvePBR_StaticFramebuffer;
+        incinerationParticlesInfluenceSpecification.DepthStencilState.DepthTest = false;
+        incinerationParticlesInfluenceSpecification.DepthStencilState.DepthWrite = false;
+        incinerationParticlesInfluenceSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Always;
+        incinerationParticlesInfluenceSpecification.DepthStencilState.StencilTest = true;
+        incinerationParticlesInfluenceSpecification.DepthStencilState.FrontFace.CompareOp = CompareOperator::Equal;
+        incinerationParticlesInfluenceSpecification.DepthStencilState.BackFace.CompareOp = CompareOperator::Never;
+        incinerationParticlesInfluenceSpecification.RasterizerState.Cull = CullMode::Back;
+        incinerationParticlesInfluenceSpecification.BlendState.BlendTypes[0u] = BlendType::Additive;
+        m_IncinerationParticlesInfluencePipeline = Pipeline::Create(incinerationParticlesInfluenceSpecification);
+
+        PipelineSpecification incinerationParticlesSpecification{};
+        incinerationParticlesSpecification.DebugName = "Incineration Particles Pipeline";
+        incinerationParticlesSpecification.Shader = Renderer::GetShaderLibrary()->Get("IncinerationParticles");
+        incinerationParticlesSpecification.TargetFramebuffer = m_HDR_ResolveFramebuffer;
+        incinerationParticlesSpecification.DepthStencilState.DepthTest = false;
+        incinerationParticlesSpecification.DepthStencilState.DepthWrite = false;
+        incinerationParticlesSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        incinerationParticlesSpecification.RasterizerState.Cull = CullMode::Back;
+        incinerationParticlesSpecification.BlendState.BlendTypes[0u] = BlendType::General;
+        m_IncinerationParticlesPipeline = Pipeline::Create(incinerationParticlesSpecification);
 
         PipelineSpecification gBufferResolve_EmissionPipelineSpecification{};
         gBufferResolve_EmissionPipelineSpecification.DebugName = "G-Buffer Resolve Emission Pipeline";
@@ -628,6 +718,24 @@ namespace DLEngine
         directionalShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
         m_DirectionalShadowMapPipeline = Pipeline::Create(directionalShadowMapPipelineSpecification);
 
+        PipelineSpecification directionalShadowMapDissolutionPipelineSpecification{};
+        directionalShadowMapDissolutionPipelineSpecification.DebugName = "Directional Shadow Map Dissolution Pipeline";
+        directionalShadowMapDissolutionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Dissolution");
+        directionalShadowMapDissolutionPipelineSpecification.TargetFramebuffer = m_DirectionalShadowMapFramebuffer;
+        directionalShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthTest = true;
+        directionalShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthWrite = true;
+        directionalShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_DirectionalShadowMapDissolutionPipeline = Pipeline::Create(directionalShadowMapDissolutionPipelineSpecification);
+
+        PipelineSpecification directionalShadowMapIncinerationPipelineSpecification{};
+        directionalShadowMapIncinerationPipelineSpecification.DebugName = "Directional Shadow Map Incineration Pipeline";
+        directionalShadowMapIncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Incineration");
+        directionalShadowMapIncinerationPipelineSpecification.TargetFramebuffer = m_DirectionalShadowMapFramebuffer;
+        directionalShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
+        directionalShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
+        directionalShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_DirectionalShadowMapIncinirationPipeline = Pipeline::Create(directionalShadowMapIncinerationPipelineSpecification);
+
         PipelineSpecification pointShadowMapPipelineSpecification{};
         pointShadowMapPipelineSpecification.DebugName = "Point Shadow Map Pipeline";
         pointShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Omnidirectional");
@@ -637,6 +745,24 @@ namespace DLEngine
         pointShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
         m_PointShadowMapPipeline = Pipeline::Create(pointShadowMapPipelineSpecification);
 
+        PipelineSpecification pointShadowMapDissolutionPipelineSpecification{};
+        pointShadowMapDissolutionPipelineSpecification.DebugName = "Point Shadow Map Dissolution Pipeline";
+        pointShadowMapDissolutionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Omnidirectional_Dissolution");
+        pointShadowMapDissolutionPipelineSpecification.TargetFramebuffer = m_PointShadowMapFramebuffer;
+        pointShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthTest = true;
+        pointShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthWrite = true;
+        pointShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_PointShadowMapDissolutionPipeline = Pipeline::Create(pointShadowMapDissolutionPipelineSpecification);
+
+        PipelineSpecification pointShadowMapIncinerationPipelineSpecification{};
+        pointShadowMapIncinerationPipelineSpecification.DebugName = "Point Shadow Map Incineration Pipeline";
+        pointShadowMapIncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Omnidirectional_Incineration");
+        pointShadowMapIncinerationPipelineSpecification.TargetFramebuffer = m_PointShadowMapFramebuffer;
+        pointShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
+        pointShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
+        pointShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_PointShadowMapIncinirationPipeline = Pipeline::Create(pointShadowMapIncinerationPipelineSpecification);
+
         PipelineSpecification spotShadowMapPipelineSpecification{};
         spotShadowMapPipelineSpecification.DebugName = "Spot Shadow Map Pipeline";
         spotShadowMapPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional");
@@ -645,6 +771,24 @@ namespace DLEngine
         spotShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
         spotShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
         m_SpotShadowMapPipeline = Pipeline::Create(spotShadowMapPipelineSpecification);
+
+        PipelineSpecification spotShadowMapDissolutionPipelineSpecification{};
+        spotShadowMapDissolutionPipelineSpecification.DebugName = "Spot Shadow Map Dissolution Pipeline";
+        spotShadowMapDissolutionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Dissolution");
+        spotShadowMapDissolutionPipelineSpecification.TargetFramebuffer = m_SpotShadowMapFramebuffer;
+        spotShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthTest = true;
+        spotShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthWrite = true;
+        spotShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_SpotShadowMapDissolutionPipeline = Pipeline::Create(spotShadowMapDissolutionPipelineSpecification);
+
+        PipelineSpecification spotShadowMapIncinerationPipelineSpecification{};
+        spotShadowMapIncinerationPipelineSpecification.DebugName = "Spot Shadow Map Incineration Pipeline";
+        spotShadowMapIncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Incineration");
+        spotShadowMapIncinerationPipelineSpecification.TargetFramebuffer = m_SpotShadowMapFramebuffer;
+        spotShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
+        spotShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
+        spotShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+        m_SpotShadowMapIncinirationPipeline = Pipeline::Create(spotShadowMapIncinerationPipelineSpecification);
 
         PipelineSpecification smokeParticlePipelineSpecification{};
         smokeParticlePipelineSpecification.DebugName = "Smoke Particle Pipeline";
@@ -713,6 +857,10 @@ namespace DLEngine
         sceneData.ViewportHeight = static_cast<float>(m_ViewportHeight);
         sceneData.InvViewportWidth = 1.0f / sceneData.ViewportWidth;
         sceneData.InvViewportHeight = 1.0f / sceneData.ViewportHeight;
+        sceneData.TimeS = m_Scene->m_CurrentTimeMS / 1000.0f;
+        sceneData.TimeMS = m_Scene->m_CurrentTimeMS;
+        sceneData.DeltaTimeS = m_Scene->m_CurrentDeltaTime.GetSeconds();
+        sceneData.DeltaTimeMS = m_Scene->m_CurrentDeltaTime.GetMilliseconds();
         m_CBSceneData->SetData(Buffer{ &sceneData, sizeof(CBSceneData) });
 
         CBLightsCount lightsCount{};
@@ -760,6 +908,24 @@ namespace DLEngine
             directionalShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
             directionalShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
             m_DirectionalShadowMapPipeline = Pipeline::Create(directionalShadowMapPipelineSpecification);
+
+            PipelineSpecification directionalShadowMapDissolutionPipelineSpecification{};
+            directionalShadowMapDissolutionPipelineSpecification.DebugName = "Directiona Shadow Map Dissolution Pipeline";
+            directionalShadowMapDissolutionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Dissolution");
+            directionalShadowMapDissolutionPipelineSpecification.TargetFramebuffer = m_DirectionalShadowMapFramebuffer;
+            directionalShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthTest = true;
+            directionalShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthWrite = true;
+            directionalShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_DirectionalShadowMapDissolutionPipeline = Pipeline::Create(directionalShadowMapDissolutionPipelineSpecification);
+
+            PipelineSpecification directionalShadowMapIncinerationPipelineSpecification{};
+            directionalShadowMapIncinerationPipelineSpecification.DebugName = "Directional Shadow Map Incineration Pipeline";
+            directionalShadowMapIncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Incineration");
+            directionalShadowMapIncinerationPipelineSpecification.TargetFramebuffer = m_DirectionalShadowMapFramebuffer;
+            directionalShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
+            directionalShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
+            directionalShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_DirectionalShadowMapIncinirationPipeline = Pipeline::Create(directionalShadowMapIncinerationPipelineSpecification);
         }
 
         if (m_PointShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < lightsCount.PointLightsCount)
@@ -784,6 +950,24 @@ namespace DLEngine
             pointShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
             pointShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
             m_PointShadowMapPipeline = Pipeline::Create(pointShadowMapPipelineSpecification);
+
+            PipelineSpecification pointShadowMapDissolutionPipelineSpecification{};
+            pointShadowMapDissolutionPipelineSpecification.DebugName = "Point Shadow Map Dissolution Pipeline";
+            pointShadowMapDissolutionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Omnidirectional_Dissolution");
+            pointShadowMapDissolutionPipelineSpecification.TargetFramebuffer = m_PointShadowMapFramebuffer;
+            pointShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthTest = true;
+            pointShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthWrite = true;
+            pointShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_PointShadowMapDissolutionPipeline = Pipeline::Create(pointShadowMapDissolutionPipelineSpecification);
+
+            PipelineSpecification pointShadowMapIncinerationPipelineSpecification{};
+            pointShadowMapIncinerationPipelineSpecification.DebugName = "Point Shadow Map Incineration Pipeline";
+            pointShadowMapIncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Omnidirectional_Incineration");
+            pointShadowMapIncinerationPipelineSpecification.TargetFramebuffer = m_PointShadowMapFramebuffer;
+            pointShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
+            pointShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
+            pointShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_PointShadowMapIncinirationPipeline = Pipeline::Create(pointShadowMapIncinerationPipelineSpecification);
         }
 
         if (m_SpotShadowMapFramebuffer->GetDepthAttachment()->GetLayersCount() < lightsCount.SpotLightsCount)
@@ -807,6 +991,24 @@ namespace DLEngine
             spotShadowMapPipelineSpecification.DepthStencilState.DepthWrite = true;
             spotShadowMapPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
             m_SpotShadowMapPipeline = Pipeline::Create(spotShadowMapPipelineSpecification);
+
+            PipelineSpecification spotShadowMapDissolutionPipelineSpecification{};
+            spotShadowMapDissolutionPipelineSpecification.DebugName = "Spot Shadow Map Dissolution Pipeline";
+            spotShadowMapDissolutionPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Dissolution");
+            spotShadowMapDissolutionPipelineSpecification.TargetFramebuffer = m_SpotShadowMapFramebuffer;
+            spotShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthTest = true;
+            spotShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthWrite = true;
+            spotShadowMapDissolutionPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_SpotShadowMapDissolutionPipeline = Pipeline::Create(spotShadowMapDissolutionPipelineSpecification);
+
+            PipelineSpecification spotShadowMapIncinerationPipelineSpecification{};
+            spotShadowMapIncinerationPipelineSpecification.DebugName = "Spot Shadow Map Incineration Pipeline";
+            spotShadowMapIncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("ShadowMap_Directional_Incineration");
+            spotShadowMapIncinerationPipelineSpecification.TargetFramebuffer = m_SpotShadowMapFramebuffer;
+            spotShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
+            spotShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
+            spotShadowMapIncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
+            m_SpotShadowMapIncinirationPipeline = Pipeline::Create(spotShadowMapIncinerationPipelineSpecification);
         }
 
         m_DirectionalShadowMapFramebuffer->Resize(m_SceneShadowEnvironment.Settings.MapSize, m_SceneShadowEnvironment.Settings.MapSize);
@@ -835,7 +1037,12 @@ namespace DLEngine
 
             Renderer::SetPipeline(m_DirectionalShadowMapPipeline, DL_CLEAR_DEPTH_ATTACHMENT);
             Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", false);
-            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", false);
+
+            Renderer::SetPipeline(m_DirectionalShadowMapDissolutionPipeline, DL_CLEAR_NONE);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", true);
+
+            Renderer::SetPipeline(m_DirectionalShadowMapIncinirationPipeline, DL_CLEAR_NONE);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Incineration", true);
         }
 
         // Building point shadow maps
@@ -862,7 +1069,12 @@ namespace DLEngine
 
             Renderer::SetPipeline(m_PointShadowMapPipeline, DL_CLEAR_DEPTH_ATTACHMENT);
             Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", false);
-            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", false);
+
+            Renderer::SetPipeline(m_PointShadowMapDissolutionPipeline, DL_CLEAR_NONE);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", true);
+
+            Renderer::SetPipeline(m_PointShadowMapIncinirationPipeline, DL_CLEAR_NONE);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Incineration", true);
         }
 
         // Building spot shadow maps
@@ -882,7 +1094,12 @@ namespace DLEngine
 
             Renderer::SetPipeline(m_SpotShadowMapPipeline, DL_CLEAR_DEPTH_ATTACHMENT);
             Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", false);
-            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", false);
+
+            Renderer::SetPipeline(m_SpotShadowMapDissolutionPipeline, DL_CLEAR_NONE);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", true);
+
+            Renderer::SetPipeline(m_SpotShadowMapIncinirationPipeline, DL_CLEAR_NONE);
+            Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Incineration", true);
         }
     }
 
@@ -898,21 +1115,25 @@ namespace DLEngine
         Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_Emission", true);
 
         m_GBuffer_PBR_StaticFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteSpecification);
-        Renderer::SetPipeline(m_GBuffer_PBR_StaticPipeline, DL_CLEAR_NONE);
-        Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", true);
-
         Renderer::SetPipeline(m_GBuffer_PBR_Static_DissolutionPipeline, DL_CLEAR_NONE);
         Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Dissolution", true);
 
-        m_GBufferDepthStencilCopy = Texture2D::Copy(m_GBufferDepthStencil);
+        Renderer::SetPipeline(m_GBuffer_PBR_Static_IncinerationPipeline, DL_CLEAR_NONE);
+        Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static_Incineration", true);
+        
+        Renderer::SetPipeline(m_GBuffer_PBR_StaticPipeline, DL_CLEAR_NONE);
+        Utils::SubmitMeshBatch(m_Scene->m_MeshRegistry, "GBuffer_PBR_Static", true);
+
         m_GBufferGeometrySurfaceNormalsCopy = Texture2D::Copy(m_GBufferGeometrySurfaceNormals);
+        m_GBufferInstanceUUIDCopy = Texture2D::Copy(m_GBufferInstanceUUID);
+        m_GBufferDepthStencilCopy = Texture2D::Copy(m_GBufferDepthStencil);
 
         const uint32_t decalsCount{ static_cast<uint32_t>(m_Scene->m_Decals.size()) };
         if (decalsCount == 0u)
             return;
 
         TextureViewSpecification defaultTextureViewSpecification{};
-
+        
         TextureViewSpecification depthAttachmentReadViewSpecification{};
         depthAttachmentReadViewSpecification.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
 
@@ -921,16 +1142,16 @@ namespace DLEngine
         Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT,
             {
                 m_DecalNormalAlpha,
-                m_GBufferInstanceUUID,
-                m_GBufferDepthStencilCopy,
-                m_GBufferGeometrySurfaceNormalsCopy
+                m_GBufferGeometrySurfaceNormalsCopy,
+                m_GBufferInstanceUUIDCopy,
+                m_GBufferDepthStencilCopy
         
             },
             {
                 defaultTextureViewSpecification,
                 defaultTextureViewSpecification,
-                depthAttachmentReadViewSpecification,
-                defaultTextureViewSpecification
+                defaultTextureViewSpecification,
+                depthAttachmentReadViewSpecification
             }
         );
         Renderer::SubmitStaticMeshInstanced(Renderer::GetMeshLibrary()->Get("cube"), 0u,
@@ -940,6 +1161,36 @@ namespace DLEngine
             },
             decalsCount
         );
+    }
+
+    void SceneRenderer::IncinerationParticlesComputePass()
+    {
+        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdateIndirectArgsPipelineCompute);
+        Renderer::DispatchCompute(1u, 1u, 1u);
+
+        TextureViewSpecification defaultTextureViewSpecification{};
+
+        TextureViewSpecification depthAttachmentReadViewSpecification{};
+        depthAttachmentReadViewSpecification.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_COMPUTE_SHADER_BIT,
+            {
+                m_GBufferGeometrySurfaceNormalsCopy,
+                m_GBufferInstanceUUIDCopy,
+                m_GBufferDepthStencilCopy
+
+            },
+            {
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                depthAttachmentReadViewSpecification
+            }
+        );
+
+        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdatePipelineCompute);
+        Renderer::DispatchComputeIndirect(m_PBIncinerationParticleRangeBuffer, 3u * sizeof(uint32_t));
+
+        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdateAuxiliaryPipelineCompute);
+        Renderer::DispatchCompute(1u, 1u, 1u);
     }
 
     void SceneRenderer::FullscreenPass()
@@ -969,6 +1220,8 @@ namespace DLEngine
         spotShadowMaps.Subresource.BaseLayer = 0u;
         spotShadowMaps.Subresource.LayersCount = lightsCount->SpotLightsCount;
         Renderer::SetTexture2Ds(BP_TEX_SPOT_SHADOW_MAPS, DL_PIXEL_SHADER_BIT, { m_SceneShadowEnvironment.SpotShadowMaps }, { spotShadowMaps });
+
+        Renderer::ClearRenderTargetsState();
 
         TextureViewSpecification defaultTextureViewSpecification{};
 
@@ -1001,6 +1254,20 @@ namespace DLEngine
         m_HDR_ResolveEmissionFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteViewSpecification);
         Renderer::SetPipeline(m_GBufferResolve_EmissionPipeline, DL_CLEAR_NONE);
         Renderer::SubmitFullscreenQuad();
+
+        Renderer::SetPipeline(m_IncinerationParticlesInfluencePipeline, DL_CLEAR_NONE);
+
+        BufferViewSpecification incinerationParticlesBufferViewSpec{};
+        incinerationParticlesBufferViewSpec.FirstElementIndex = 0u;
+        incinerationParticlesBufferViewSpec.ElementCount = SBIncinerationParticle::MaxParticlesCount;
+        Renderer::SetStructuredBuffers(21u, DL_VERTEX_SHADER_BIT, { m_SBIncinerationParticles }, { incinerationParticlesBufferViewSpec });
+
+        BufferViewSpecification incinerationParticlesRangeBufferViewSpec{};
+        incinerationParticlesRangeBufferViewSpec.FirstElementIndex = 0u;
+        incinerationParticlesRangeBufferViewSpec.ElementCount = 16u;
+        Renderer::SetPrimitiveBuffers(22u, DL_VERTEX_SHADER_BIT, { m_PBIncinerationParticleRangeBuffer }, { incinerationParticlesRangeBufferViewSpec });
+
+        Renderer::SubmitParticleBillboardIndirect(m_PBIncinerationParticleRangeBuffer, 6u * sizeof(uint32_t));
     }
 
     void SceneRenderer::SkyboxPass()
@@ -1014,6 +1281,18 @@ namespace DLEngine
         Renderer::SetPipeline(m_SkyboxPipeline, DL_CLEAR_NONE);
         Renderer::SetTextureCubes(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_SceneEnvironment.Skybox }, { defaultTextureViewSpecification });
         Renderer::SubmitFullscreenQuad();
+
+        m_HDR_ResolveFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteViewSpecification);
+        Renderer::SetPipeline(m_IncinerationParticlesPipeline, DL_CLEAR_NONE);
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT,
+            {
+                m_IncinerationParticlesSparkTexture
+            },
+            {
+                defaultTextureViewSpecification,
+            }
+            );
+        Renderer::SubmitParticleBillboardIndirect(m_PBIncinerationParticleRangeBuffer, 6u * sizeof(uint32_t));
     }
 
     void SceneRenderer::SmokeParticlesPass()

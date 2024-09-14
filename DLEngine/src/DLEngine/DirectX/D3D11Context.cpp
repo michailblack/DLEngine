@@ -15,12 +15,14 @@ namespace DLEngine
         createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif // DL_DEBUG
 
+        D3D_FEATURE_LEVEL desiredFeatureLevel{ D3D_FEATURE_LEVEL_11_1 };
+
         DL_THROW_IF_HR(D3D11CreateDevice(
             nullptr,
             D3D_DRIVER_TYPE_HARDWARE,
             nullptr,
             createDeviceFlags,
-            nullptr, 0,
+            &desiredFeatureLevel, 1u,
             D3D11_SDK_VERSION,
             &m_Device,
             nullptr,

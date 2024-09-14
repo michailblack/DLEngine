@@ -22,6 +22,9 @@ namespace DLEngine
 
     void Scene::OnUpdate(DeltaTime dt)
     {
+        m_CurrentDeltaTime = dt;
+        m_CurrentTimeMS += dt.GetMilliseconds();
+
         m_SceneCameraController.OnUpdate(dt);
 
         if (m_Dragger)
@@ -172,7 +175,7 @@ namespace DLEngine
     void Scene::ClearSmokeEmitters()
     {
         for (const auto& smokeEmitterData : m_SmokeEnvironment.SmokeEmitters)
-            m_MeshRegistry.RemoveSubmesh(smokeEmitterData.second);
+            m_MeshRegistry.RemoveMesh(smokeEmitterData.second);
 
         m_SmokeEnvironment.SmokeEmitters.clear();
     }

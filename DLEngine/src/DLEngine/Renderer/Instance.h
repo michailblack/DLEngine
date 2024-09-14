@@ -35,5 +35,6 @@ namespace DLEngine
 
         static Ref<Instance> Create(const Ref<Shader>& shader, const std::string& name = "");
         static Ref<Instance> Copy(const Ref<Instance>& instance, const std::string& name = "");
+        static Ref<Instance> Copy(const Ref<Instance>& instance, const Ref<Shader>& differentShader, const std::string& name = "");
     };
 }

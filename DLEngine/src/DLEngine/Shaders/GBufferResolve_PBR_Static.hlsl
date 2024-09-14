@@ -3,7 +3,7 @@
 
 struct VertexOutput
 {
-    float4 v_Position : SV_POSITION;
+    float4 v_Position  : SV_POSITION;
     float2 v_TexCoords : TEXCOORDS;
 };
 

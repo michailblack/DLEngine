@@ -133,6 +133,11 @@ namespace DLEngine
         s_RendererAPI->SetStructuredBuffers(startSlot, shaderStageFlags, structuredBuffers, viewSpecifications);
     }
 
+    void Renderer::SetPrimitiveBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<PrimitiveBuffer>>& primitiveBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept
+    {
+        s_RendererAPI->SetPrimitiveBuffers(startSlot, shaderStageFlags, primitiveBuffers, viewSpecifications);
+    }
+
     void Renderer::SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept
     {
         s_RendererAPI->SetSamplerStates(startSlot, shaderStageFlags, samplerStates);
@@ -141,6 +146,11 @@ namespace DLEngine
     void Renderer::SetPipeline(const Ref<Pipeline>& pipeline, uint8_t clearAttachmentEnums) noexcept
     {
         s_RendererAPI->SetPipeline(pipeline, clearAttachmentEnums);
+    }
+
+    void Renderer::SetPipelineCompute(const Ref<PipelineCompute>& pipelineCompute) noexcept
+    {
+        s_RendererAPI->SetPipelineCompute(pipelineCompute);
     }
 
     void Renderer::SetMaterial(const Ref<Material>& material) noexcept
@@ -161,6 +171,26 @@ namespace DLEngine
     void Renderer::SubmitParticleBillboard(const Ref<VertexBuffer>& particleInstanceBuffer) noexcept
     {
         s_RendererAPI->SubmitParticleBillboard(particleInstanceBuffer);
+    }
+
+    void Renderer::SubmitParticleBillboardIndirect(const Ref<PrimitiveBuffer>& argumentBuffer, uint32_t argumentOffset) noexcept
+    {
+        s_RendererAPI->SubmitParticleBillboardIndirect(argumentBuffer, argumentOffset);
+    }
+
+    void Renderer::DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) noexcept
+    {
+        s_RendererAPI->DispatchCompute(groupCountX, groupCountY, groupCountZ);
+    }
+
+    void Renderer::DispatchComputeIndirect(const Ref<PrimitiveBuffer>& argumentBuffer, uint32_t argumentOffset) noexcept
+    {
+        s_RendererAPI->DispatchComputeIndirect(argumentBuffer, argumentOffset);
+    }
+
+    void Renderer::ClearRenderTargetsState() noexcept
+    {
+        s_RendererAPI->ClearRenderTargetsState();
     }
 
     void Renderer::InitBRDFLUT()

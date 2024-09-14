@@ -9,6 +9,7 @@
 #include "DLEngine/DirectX/D3D11IndexBuffer.h"
 #include "DLEngine/DirectX/D3D11Material.h"
 #include "DLEngine/DirectX/D3D11Pipeline.h"
+#include "DLEngine/DirectX/D3D11PipelineCompute.h"
 #include "DLEngine/DirectX/D3D11Shader.h"
 #include "DLEngine/DirectX/D3D11Texture.h"
 #include "DLEngine/DirectX/D3D11VertexBuffer.h"
@@ -90,7 +91,7 @@ namespace DLEngine
             SamplerSpecification{ TextureAddress::Border, TextureFilter::BilinearCmp , CompareOperator::GreaterOrEqual },
         };
 
-        SetSamplerStates(0u, DL_PIXEL_SHADER_BIT, globalSamplers);
+        SetSamplerStates(0u, DL_PIXEL_SHADER_BIT | DL_COMPUTE_SHADER_BIT, globalSamplers);
     }
 
     void D3D11Renderer::EndFrame()
@@ -185,6 +186,19 @@ namespace DLEngine
         SetShaderResourceViews(startSlot, shaderStageFlags, d3d11ShaderResourceViews);
     }
 
+    void D3D11Renderer::SetPrimitiveBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<PrimitiveBuffer>>& primitiveBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept
+    {
+        DL_ASSERT(primitiveBuffers.size() == viewSpecifications.size(), "Primitive buffers count and view specifications count does not match");
+
+        std::vector<ID3D11ShaderResourceView*> d3d11ShaderResourceViews;
+        d3d11ShaderResourceViews.reserve(primitiveBuffers.size());
+
+        for (uint32_t i{ 0u }; i < primitiveBuffers.size(); ++i)
+            d3d11ShaderResourceViews.push_back(AsRef<D3D11PrimitiveBuffer>(primitiveBuffers[i])->GetD3D11ShaderResourceView(viewSpecifications[i]).Get());
+
+        SetShaderResourceViews(startSlot, shaderStageFlags, d3d11ShaderResourceViews);
+    }
+
     void D3D11Renderer::SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept
     {
         const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
@@ -221,20 +235,20 @@ namespace DLEngine
         const auto& d3d11Shader{ AsRef<D3D11Shader>(d3d11Pipeline->GetSpecification().Shader) };
         const auto& d3d11Framebuffer{ AsRef<D3D11Framebuffer>(d3d11Pipeline->GetSpecification().TargetFramebuffer) };
 
-        const auto& d3d11FramebufferSpec{ d3d11Framebuffer->GetSpecification() };
-        const auto& d3d11PipelineSpec{ d3d11Pipeline->GetSpecification() };
+        const auto& d3d11FramebufferSpecification{ d3d11Framebuffer->GetSpecification() };
+        const auto& d3d11PipelineSpecification{ d3d11Pipeline->GetSpecification() };
 
         D3D11_VIEWPORT viewport{};
         viewport.TopLeftX = 0.0f;
         viewport.TopLeftY = 0.0f;
-        viewport.Width = static_cast<float>(d3d11FramebufferSpec.Width);
-        viewport.Height = static_cast<float>(d3d11FramebufferSpec.Height);
+        viewport.Width = static_cast<float>(d3d11FramebufferSpecification.Width);
+        viewport.Height = static_cast<float>(d3d11FramebufferSpecification.Height);
         viewport.MinDepth = 0.0f;
         viewport.MaxDepth = 1.0f;
 
         d3d11DeviceContext->RSSetViewports(1u, &viewport);
 
-        d3d11DeviceContext->IASetPrimitiveTopology(Utils::D3D11PrimitiveTopologyFromPrimitiveTopology(d3d11PipelineSpec.Topology));
+        d3d11DeviceContext->IASetPrimitiveTopology(Utils::D3D11PrimitiveTopologyFromPrimitiveTopology(d3d11PipelineSpecification.Topology));
         d3d11DeviceContext->IASetInputLayout(d3d11Shader->GetD3D11InputLayout().Get());
         d3d11DeviceContext->VSSetShader(d3d11Shader->GetD3D11VertexShader().Get(), nullptr, 0u);
         d3d11DeviceContext->PSSetShader(d3d11Shader->GetD3D11PixelShader().Get(), nullptr, 0u);
@@ -242,9 +256,9 @@ namespace DLEngine
         d3d11DeviceContext->DSSetShader(d3d11Shader->GetD3D11DomainShader().Get(), nullptr, 0u);
         d3d11DeviceContext->GSSetShader(d3d11Shader->GetD3D11GeometryShader().Get(), nullptr, 0u);
 
-        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11PipelineSpec.RasterizerState, d3d11FramebufferSpec.Samples > 1u).Get());
-        d3d11DeviceContext->OMSetDepthStencilState(GetDepthStencilState(d3d11PipelineSpec.DepthStencilState).Get(), d3d11FramebufferSpec.StencilReferenceValue);
-        d3d11DeviceContext->OMSetBlendState(GetBlendState(d3d11PipelineSpec.BlendState).Get(), nullptr, 0xFFFFFFFF);
+        d3d11DeviceContext->RSSetState(GetRasterizerState(d3d11PipelineSpecification.RasterizerState, d3d11FramebufferSpecification.Samples > 1u).Get());
+        d3d11DeviceContext->OMSetDepthStencilState(GetDepthStencilState(d3d11PipelineSpecification.DepthStencilState).Get(), d3d11FramebufferSpecification.StencilReferenceValue);
+        d3d11DeviceContext->OMSetBlendState(GetBlendState(d3d11PipelineSpecification.BlendState).Get(), nullptr, 0xFFFFFFFF);
 
         const uint32_t colorAttachmentCount{ d3d11Framebuffer->GetColorAttachmentCount() };
 
@@ -254,7 +268,7 @@ namespace DLEngine
         for (uint32_t i{ 0u }; i < colorAttachmentCount; ++i)
         {
             const auto& viewSpecification{ d3d11Framebuffer->GetColorAttachmentViewSpecification(i) };
-            switch (d3d11FramebufferSpec.AttachmentsType)
+            switch (d3d11FramebufferSpecification.AttachmentsType)
             {
             case TextureType::Texture2D:
                 renderTargetViews[i] = AsRef<D3D11Texture2D>(d3d11Framebuffer->GetColorAttachment(i))->GetD3D11RenderTargetView(viewSpecification).Get();
@@ -264,7 +278,7 @@ namespace DLEngine
                 break;
             case TextureType::None:
             default:
-                DL_ASSERT(false, "Framebuffer [{0}] has invalid attachments type", d3d11FramebufferSpec.DebugName);
+                DL_ASSERT(false, "Framebuffer [{0}] has invalid attachments type", d3d11FramebufferSpecification.DebugName);
                 break;
             }
         }
@@ -273,7 +287,7 @@ namespace DLEngine
         if (d3d11Framebuffer->HasDepthAttachment())
         {
             const auto& viewSpecification{ d3d11Framebuffer->GetDepthAttachmentViewSpecification() };
-            switch (d3d11FramebufferSpec.AttachmentsType)
+            switch (d3d11FramebufferSpecification.AttachmentsType)
             {
             case TextureType::Texture2D:
                 depthStencilView = AsRef<D3D11Texture2D>(d3d11Framebuffer->GetDepthAttachment())->GetD3D11DepthStencilView(viewSpecification).Get();
@@ -282,17 +296,105 @@ namespace DLEngine
                 depthStencilView = AsRef<D3D11TextureCube>(d3d11Framebuffer->GetDepthAttachment())->GetD3D11DepthStencilView(viewSpecification).Get();
                 break;
             default:
-                DL_ASSERT(false, "Framebuffer [{0}] has invalid attachments type", d3d11FramebufferSpec.DebugName);
+                DL_ASSERT(false, "Framebuffer [{0}] has invalid attachments type", d3d11FramebufferSpecification.DebugName);
                 break;
             }
         }
 
-        d3d11DeviceContext->OMSetRenderTargets(colorAttachmentCount, renderTargetViews.data(), depthStencilView);
+        const auto& rwStructuredBuffers{ d3d11Pipeline->GetRWStructuredBuffers() };
+        const auto& rwStructuredBufferViews{ d3d11Pipeline->GetRWStructuredBufferViews() };
+
+        DL_ASSERT(
+            rwStructuredBuffers.size() == rwStructuredBufferViews.size(),
+            "RWStructured buffers count and buffer view specifications count does not match in pipeline [{0}]",
+            d3d11PipelineSpecification.DebugName
+        );
+
+        const auto& rwPrimitiveBuffers{ d3d11Pipeline->GetRWPrimitiveBuffers() };
+        const auto& rwPrimitiveBufferViews{ d3d11Pipeline->GetRWPrimitiveBufferViews() };
+
+        DL_ASSERT(
+            rwPrimitiveBuffers.size() == rwPrimitiveBufferViews.size(),
+            "RWPrimitive buffers count and buffer view specifications count does not match in pipeline [{0}]",
+            d3d11PipelineSpecification.DebugName
+        );
+
+        if (!rwStructuredBuffers.empty() && rwStructuredBuffers.size() == rwStructuredBufferViews.size() ||
+            !rwPrimitiveBuffers.empty() && rwPrimitiveBuffers.size() == rwPrimitiveBufferViews.size())
+        {
+            std::map<uint32_t, ID3D11UnorderedAccessView*> buffersUAVs;
+
+            for (const auto& [bindPoint, structuredBuffer] : rwStructuredBuffers)
+            {
+                DL_ASSERT(
+                    rwStructuredBufferViews.contains(bindPoint),
+                    "RWStructuredBuffer view specification not found for binding point [{0}] in pipeline [{1}]",
+                    bindPoint, d3d11PipelineSpecification.DebugName
+                );
+                const auto& viewSpecification{ rwStructuredBufferViews.at(bindPoint) };
+
+                const auto& d3d11StructuredBuffer{ AsRef<D3D11StructuredBuffer>(structuredBuffer) };
+
+                buffersUAVs.emplace(
+                    bindPoint,
+                    static_cast<ID3D11UnorderedAccessView*>(d3d11StructuredBuffer->GetD3D11UnorderedAccessView(viewSpecification).Get())
+                );
+            }
+
+            for (const auto& [bindPoint, primitiveBuffer] : rwPrimitiveBuffers)
+            {
+                DL_ASSERT(
+                    rwPrimitiveBufferViews.contains(bindPoint),
+                    "RWPrimitiveBuffer view specification not found for binding point [{0}] in pipeline [{1}]",
+                    bindPoint, d3d11PipelineSpecification.DebugName
+                );
+                const auto& viewSpecification{ rwPrimitiveBufferViews.at(bindPoint) };
+
+                const auto& d3d11PrimitiveBuffer{ AsRef<D3D11PrimitiveBuffer>(primitiveBuffer) };
+
+                buffersUAVs.emplace(
+                    bindPoint,
+                    static_cast<ID3D11UnorderedAccessView*>(d3d11PrimitiveBuffer->GetD3D11UnorderedAccessView(viewSpecification).Get())
+                );
+            }
+            
+            uint32_t prevBindPoint{ buffersUAVs.begin()->first };
+            uint32_t startBindingPoint{ prevBindPoint };
+            std::vector<ID3D11UnorderedAccessView*> uavs;
+            uavs.reserve(buffersUAVs.size());
+
+            for (const auto& [bindPoint, uav] : buffersUAVs)
+            {
+                DL_ASSERT(
+                    bindPoint == prevBindPoint || bindPoint == prevBindPoint + 1u,
+                    "Bind points for UAVs must be consecutive in the pipeline [{0}]",
+                    d3d11PipelineSpecification.DebugName
+                );
+
+                if (bindPoint != prevBindPoint && bindPoint != prevBindPoint + 1u)
+                    break;
+
+                prevBindPoint = bindPoint;
+                uavs.push_back(uav);
+            }
+
+            d3d11DeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
+                colorAttachmentCount,
+                renderTargetViews.data(),
+                depthStencilView,
+                startBindingPoint,
+                static_cast<UINT>(uavs.size()),
+                uavs.data(),
+                nullptr
+            );
+        }
+        else
+            d3d11DeviceContext->OMSetRenderTargets(colorAttachmentCount, renderTargetViews.data(), depthStencilView);
 
         if (clearAttachmentEnums & DL_CLEAR_COLOR_ATTACHMENT)
         {
             for (uint32_t i{ 0u }; i < colorAttachmentCount; ++i)
-                d3d11DeviceContext->ClearRenderTargetView(renderTargetViews[i], &d3d11FramebufferSpec.ClearColor.x);
+                d3d11DeviceContext->ClearRenderTargetView(renderTargetViews[i], &d3d11FramebufferSpecification.ClearColor.x);
         }
 
         if (clearAttachmentEnums & (DL_CLEAR_DEPTH_ATTACHMENT | DL_CLEAR_STENCIL_ATTACHMENT))
@@ -308,8 +410,114 @@ namespace DLEngine
             d3d11DeviceContext->ClearDepthStencilView(
                 depthStencilView,
                 clearFlags,
-                d3d11FramebufferSpec.DepthClearValue,
-                d3d11FramebufferSpec.StencilClearValue
+                d3d11FramebufferSpecification.DepthClearValue,
+                d3d11FramebufferSpecification.StencilClearValue
+            );
+        }
+    }
+
+    void D3D11Renderer::SetPipelineCompute(const Ref<PipelineCompute>& pipelineCompute) noexcept
+    {
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+        const auto& d3d11PipelineCompute{ AsRef<D3D11PipelineCompute>(pipelineCompute) };
+        const auto& d3d11ComputeShader{ AsRef<D3D11Shader>(d3d11PipelineCompute->GetSpecification().ComputeShader) };
+
+        const auto& d3d11PipelineComputeSpecification{ d3d11PipelineCompute->GetSpecification() };
+
+        d3d11DeviceContext->CSSetShader(d3d11ComputeShader->GetD3D11ComputeShader().Get(), nullptr, 0u);
+
+        const auto& rwStructuredBuffers{ d3d11PipelineCompute->GetRWStructuredBuffers() };
+        const auto& rwStructuredBufferViews{ d3d11PipelineCompute->GetRWStructuredBufferViews() };
+
+        DL_ASSERT(
+            rwStructuredBuffers.size() == rwStructuredBufferViews.size(),
+            "RWStructured buffers count and buffer view specifications count does not match in pipeline [{0}]",
+            d3d11PipelineComputeSpecification.DebugName
+        );
+
+        const auto& rwPrimitiveBuffers{ d3d11PipelineCompute->GetRWPrimitiveBuffers() };
+        const auto& rwPrimitiveBufferViews{ d3d11PipelineCompute->GetRWPrimitiveBufferViews() };
+
+        DL_ASSERT(
+            rwPrimitiveBuffers.size() == rwPrimitiveBufferViews.size(),
+            "RWPrimitive buffers count and buffer view specifications count does not match in pipeline [{0}]",
+            d3d11PipelineComputeSpecification.DebugName
+        );
+
+        if (!rwStructuredBuffers.empty() && rwStructuredBuffers.size() == rwStructuredBufferViews.size() ||
+            !rwPrimitiveBuffers.empty() && rwPrimitiveBuffers.size() == rwPrimitiveBufferViews.size())
+        {
+            std::map<uint32_t, ID3D11UnorderedAccessView*> buffersUAVs;
+
+            for (const auto& [bindPoint, structuredBuffer] : rwStructuredBuffers)
+            {
+                DL_ASSERT(
+                    rwStructuredBufferViews.contains(bindPoint),
+                    "RWStructuredBuffer view specification not found for binding point [{0}] in pipeline [{1}]",
+                    bindPoint, d3d11PipelineComputeSpecification.DebugName
+                );
+                const auto& viewSpecification{ rwStructuredBufferViews.at(bindPoint) };
+
+                const auto& d3d11StructuredBuffer{ AsRef<D3D11StructuredBuffer>(structuredBuffer) };
+
+                buffersUAVs.emplace(
+                    bindPoint,
+                    static_cast<ID3D11UnorderedAccessView*>(d3d11StructuredBuffer->GetD3D11UnorderedAccessView(viewSpecification).Get())
+                );
+            }
+
+            for (const auto& [bindPoint, primitiveBuffer] : rwPrimitiveBuffers)
+            {
+                DL_ASSERT(
+                    rwPrimitiveBufferViews.contains(bindPoint),
+                    "RWPrimitiveBuffer view specification not found for binding point [{0}] in pipeline [{1}]",
+                    bindPoint, d3d11PipelineComputeSpecification.DebugName
+                );
+                const auto& viewSpecification{ rwPrimitiveBufferViews.at(bindPoint) };
+
+                const auto& d3d11PrimitiveBuffer{ AsRef<D3D11PrimitiveBuffer>(primitiveBuffer) };
+
+                buffersUAVs.emplace(
+                    bindPoint,
+                    static_cast<ID3D11UnorderedAccessView*>(d3d11PrimitiveBuffer->GetD3D11UnorderedAccessView(viewSpecification).Get())
+                );
+            }
+
+            uint32_t prevBindPoint{ buffersUAVs.begin()->first };
+            uint32_t startBindingPoint{ prevBindPoint };
+            std::vector<ID3D11UnorderedAccessView*> uavs;
+            uavs.reserve(buffersUAVs.size());
+
+            for (const auto& [bindPoint, uav] : buffersUAVs)
+            {
+                DL_ASSERT(
+                    bindPoint == prevBindPoint || bindPoint == prevBindPoint + 1u,
+                    "Bind points for UAVs must be consecutive in the pipeline [{0}]",
+                    d3d11PipelineComputeSpecification.DebugName
+                );
+
+                if (bindPoint != prevBindPoint && bindPoint != prevBindPoint + 1u)
+                {
+                    d3d11DeviceContext->CSSetUnorderedAccessViews(
+                        startBindingPoint,
+                        static_cast<UINT>(uavs.size()),
+                        uavs.data(),
+                        nullptr
+                    );
+
+                    uavs.clear();
+                    startBindingPoint = bindPoint;
+                }
+
+                prevBindPoint = bindPoint;
+                uavs.push_back(uav);
+            }
+
+            d3d11DeviceContext->CSSetUnorderedAccessViews(
+                startBindingPoint,
+                static_cast<UINT>(uavs.size()),
+                uavs.data(),
+                nullptr
             );
         }
     }
@@ -324,30 +532,30 @@ namespace DLEngine
         if (!materialCBs.empty())
         {
             auto it{ materialCBs.begin() };
-            uint32_t prevBindingPoint{ it->first };
-            uint8_t prevShaderStageFlags{ materialCBsShaderStages.at(prevBindingPoint) };
-            uint32_t startBindingPoint{ prevBindingPoint };
+            uint32_t prevBindPoint{ it->first };
+            uint8_t prevShaderStageFlags{ materialCBsShaderStages.at(prevBindPoint) };
+            uint32_t startBindPoint{ prevBindPoint };
             std::vector<Ref<ConstantBuffer>> constantBuffers{ it->second };
 
             ++it;
             for (; it != materialCBs.end(); ++it)
             {
-                const uint32_t bindingPoint{ it->first };
-                const uint8_t shaderStageFlags{ materialCBsShaderStages.at(bindingPoint) };
+                const uint32_t bindPoint{ it->first };
+                const uint8_t shaderStageFlags{ materialCBsShaderStages.at(bindPoint) };
                 const auto& cb{ it->second };
 
-                if (bindingPoint != prevBindingPoint + 1u || shaderStageFlags != prevShaderStageFlags)
+                if (bindPoint != prevBindPoint + 1u || shaderStageFlags != prevShaderStageFlags)
                 {
-                    SetConstantBuffers(startBindingPoint, prevShaderStageFlags, constantBuffers);
+                    SetConstantBuffers(startBindPoint, prevShaderStageFlags, constantBuffers);
                     constantBuffers.clear();
-                    startBindingPoint = bindingPoint;
+                    startBindPoint = bindPoint;
                 }
 
                 constantBuffers.push_back(cb);
-                prevBindingPoint = bindingPoint;
+                prevBindPoint = bindPoint;
             }
 
-            SetConstantBuffers(startBindingPoint, prevShaderStageFlags, constantBuffers);
+            SetConstantBuffers(startBindPoint, prevShaderStageFlags, constantBuffers);
         }
 
         const auto& materialTexture2Ds{ d3d11Material->GetTexture2Ds() };
@@ -358,67 +566,67 @@ namespace DLEngine
         if (!materialTexture2Ds.empty())
         {
             auto it{ materialTexture2Ds.begin() };
-            uint32_t prevBindingPoint{ it->first };
-            uint8_t prevShaderStageFlags{ materialTexturesShaderStages.at(prevBindingPoint) };
-            uint32_t startBindingPoint{ prevBindingPoint };
+            uint32_t prevBindPoint{ it->first };
+            uint8_t prevShaderStageFlags{ materialTexturesShaderStages.at(prevBindPoint) };
+            uint32_t startBindPoint{ prevBindPoint };
             std::vector<Ref<Texture2D>> textures{ it->second };
-            std::vector<TextureViewSpecification> viewSpecifications{ materialTextureViews.at(prevBindingPoint) };
+            std::vector<TextureViewSpecification> viewSpecifications{ materialTextureViews.at(prevBindPoint) };
 
             ++it;
             for (; it != materialTexture2Ds.end(); ++it)
             {
-                const uint32_t bindingPoint{ it->first };
-                const uint8_t shaderStageFlags{ materialTexturesShaderStages.at(bindingPoint) };
+                const uint32_t bindPoint{ it->first };
+                const uint8_t shaderStageFlags{ materialTexturesShaderStages.at(bindPoint) };
                 const auto& texture{ it->second };
-                const auto& viewSpecification{ materialTextureViews.at(bindingPoint) };
+                const auto& viewSpecification{ materialTextureViews.at(bindPoint) };
 
-                if (bindingPoint != prevBindingPoint + 1u || shaderStageFlags != prevShaderStageFlags)
+                if (bindPoint != prevBindPoint + 1u || shaderStageFlags != prevShaderStageFlags)
                 {
-                    SetTexture2Ds(startBindingPoint, prevShaderStageFlags, textures, viewSpecifications);
+                    SetTexture2Ds(startBindPoint, prevShaderStageFlags, textures, viewSpecifications);
                     textures.clear();
                     viewSpecifications.clear();
-                    startBindingPoint = bindingPoint;
+                    startBindPoint = bindPoint;
                 }
 
                 textures.push_back(texture);
                 viewSpecifications.push_back(viewSpecification);
-                prevBindingPoint = bindingPoint;
+                prevBindPoint = bindPoint;
             }
 
-            SetTexture2Ds(startBindingPoint, prevShaderStageFlags, textures, viewSpecifications);
+            SetTexture2Ds(startBindPoint, prevShaderStageFlags, textures, viewSpecifications);
         }
 
         if (!materialTextureCubes.empty())
         {
             auto it{ materialTextureCubes.begin() };
-            uint32_t prevBindingPoint{ it->first };
-            uint8_t prevShaderStageFlags{ materialTexturesShaderStages.at(prevBindingPoint) };
-            uint32_t startBindingPoint{ prevBindingPoint };
+            uint32_t prevBindPoint{ it->first };
+            uint8_t prevShaderStageFlags{ materialTexturesShaderStages.at(prevBindPoint) };
+            uint32_t startBindPoint{ prevBindPoint };
             std::vector<Ref<TextureCube>> textures{ it->second };
-            std::vector<TextureViewSpecification> viewSpecifications{ materialTextureViews.at(prevBindingPoint) };
+            std::vector<TextureViewSpecification> viewSpecifications{ materialTextureViews.at(prevBindPoint) };
 
             ++it;
             for (; it != materialTextureCubes.end(); ++it)
             {
-                const uint32_t bindingPoint{ it->first };
-                const uint8_t shaderStageFlags{ materialTexturesShaderStages.at(bindingPoint) };
+                const uint32_t bindPoint{ it->first };
+                const uint8_t shaderStageFlags{ materialTexturesShaderStages.at(bindPoint) };
                 const auto& texture{ it->second };
-                const auto& viewSpecification{ materialTextureViews.at(bindingPoint) };
+                const auto& viewSpecification{ materialTextureViews.at(bindPoint) };
 
-                if (bindingPoint != prevBindingPoint + 1u || shaderStageFlags != prevShaderStageFlags)
+                if (bindPoint != prevBindPoint + 1u || shaderStageFlags != prevShaderStageFlags)
                 {
-                    SetTextureCubes(startBindingPoint, prevShaderStageFlags, textures, viewSpecifications);
+                    SetTextureCubes(startBindPoint, prevShaderStageFlags, textures, viewSpecifications);
                     textures.clear();
                     viewSpecifications.clear();
-                    startBindingPoint = bindingPoint;
+                    startBindPoint = bindPoint;
                 }
 
                 textures.push_back(texture);
                 viewSpecifications.push_back(viewSpecification);
-                prevBindingPoint = bindingPoint;
+                prevBindPoint = bindPoint;
             }
 
-            SetTextureCubes(startBindingPoint, prevShaderStageFlags, textures, viewSpecifications);
+            SetTextureCubes(startBindPoint, prevShaderStageFlags, textures, viewSpecifications);
         }
     }
 
@@ -495,6 +703,46 @@ namespace DLEngine
         d3d11DeviceContext->IASetIndexBuffer(AsRef<D3D11IndexBuffer>(s_Data->QuadIndexBuffer)->GetD3D11IndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
 
         d3d11DeviceContext->DrawIndexedInstanced(6u, instanceCount, 0u, 0u, 0u);
+    }
+
+    void D3D11Renderer::SubmitParticleBillboardIndirect(const Ref<PrimitiveBuffer>& argumentBuffer, uint32_t argumentOffset) noexcept
+    {
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+        const auto& d3d11ArgumentBuffer{ AsRef<D3D11PrimitiveBuffer>(argumentBuffer) };
+
+        d3d11DeviceContext->IASetIndexBuffer(AsRef<D3D11IndexBuffer>(s_Data->QuadIndexBuffer)->GetD3D11IndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
+
+        d3d11DeviceContext->DrawIndexedInstancedIndirect(d3d11ArgumentBuffer->GetD3D11Buffer().Get(), argumentOffset);
+    }
+
+    void D3D11Renderer::DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) noexcept
+    {
+        D3D11Context::Get()->GetDeviceContext4()->Dispatch(groupCountX, groupCountY, groupCountZ);
+    }
+
+    void D3D11Renderer::DispatchComputeIndirect(const Ref<PrimitiveBuffer>& argumentBuffer, uint32_t argumentOffset) noexcept
+    {
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+        const auto& d3d11ArgumentBuffer{ AsRef<D3D11PrimitiveBuffer>(argumentBuffer) };
+
+        d3d11DeviceContext->DispatchIndirect(d3d11ArgumentBuffer->GetD3D11Buffer().Get(), argumentOffset);
+    }
+
+    void D3D11Renderer::ClearRenderTargetsState() noexcept
+    {
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+
+        std::array<ID3D11RenderTargetView*, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT> renderTargetViews{};
+        for (uint32_t i{ 0u }; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+            renderTargetViews[i] = nullptr;
+
+        d3d11DeviceContext->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, renderTargetViews.data(), nullptr);
+
+        std::array<ID3D11UnorderedAccessView*, D3D11_PS_CS_UAV_REGISTER_COUNT> uavs{};
+        for (uint32_t i{ 0u }; i < D3D11_PS_CS_UAV_REGISTER_COUNT; ++i)
+            uavs[i] = nullptr;
+
+        d3d11DeviceContext->CSSetUnorderedAccessViews(0u, D3D11_PS_CS_UAV_REGISTER_COUNT, uavs.data(), nullptr);
     }
 
     ComPtr<ID3D11SamplerState> D3D11Renderer::GetSamplerState(const SamplerSpecification& specification)

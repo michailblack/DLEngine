@@ -8,6 +8,7 @@ namespace DLEngine
     public:
         D3D11Instance(const Ref<Shader>& shader, const std::string& name) noexcept;
         D3D11Instance(const Ref<Instance>& instance, const std::string& name) noexcept;
+        D3D11Instance(const Ref<Instance>& instance, const Ref<Shader>& differentShader, const std::string& name) noexcept;
         ~D3D11Instance() override;
 
         void Set(const std::string& name, const Buffer& buffer) noexcept override;

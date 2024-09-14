@@ -6,6 +6,7 @@
 #include "DLEngine/Renderer/Framebuffer.h"
 #include "DLEngine/Renderer/Material.h"
 #include "DLEngine/Renderer/Pipeline.h"
+#include "DLEngine/Renderer/PipelineCompute.h"
 #include "DLEngine/Renderer/Shader.h"
 #include "DLEngine/Renderer/Texture.h"
 
@@ -35,14 +36,22 @@ namespace DLEngine
         static void SetTexture2Ds(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<Texture2D>>& textures, const std::vector<TextureViewSpecification>& viewSpecifications) noexcept;
         static void SetTextureCubes(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<TextureCube>>& textures, const std::vector<TextureViewSpecification>& viewSpecifications) noexcept;
         static void SetStructuredBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<StructuredBuffer>>& structuredBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept;
+        static void SetPrimitiveBuffers(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<Ref<PrimitiveBuffer>>& primitiveBuffers, const std::vector<BufferViewSpecification>& viewSpecifications) noexcept;
         static void SetSamplerStates(uint32_t startSlot, uint8_t shaderStageFlags, const std::vector<SamplerSpecification>& samplerStates) noexcept;
 
         static void SetPipeline(const Ref<Pipeline>& pipeline, uint8_t clearAttachmentEnums) noexcept;
+        static void SetPipelineCompute(const Ref<PipelineCompute>& pipelineCompute) noexcept;
         static void SetMaterial(const Ref<Material>& material) noexcept;
 
         static void SubmitStaticMeshInstanced(const Ref<Mesh>& mesh, uint32_t submeshIndex, const std::map<uint32_t, Ref<VertexBuffer>>& instanceBuffers, uint32_t instanceCount) noexcept;
         static void SubmitFullscreenQuad() noexcept;
         static void SubmitParticleBillboard(const Ref<VertexBuffer>& particleInstanceBuffer) noexcept;
+        static void SubmitParticleBillboardIndirect(const Ref<PrimitiveBuffer>& argumentBuffer, uint32_t argumentOffset) noexcept;
+
+        static void DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) noexcept;
+        static void DispatchComputeIndirect(const Ref<PrimitiveBuffer>& argumentBuffer, uint32_t argumentOffset) noexcept;
+
+        static void ClearRenderTargetsState() noexcept;
 
     private:
         static void InitBRDFLUT();

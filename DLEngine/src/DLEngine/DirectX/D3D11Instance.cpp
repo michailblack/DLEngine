@@ -9,7 +9,7 @@ namespace DLEngine
         const auto& inputLayout{ shader->GetInputLayout() };
         size_t instanceDataSize{ 0u };
 
-        for (const auto& [bindingPoint, inputLayoutEntry] : inputLayout)
+        for (const auto& [bindPoint, inputLayoutEntry] : inputLayout)
         {
             if (inputLayoutEntry.Type != InputLayoutType::PerInstance)
                 continue;
@@ -28,6 +28,17 @@ namespace DLEngine
 
         m_InstanceData = Buffer::Copy(d3d11Instance->m_InstanceData);
         m_ElementMap = d3d11Instance->m_ElementMap;
+    }
+
+    D3D11Instance::D3D11Instance(const Ref<Instance>& instance, const Ref<Shader>& differentShader, const std::string& name) noexcept
+        : D3D11Instance(differentShader, name)
+    {
+        for (const auto& elementMapEntry : m_ElementMap)
+        {
+            const auto& [bufferElement, instanceBufferOffset] { elementMapEntry.second };
+            if (instance->HasUniform(bufferElement->Name))
+                Set(bufferElement->Name, instance->Get(bufferElement->Name));
+        }
     }
 
     D3D11Instance::~D3D11Instance()

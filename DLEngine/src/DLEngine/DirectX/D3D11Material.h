@@ -8,12 +8,17 @@ namespace DLEngine
     public:
         D3D11Material(const Ref<Shader>& shader, const std::string& name) noexcept;
         D3D11Material(const Ref<Material>& material, const std::string& name) noexcept;
+        D3D11Material(const Ref<Material>& material, const Ref<Shader>& differentShader, const std::string& name) noexcept;
 
         void Set(const std::string& name, const Ref<ConstantBuffer>& buffer) noexcept override;
         void Set(const std::string& name, const Ref<Texture2D>& texture) noexcept override;
         void Set(const std::string& name, const Ref<TextureCube>& texture) noexcept override;
 
         void SetTextureView(const std::string& name, const TextureViewSpecification& view) noexcept override;
+
+        bool HasSetConstantBuffer(const std::string& name) const noexcept override;
+        bool HasSetTexture2D(const std::string& name) const noexcept override;
+        bool HasSetTextureCube(const std::string& name) const noexcept override;
 
         Ref<ConstantBuffer> GetConstantBuffer(const std::string& name) const noexcept override;
         Ref<Texture2D> GetTexture2D(const std::string& name) const noexcept override;

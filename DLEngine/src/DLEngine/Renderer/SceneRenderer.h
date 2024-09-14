@@ -1,5 +1,6 @@
 #pragma once
 #include "DLEngine/Renderer/Pipeline.h"
+#include "DLEngine/Renderer/PipelineCompute.h"
 #include "DLEngine/Renderer/Scene.h"
 #include "DLEngine/Renderer/StructuredBuffer.h"
 
@@ -122,6 +123,7 @@ namespace DLEngine
 
         void ShadowPass();
         void GBufferPass();
+        void IncinerationParticlesComputePass();
         void FullscreenPass();
         void SkyboxPass();
         void SmokeParticlesPass();
@@ -166,12 +168,23 @@ namespace DLEngine
 
         Ref<Texture2D> m_HDR_ResolveTexture;
         Ref<Texture2D> m_LDR_ResolveTexture;
-        Ref<Texture2D> m_GBufferDepthStencilCopy;
         Ref<Texture2D> m_GBufferGeometrySurfaceNormalsCopy;
+        Ref<Texture2D> m_GBufferInstanceUUIDCopy;
+        Ref<Texture2D> m_GBufferDepthStencilCopy;
 
         Ref<Framebuffer> m_GBuffer_PBR_StaticFramebuffer;
         Ref<Pipeline> m_GBuffer_PBR_StaticPipeline;
         Ref<Pipeline> m_GBuffer_PBR_Static_DissolutionPipeline;
+        
+        Ref<Pipeline> m_GBuffer_PBR_Static_IncinerationPipeline;
+        Ref<PipelineCompute> m_IncinerationParticlesUpdateIndirectArgsPipelineCompute;
+        Ref<PipelineCompute> m_IncinerationParticlesUpdatePipelineCompute;
+        Ref<PipelineCompute> m_IncinerationParticlesUpdateAuxiliaryPipelineCompute;
+        Ref<Pipeline> m_IncinerationParticlesInfluencePipeline;
+        Ref<Pipeline> m_IncinerationParticlesPipeline;
+        Ref<StructuredBuffer> m_SBIncinerationParticles;
+        Ref<PrimitiveBuffer> m_PBIncinerationParticleRangeBuffer;
+        Ref<Texture2D> m_IncinerationParticlesSparkTexture;
 
         Ref<Framebuffer> m_GBuffer_EmissionFramebuffer;
         Ref<Pipeline> m_GBuffer_EmissionPipeline;
@@ -199,21 +212,24 @@ namespace DLEngine
 
         Ref<Framebuffer> m_DirectionalShadowMapFramebuffer;
         Ref<Pipeline> m_DirectionalShadowMapPipeline;
+        Ref<Pipeline> m_DirectionalShadowMapDissolutionPipeline;
+        Ref<Pipeline> m_DirectionalShadowMapIncinirationPipeline;
 
         Ref<Framebuffer> m_PointShadowMapFramebuffer;
         Ref<Pipeline> m_PointShadowMapPipeline;
+        Ref<Pipeline> m_PointShadowMapDissolutionPipeline;
+        Ref<Pipeline> m_PointShadowMapIncinirationPipeline;
 
         Ref<Framebuffer> m_SpotShadowMapFramebuffer;
         Ref<Pipeline> m_SpotShadowMapPipeline;
+        Ref<Pipeline> m_SpotShadowMapDissolutionPipeline;
+        Ref<Pipeline> m_SpotShadowMapIncinirationPipeline;
 
         Ref<VertexBuffer> m_SmokeParticlesInstanceBuffer;
         Ref<Pipeline> m_SmokeParticlePipeline;
         Ref<Texture2D> m_SmokeParticlesRLU;
         Ref<Texture2D> m_SmokeParticlesDBF;
         Ref<Texture2D> m_SmokeParticlesEMVA;
-
-        // Used for unbinding textures
-        Ref<Texture2D> m_NullTexture;
 
         uint32_t m_ViewportWidth;
         uint32_t m_ViewportHeight;

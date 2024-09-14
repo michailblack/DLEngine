@@ -42,12 +42,18 @@ namespace DLEngine
 
     public:
         MeshUUID AddSubmesh(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<Material>& material, const Ref<Instance>& instance);
-        void RemoveSubmesh(MeshUUID submeshUUID);
+        void RemoveMesh(MeshUUID meshUUID);
 
         void UpdateInstanceBuffers();
 
-        bool HasInstance(MeshUUID submeshUUID) const { return m_UUID_ToIntsance.contains(submeshUUID); }
-        Ref<Instance> GetInstance(MeshUUID submeshUUID) const;
+        void ReplaceUUID(MeshUUID oldUUID, MeshUUID newUUID);
+        void SwapShadingGroup(MeshUUID meshUUID, const Ref<Shader>& newShader);
+        void SwapMaterial(MeshUUID meshUUID, uint32_t submeshIndex, const Ref<Material>& newMaterial);
+
+        bool HasInstance(MeshUUID meshUUID) const { return m_UUID_ToIntsance.contains(meshUUID); }
+        Ref<Mesh> GetMesh(MeshUUID meshUUID) const;
+        const Ref<Material>& GetMaterial(MeshUUID meshUUID, uint32_t submeshIndex) const;
+        Ref<Instance> GetInstance(MeshUUID meshUUID) const;
 
         MeshBatch& GetMeshBatch(std::string_view shaderName) noexcept;
         const MeshBatch& GetMeshBatch(std::string_view shaderName) const noexcept;
@@ -62,8 +68,9 @@ namespace DLEngine
     private:
         std::unordered_map<std::string_view, MeshBatch> m_MeshBatches;
 
+        std::unordered_map<MeshUUID, Ref<Mesh>> m_UUID_ToMesh;
+        std::unordered_map<MeshUUID, std::vector<Ref<Material>>> m_UUID_ToMaterials;
         std::unordered_map<MeshUUID, Ref<Instance>> m_UUID_ToIntsance;
-        std::unordered_map<Ref<Instance>, MeshUUID> m_InstanceToUUID;
 
         MeshBatch m_EmptyMeshBatch;
     };
