@@ -214,10 +214,10 @@ namespace DLEngine
                         const auto& cameraForward{ sceneCamera.GetForward() };
 
                         const float particleRightVelocity{
-                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleVerticalVelocity, smokeEmitter.ParticleVerticalVelocity)
+                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
                         };
                         const float particleForwardVelocity{
-                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleVerticalVelocity, smokeEmitter.ParticleVerticalVelocity)
+                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
                         };
 
                         particle.VelocityPerSecond = cameraUp * smokeEmitter.ParticleVerticalVelocity +

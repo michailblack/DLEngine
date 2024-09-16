@@ -63,6 +63,7 @@ namespace DLEngine
         float MinParticleLifetimeMS;
         float MaxParticleLifetimeMS;
         float ParticleVerticalVelocity;
+        float ParticleHorizontalVelocity;
         uint32_t ParticleSpawnRatePerSecond;
     };
 
