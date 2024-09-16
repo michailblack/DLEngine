@@ -45,25 +45,25 @@ void WorldLayer::OnAttach()
     m_SmokeEmitterToSpawn.SpawnedParticleTintColor = DLEngine::Math::Vec3{ 0.5f, 0.5f, 0.5f };
     m_SmokeEmitterToSpawn.ParticleEmissionIntensity = 2.0f;
     m_SmokeEmitterToSpawn.InitialParticleSize = DLEngine::Math::Vec2{ 0.1f, 0.1f };
-    m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.3f, 0.3f };
-    m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.1f;
+    m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.5f, 0.5f };
+    m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.2f;
     m_SmokeEmitterToSpawn.MinParticleLifetimeMS = 3000.0f;
     m_SmokeEmitterToSpawn.MaxParticleLifetimeMS = 6000.0f;
     m_SmokeEmitterToSpawn.ParticleVerticalVelocity = 0.2f;
     m_SmokeEmitterToSpawn.ParticleHorizontalVelocity = 0.1f;
-    m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond = 5000u;
+    m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond = 100u;
     m_Scene->AddSmokeEmitter(m_SmokeEmitterToSpawn, DLEngine::Math::Vec3{ 2.0f, 1.5f, 0.0f });
 
     m_SmokeEmitterToSpawn.SpawnedParticleTintColor = DLEngine::Math::Vec3{ 0.5f, 0.5f, 0.5f };
     m_SmokeEmitterToSpawn.ParticleEmissionIntensity = 2.0f;
     m_SmokeEmitterToSpawn.InitialParticleSize = DLEngine::Math::Vec2{ 0.1f, 0.1f };
-    m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.3f, 0.3f };
-    m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.1f;
+    m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.5f, 0.5f };
+    m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.2f;
     m_SmokeEmitterToSpawn.MinParticleLifetimeMS = 3000.0f;
     m_SmokeEmitterToSpawn.MaxParticleLifetimeMS = 6000.0f;
     m_SmokeEmitterToSpawn.ParticleVerticalVelocity = 0.1f;
-    m_SmokeEmitterToSpawn.ParticleHorizontalVelocity = 0.15f;
-    m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond = 5000u;
+    m_SmokeEmitterToSpawn.ParticleHorizontalVelocity = 0.2f;
+    m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond = 100u;
     m_Scene->AddSmokeEmitter(m_SmokeEmitterToSpawn, DLEngine::Math::Vec3{ -2.0f, 1.5f, 0.0f });
 
     m_SmokeEmitterToSpawn.SpawnedParticleTintColor = DLEngine::Math::Vec3{ 0.5f, 0.5f, 0.5f };

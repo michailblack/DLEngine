@@ -58,7 +58,7 @@ Texture2D<float4> t_EMVA_Atlas : register(t18);
 Texture2D<float>  t_SceneDepth : register(t19);
 
 static const float MotionVectorScale = 0.0015;
-static const float SmokeThickness    = 0.001;
+static const float SmokeThickness    = 0.1;
 
 float2 LocalUVToTextureAtlasUV(float2 uv, uint frameIndex)
 {

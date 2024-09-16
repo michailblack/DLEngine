@@ -169,7 +169,7 @@ namespace DLEngine
     void Scene::UpdateSmokeEmitters(DeltaTime dt)
     {
         std::for_each(std::execution::par_unseq, m_SmokeEnvironment.SmokeEmitters.begin(), m_SmokeEnvironment.SmokeEmitters.end(),
-            [dt, &sceneCamera{ std::as_const(m_SceneCameraController.GetCamera()) }]
+            [dt]
             (auto& smokeEmitterData)
             {
                 SmokeEmitter& smokeEmitter{ smokeEmitterData.first };
@@ -193,7 +193,7 @@ namespace DLEngine
                 const uint32_t beginSpawnIndex{ static_cast<uint32_t>(smokeEmitter.Particles.size()) };
                 smokeEmitter.Particles.resize(smokeEmitter.Particles.size() + particlesToSpawn);
                 std::generate(std::execution::par_unseq, smokeEmitter.Particles.begin() + beginSpawnIndex, smokeEmitter.Particles.end(),
-                    [&smokeEmitter{ std::as_const(smokeEmitter) }, &smokeEmitterWorldPos{ std::as_const(smokeEmitterWorldPos) }, &sceneCamera{ std::as_const(sceneCamera) }]()
+                    [&smokeEmitter{ std::as_const(smokeEmitter) }, &smokeEmitterWorldPos{ std::as_const(smokeEmitterWorldPos) }]()
                     {
                         SmokeParticle particle{};
 
@@ -209,9 +209,9 @@ namespace DLEngine
 
                         particle.Position = smokeEmitterWorldPos + emitterRelativePos;
 
-                        const auto& cameraUp{ sceneCamera.GetUp() };
-                        const auto& cameraRight{ sceneCamera.GetRight() };
-                        const auto& cameraForward{ sceneCamera.GetForward() };
+                        constexpr Math::Vec3 worldUp{ 0.0f, 1.0f, 0.0f };
+                        constexpr Math::Vec3 worldRight{ 1.0f, 0.0f, 0.0f };
+                        constexpr Math::Vec3 worldForward{ 0.0f, 0.0f, 1.0f };
 
                         const float particleRightVelocity{
                             RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
@@ -220,9 +220,9 @@ namespace DLEngine
                             RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
                         };
 
-                        particle.VelocityPerSecond = cameraUp * smokeEmitter.ParticleVerticalVelocity +
-                            cameraRight * particleRightVelocity +
-                            cameraForward * particleForwardVelocity;
+                        particle.VelocityPerSecond = worldUp * smokeEmitter.ParticleVerticalVelocity +
+                            worldRight * particleRightVelocity +
+                            worldForward * particleForwardVelocity;
 
                         particle.LifetimeMS = RandomGenerator::GenerateRandomInRange(
                             smokeEmitter.MinParticleLifetimeMS,
