@@ -32,6 +32,58 @@ struct Light
     float SolidAngle;
 };
 
+Surface CalculatePBR_Surface(float2 texCoords, float3 geometryNormal, float3x3 tangentToWorld)
+{
+    const float3 albedo = t_Albedo.Sample(s_ActiveSampler, texCoords).rgb;
+    
+    float metalness = c_DefaultMetalness;
+    if (c_HasMetalnessMap)
+        metalness = t_Metalness.Sample(s_ActiveSampler, texCoords).r;
+
+    float roughness = c_DefaultRoughness;
+    if (c_HasRoughnessMap)
+        roughness = t_Roughness.Sample(s_ActiveSampler, texCoords).r;
+
+    float3 surfaceNormal = geometryNormal;
+    if (c_UseNormalMap)
+    {
+        float2 normalMapSampleCoords = texCoords;
+        if (c_FlipNormalMapY)
+            normalMapSampleCoords.y = 1.0 - normalMapSampleCoords.y;
+        const float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, normalMapSampleCoords).rg;
+    
+        const float3 normalTangentSpace = float3(normalBC5.x, normalBC5.y, sqrt(saturate(1.0 - dot(normalBC5.xy, normalBC5.yx))));
+        surfaceNormal = normalize(mul(
+            normalTangentSpace,
+            tangentToWorld
+        ));
+    }
+    
+    Surface surface;
+    surface.Albedo = albedo;
+    surface.GeometryNormal = normalize(geometryNormal);
+    surface.SurfaceNormal = surfaceNormal;
+    surface.Metalness = metalness;
+    surface.Roughness = roughness;
+    surface.F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metalness);
+    
+    return surface;
+}
+
+// distanceToCenter must be greater than radius
+float CalculateSphereSolidAngle(const float radius, const float distanceToCenter)
+{
+    const float sizeRelation = radius / distanceToCenter;
+    return 2.0 * PI * (1.0 - sqrt(1.0 - sizeRelation * sizeRelation));
+}
+
+float CalclulateSpotLightCutoffIntensity(const SpotLight spotLight, const float3 lightDir)
+{
+    const float angle = dot(lightDir, -spotLight.Direction);
+    const float spotLightFactor = spotLight.InnerCutoffCos - spotLight.OuterCutoffCos;
+    return saturate((angle - spotLight.OuterCutoffCos) / spotLightFactor);
+}
+
 float3 IBL(in const View view, in const Surface surface)
 {
     const float3 diffuseIrradianceIBL = t_EnvironmentIrradiance.Sample(s_Anisotropic8Clamp, surface.SurfaceNormal).rgb;
@@ -111,9 +163,7 @@ float3 PointLightContribution(in const View view, in const Surface surface, in c
         const float3 lightWorldPos = pointLight.Position;
         
         const float sphereDist = max(length(lightWorldPos - worldPos), pointLight.Radius);
-        
-        const float sizeRelation = pointLight.Radius / sphereDist;
-        const float solidAngle = 2.0 * PI * (1.0 - sqrt(1.0 - sizeRelation * sizeRelation));
+        const float solidAngle = CalculateSphereSolidAngle(pointLight.Radius, sphereDist);
 
         const float3 sphereDir = normalize(lightWorldPos - worldPos);
         const float sphereSin = pointLight.Radius / sphereDist;
@@ -163,35 +213,24 @@ float3 SpotLightContribution(in const View view, in const Surface surface, in co
         const SpotLight spotLight = t_SpotLights[spotLightIndex];
 
         const float3 lightWorldPos = spotLight.Position;
-        const float3 lightWorldDir = spotLight.Direction;
+        const float3 lightDir = normalize(lightWorldPos - worldPos);
 
-        float3 lightDir = normalize(lightWorldPos - worldPos);
+        const float sphereDist = max(length(lightWorldPos - worldPos), spotLight.Radius);
+        const float solidAngle = CalculateSphereSolidAngle(spotLight.Radius, sphereDist);
 
-        const float angle = dot(lightDir, -lightWorldDir);
-        if (angle > spotLight.OuterCutoffCos)
-        {
-            const float sphereDist = max(length(lightWorldPos - worldPos), spotLight.Radius);
+        currentView.NoL = max(dot(surface.SurfaceNormal, lightDir), Epsilon);
             
-            const float sizeRelation = spotLight.Radius / sphereDist;
-            const float solidAngle = 2.0 * PI * (1.0 - sqrt(1.0 - sizeRelation * sizeRelation));
+        Light light;
+        light.SpecularLightDir = lightDir;
+        light.Radiance = spotLight.Radiance;
+        light.SolidAngle = solidAngle;
 
-            const float spotLightFactor = spotLight.InnerCutoffCos - spotLight.OuterCutoffCos;
-            const float intensity = saturate((angle - spotLight.OuterCutoffCos) / spotLightFactor);
-            
-            currentView.NoL = max(dot(surface.SurfaceNormal, lightDir), Epsilon);
-            
-            Light light;
-            light.SpecularLightDir = lightDir;
-            light.Radiance = spotLight.Radiance;
-            light.SolidAngle = solidAngle;
+        float3 lightContribution = PBR_RenderingEquation(currentView, surface, light) * CalclulateSpotLightCutoffIntensity(spotLight, lightDir);
 
-            float3 lightContribution = PBR_RenderingEquation(currentView, surface, light) * intensity;
+        if (c_UseSpotShadows)
+            lightContribution *= VisibilityForSpotLight(spotLightIndex, worldPos, surface.SurfaceNormal);
 
-            if (c_UseSpotShadows)
-                lightContribution *= VisibilityForSpotLight(spotLightIndex, worldPos, surface.SurfaceNormal);
-
-            directLighting += lightContribution;
-        }
+        directLighting += lightContribution;
     }
     
     return directLighting;
