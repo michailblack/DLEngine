@@ -50,7 +50,7 @@ Surface CalculatePBR_Surface(float2 texCoords, float3 geometryNormal, float3x3 t
     {
         float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, texCoords).rg;
         if (c_FlipNormalMapY)
-            normalBC5.y = 1.0 - normalBC5.y;
+            normalBC5.y = -normalBC5.y;
     
         const float3 normalTangentSpace = float3(normalBC5.x, normalBC5.y, sqrt(saturate(1.0 - dot(normalBC5.xy, normalBC5.yx))));
         surfaceNormal = normalize(mul(
