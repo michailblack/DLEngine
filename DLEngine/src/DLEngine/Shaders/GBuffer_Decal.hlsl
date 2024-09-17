@@ -88,7 +88,7 @@ PixelOutput mainPS(VertexOutput psInput)
     float2 decalUV = decalSpacePos.xy + 0.5;
     decalUV.y = 1.0 - decalUV.y;
     const float4 decalNormalAlpha = t_DecalNormalAlpha.Sample(s_TrilinearClamp, decalUV);
-    const float3 decalNormalTangentSpace = normalize(decalNormalAlpha.rgb);
+    const float3 decalNormalTangentSpace = normalize(decalNormalAlpha.rgb * 2.0 - 1.0);
     const float decalAlpha = decalNormalAlpha.a;
 
     // Build TBM matrix
@@ -100,7 +100,7 @@ PixelOutput mainPS(VertexOutput psInput)
     
     const float3 decalRight = normalize(psInput.v_DecalToWorld[0].xyz);
     const float3 T = normalize(decalRight - dot(decalRight, surfaceNormal) * surfaceNormal);
-    const float3 B = cross(surfaceNormal, T);
+    const float3 B = normalize(cross(T, surfaceNormal));
     const float3x3 TBN = float3x3(T, B, surfaceNormal);
     
     // Transform decal normal to world space

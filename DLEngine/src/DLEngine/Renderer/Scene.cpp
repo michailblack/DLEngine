@@ -214,7 +214,7 @@ namespace DLEngine
     void Scene::UpdateSmokeEmitters(DeltaTime dt)
     {
         std::for_each(std::execution::par_unseq, m_SmokeEnvironment.SmokeEmitters.begin(), m_SmokeEnvironment.SmokeEmitters.end(),
-            [dt]
+            [dt, this]
             (auto& smokeEmitterData)
             {
                 SmokeEmitter& smokeEmitter{ smokeEmitterData.first };

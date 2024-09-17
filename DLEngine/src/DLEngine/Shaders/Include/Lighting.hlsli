@@ -184,7 +184,7 @@ float3 PointLightContribution(in const View view, in const Surface surface, in c
 
         const float falloff = geometryFalloff * surfaceFalloff;
         
-        currentView.NoL = max(dot(surface.SurfaceNormal, sphereDir), surfaceFalloff * sphereSin);
+        currentView.NoL = max(max(dot(surface.SurfaceNormal, sphereDir), surfaceFalloff * sphereSin), Epsilon);
         
         Light light;
         light.SpecularLightDir = lightDir;
