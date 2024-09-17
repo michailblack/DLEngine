@@ -58,7 +58,7 @@ Texture2D<float4> t_EMVA_Atlas : register(t18);
 Texture2D<float>  t_SceneDepth : register(t19);
 
 static const float MotionVectorScale = 0.0015;
-static const float SmokeThickness    = 0.1;
+static const float SmokeThickness    = 15.0;
 
 float2 LocalUVToTextureAtlasUV(float2 uv, uint frameIndex)
 {
@@ -111,28 +111,26 @@ float LinearizeReversedDepth(float depth)
     return (c_zNear * c_zFar) / lerp(c_zFar, c_zNear, depth);
 }
 
-void SurfaceAttenuation(inout float alpha, float linearDepth, float surfaceLinearDepth)
+float SurfaceAttenuationAlpha(float linearDepth, float surfaceLinearDepth)
 {
     const float distanceToSurface = surfaceLinearDepth - linearDepth;
-    alpha = lerp(0.0, alpha, saturate(distanceToSurface / SmokeThickness));
+    return saturate(distanceToSurface / SmokeThickness);
 }
 
-void NearPlaneAttenuation(inout float alpha, float linearDepth, float frustumThresholdDistancePercentage)
+float NearPlaneAttenuationAlpha(float linearDepth, float frustumThresholdDistancePercentage)
 {
     const float thresholdDistance = (c_zNear - c_zFar) * frustumThresholdDistancePercentage;
     const float distanceToNearPlane = linearDepth - c_zFar;
-    const float attenuationFactor = saturate(distanceToNearPlane / thresholdDistance);
-    
-    alpha = lerp(0.0, alpha, attenuationFactor);
+    return saturate(distanceToNearPlane / thresholdDistance);
 }
 
-void RevealAttenuation(inout float alpha, float spawnLifetimePercentage, float despawnLifetimePercentage, float lifetimePassedPercentage)
+float RevealAttenuationAlpha(float spawnLifetimePercentage, float despawnLifetimePercentage, float lifetimePassedPercentage)
 {
     float attenuationFactor = saturate(lifetimePassedPercentage / spawnLifetimePercentage);
-    alpha = lerp(0.0, alpha, attenuationFactor);
+    float alpha = attenuationFactor;
     
     attenuationFactor = saturate((1.0 - lifetimePassedPercentage) / (1.0 - despawnLifetimePercentage));
-    alpha = lerp(alpha, 0.0, attenuationFactor);
+    return alpha * (1.0 - attenuationFactor);
 }
 
 float3 SixWayLightMapContribution(float3 lightDir, float3 lightRadiance, float3 lightmapRLU, float3 lightmapDBF, float3x3 basis)
@@ -281,13 +279,12 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
     
     float2 screenUV = projectedCoords.xy * 0.5 + 0.5;
     screenUV.y = 1.0 - screenUV.y;
-    const float sceneDepth = LinearizeReversedDepth(t_SceneDepth.Sample(s_TrilinearClamp, screenUV).r);
+    const float sceneDepth = LinearizeReversedDepth(t_SceneDepth.Sample(s_NearestClamp, screenUV).r);
     
-    float alpha = 1.0;
-    SurfaceAttenuation(alpha, particleDepth, sceneDepth);
-    NearPlaneAttenuation(alpha, particleDepth, 0.75);
-    RevealAttenuation(alpha, 0.1, 0.3, psInput.v_LifetimePassedMS / psInput.v_LifetimeMS);
-    alpha = lerp(0.0, alpha, emissionAlpha.g);
+    float alpha = SurfaceAttenuationAlpha(particleDepth, sceneDepth);
+    alpha *= NearPlaneAttenuationAlpha(particleDepth, 0.75);
+    alpha *= RevealAttenuationAlpha(0.1, 0.3, psInput.v_LifetimePassedMS / psInput.v_LifetimeMS);
+    alpha *= emissionAlpha.g;
     
     return float4(resultColor, alpha);
 }
