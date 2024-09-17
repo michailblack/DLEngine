@@ -730,7 +730,7 @@ void WorldLayer::AddObjectsToScene()
         auto crystallPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
         DLEngine::CBPBRMaterial crystallCBPBRMaterial{};
         crystallCBPBRMaterial.UseNormalMap = true;
-        crystallCBPBRMaterial.FlipNormalMapY = false;
+        crystallCBPBRMaterial.FlipNormalMapY = true;
         crystallCBPBRMaterial.HasMetalnessMap = false;
         crystallCBPBRMaterial.DefaultMetalness = 0.0f;
         crystallCBPBRMaterial.HasRoughnessMap = false;

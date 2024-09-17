@@ -1,7 +1,4 @@
-#include "Include/Buffers.hlsli"
-#include "Include/Common.hlsli"
-#include "Include/PBR_Resources.hlsli"
-#include "Include/Samplers.hlsli"
+#include "Include/Lighting.hlsli"
 
 struct VertexInput
 {
@@ -67,36 +64,13 @@ struct PixelOutput
 };
 
 PixelOutput mainPS(VertexOutput psInput)
-{
-    const float3 albedo = t_Albedo.Sample(s_ActiveSampler, psInput.v_TexCoords).rgb;
-    
-    float metalness = c_DefaultMetalness;
-    if (c_HasMetalnessMap)
-        metalness = t_Metalness.Sample(s_ActiveSampler, psInput.v_TexCoords).r;
-
-    float roughness = c_DefaultRoughness;
-    if (c_HasRoughnessMap)
-        roughness = t_Roughness.Sample(s_ActiveSampler, psInput.v_TexCoords).r;
-
-    float3 surfaceNormal = psInput.v_Normal;
-    if (c_UseNormalMap)
-    {
-        float2 normalMapSampleCoords = psInput.v_TexCoords;
-        if (c_FlipNormalMapY)
-            normalMapSampleCoords.y = 1.0 - normalMapSampleCoords.y;
-        const float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, normalMapSampleCoords).rg;
-    
-        const float3 normalTangentSpace = float3(normalBC5.x, normalBC5.y, sqrt(saturate(1.0 - dot(normalBC5.xy, normalBC5.yx))));
-        surfaceNormal = normalize(mul(
-            normalTangentSpace,
-            psInput.v_TangentToWorld
-        ));
-    }
+{    
+    const Surface surface = CalculatePBR_Surface(psInput.v_TexCoords, psInput.v_Normal, psInput.v_TangentToWorld);
     
     PixelOutput psOutput;
-    psOutput.o_Albedo = float4(albedo, 1.0);
-    psOutput.o_MetalnessRoughness = float2(metalness, roughness);
-    psOutput.o_GeometrySurfaceNormals = float4(packOctahedron(normalize(psInput.v_Normal)), packOctahedron(surfaceNormal));
+    psOutput.o_Albedo = float4(surface.Albedo, 1.0);
+    psOutput.o_MetalnessRoughness = float2(surface.Metalness, surface.Roughness);
+    psOutput.o_GeometrySurfaceNormals = float4(packOctahedron(surface.GeometryNormal), packOctahedron(surface.SurfaceNormal));
     psOutput.o_Emission = float4(0.0, 0.0, 0.0, 1.0);
     psOutput.o_InstanceUUID = psInput.v_InstanceUUID;
     return psOutput;
