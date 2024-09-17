@@ -69,6 +69,21 @@ float3 RandomConeDirection(uint index, uint samplesCount, float coneHalfAngleCos
     return float3(r * cos(phi), r * sin(phi), z);
 }
 
+float3 RodriguesRotation(float3 v, float3 normalizedAxis, float theta)
+{
+    const float cosTheta = cos(theta);
+    const float sinTheta = sin(theta);
+    
+    return v * cosTheta + cross(normalizedAxis, v) * sinTheta + normalizedAxis * dot(normalizedAxis, v) * (1.0 - cosTheta);
+}
+
+float3 RodriguesRotation(float3 v, float3 origin, float3 normalizedAxis, float theta)
+{
+    const float3 relativePos = v - origin;
+    const float3 rotatedRelativePos = RodriguesRotation(relativePos, normalizedAxis, theta);
+    return origin + rotatedRelativePos;
+}
+
 // May return direction pointing beneath surface horizon (dot(N, dir) < 0), use clampDirToHorizon to fix it.
 // sphereCos is cosine of the light source angular halfsize (2D angle, not solid angle).
 // sphereRelPos is position of a sphere relative to surface:

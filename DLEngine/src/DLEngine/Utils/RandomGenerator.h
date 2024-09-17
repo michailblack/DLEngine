@@ -9,8 +9,8 @@ namespace DLEngine
         template <typename T>
         static T GenerateRandomInRange(T min, T max)
         {
-            static std::random_device rd;
-            static std::mt19937 eng(rd());
+            thread_local std::random_device rd;
+            thread_local std::mt19937 eng(rd());
 
             if constexpr (std::is_integral_v<T>)
             {

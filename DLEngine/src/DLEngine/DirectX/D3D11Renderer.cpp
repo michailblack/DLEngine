@@ -44,6 +44,8 @@ namespace DLEngine
             std::unordered_map<std::pair<RasterizerSpecification, bool>, ComPtr<ID3D11RasterizerState2>, RasterizerSpecificationCacheHash> RasterizerStatesCache;
             std::unordered_map<DepthStencilSpecification, ComPtr<ID3D11DepthStencilState>, DepthStencilSpecificationHash> DepthStencilStatesCache;
             std::unordered_map<BlendState, ComPtr<ID3D11BlendState1>> BlendStatesCache;
+
+            Ref<IndexBuffer> QuadIndexBuffer;
         };
 
         D3D11RendererData* s_Data{ nullptr };
@@ -52,6 +54,13 @@ namespace DLEngine
     void D3D11Renderer::Init()
     {
         s_Data = new D3D11RendererData;
+
+        std::array<uint32_t, 6u> quadIndices{
+            0u, 1u, 2u,
+            0u, 2u, 3u
+        };
+
+        s_Data->QuadIndexBuffer = IndexBuffer::Create(Buffer{ quadIndices.data(), 6u * sizeof(uint32_t) });
     }
 
     void D3D11Renderer::Shutdown()
@@ -431,6 +440,22 @@ namespace DLEngine
         d3d11DeviceContext->Draw(3u, 0u);
     }
 
+    void D3D11Renderer::SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept
+    {
+        const auto& d3d11DeviceContext{ D3D11Context::Get()->GetDeviceContext4() };
+        const auto& d3d11InstanceBuffer{ AsRef<D3D11VertexBuffer>(instanceBuffer) };
+
+        const uint32_t instanceCount{ static_cast<uint32_t>(d3d11InstanceBuffer->GetSize() / d3d11InstanceBuffer->GetLayout().GetStride()) };
+
+        const uint32_t stride{ static_cast<uint32_t>(d3d11InstanceBuffer->GetLayout().GetStride()) };
+        const uint32_t offset{ 0u };
+        d3d11DeviceContext->IASetVertexBuffers(1u, 1u, d3d11InstanceBuffer->GetD3D11VertexBuffer().GetAddressOf(), &stride, &offset);
+
+        d3d11DeviceContext->IASetIndexBuffer(AsRef<D3D11IndexBuffer>(s_Data->QuadIndexBuffer)->GetD3D11IndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
+
+        d3d11DeviceContext->DrawIndexedInstanced(6u, instanceCount, 0u, 0u, 0u);
+    }
+
     ComPtr<ID3D11SamplerState> D3D11Renderer::GetSamplerState(const SamplerSpecification& specification)
     {
         const auto it{ s_Data->SamplersCache.find(specification) };
@@ -534,7 +559,7 @@ namespace DLEngine
 
         D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
         depthStencilDesc.DepthEnable = specification.DepthTest ? TRUE : FALSE;
-        depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        depthStencilDesc.DepthWriteMask = specification.DepthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
         depthStencilDesc.DepthFunc = Utils::D3D11ComparisonFuncFromCompareOp(specification.CompareOp);
         depthStencilDesc.StencilEnable = FALSE;
 

@@ -228,6 +228,9 @@
     <ClInclude Include="src\DLEngine\DirectX\D3D11StructuredBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\DLEngine\Utils\RadixSort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Window.cpp">
@@ -400,5 +403,7 @@
     <FxCompile Include="src\DLEngine\Shaders\OmnidirectionalLightShadowMap.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\PBR_Static.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\PBR_Static_Dissolution.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\SmokeParticle.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\MaxDepth.hlsl" />
   </ItemGroup>
 </Project>

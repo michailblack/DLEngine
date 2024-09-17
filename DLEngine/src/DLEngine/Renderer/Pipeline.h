@@ -13,13 +13,13 @@ namespace DLEngine
 
     enum class FillMode
     {
-        Solid,
+        Solid = 0,
         Wireframe
     };
 
     enum class CullMode
     {
-        None,
+        None = 0,
         Front,
         Back
     };

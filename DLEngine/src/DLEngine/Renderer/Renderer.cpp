@@ -158,6 +158,11 @@ namespace DLEngine
         s_RendererAPI->SubmitFullscreenQuad();
     }
 
+    void Renderer::SubmitParticleBillboard(const Ref<VertexBuffer>& instanceBuffer) noexcept
+    {
+        s_RendererAPI->SubmitParticleBillboard(instanceBuffer);
+    }
+
     void Renderer::InitBRDFLUT()
     {
         TextureSpecification brdfLUTSpec{};

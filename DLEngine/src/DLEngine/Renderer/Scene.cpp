@@ -4,6 +4,10 @@
 #include "DLEngine/Renderer/Renderer.h"
 #include "DLEngine/Renderer/SceneRenderer.h"
 
+#include "DLEngine/Utils/RadixSort.h"
+
+#include <execution>
+
 namespace DLEngine
 {
 
@@ -39,74 +43,8 @@ namespace DLEngine
             m_Dragger->Drag(ray);
         }
 
-        auto& dissolutionMeshBatch{ m_MeshRegistry.GetMeshBatch("PBR_Static_Dissolution") };
-        std::unordered_map<Ref<Instance>, std::pair<Ref<Instance>, bool>> dissolutionToPBR_StaticInstances{};
-        std::unordered_set<MeshRegistry::SubmeshID, MeshRegistry::SubmeshIDHash, MeshRegistry::SubmeshIDEqual> submeshIDsToRemove{};
-        const auto& pbrStaticShader{ Renderer::GetShaderLibrary()->Get("PBR_Static") };
-        for (auto& [mesh, submeshBatch] : dissolutionMeshBatch.SubmeshBatches)
-        {
-            for (uint32_t submeshIndex{ 0u }; submeshIndex < submeshBatch.MaterialBatches.size(); ++submeshIndex)
-            {
-                auto& materialBatch{ submeshBatch.MaterialBatches[submeshIndex] };
-                for (auto& [material, instanceBatch] : materialBatch.InstanceBatches)
-                {
-                    for (auto& instance : instanceBatch.SubmeshInstances)
-                    {
-                        if (!dissolutionToPBR_StaticInstances.contains(instance))
-                        {
-                            auto pbrStaticInstance{ Instance::Create(pbrStaticShader) };
-                            pbrStaticInstance->Set("TRANSFORM", Buffer{ &instance->Get<Math::Mat4x4>("TRANSFORM"), sizeof(Math::Mat4x4) });
-
-                            dissolutionToPBR_StaticInstances[instance] = std::make_pair(pbrStaticInstance, false);
-                        }
-
-                        const auto& pbrStaticInstance{ dissolutionToPBR_StaticInstances[instance].first };
-                        const bool isUpdated{ dissolutionToPBR_StaticInstances[instance].second };
-                        
-                        const auto& dissolutionDuration{ instance->Get<float>("DISSOLUTION_DURATION") };
-                        const auto& elapsedTime{ instance->Get<float>("ELAPSED_TIME") };
-
-                        if (isUpdated && elapsedTime < dissolutionDuration)
-                            continue;
-
-                        if (elapsedTime < dissolutionDuration)
-                        {
-                            const float updatedElapsedTime{ elapsedTime + dt };
-                            instance->Set("ELAPSED_TIME", Buffer{ &updatedElapsedTime, sizeof(float) });
-
-                            dissolutionToPBR_StaticInstances[instance].second = true;
-                        }
-
-                        if (elapsedTime < dissolutionDuration)
-                            continue;
-
-                        // Replace instance
-                        const auto& pbrMaterialCB{ material->GetConstantBuffer("PBRMaterial") };
-                        const auto& pbrMaterialCBData{ pbrMaterialCB->GetLocalData().Read<CBPBRMaterial>() };
-
-                        auto pbrStaticMaterial{ Material::Create(pbrStaticShader) };
-                        pbrStaticMaterial->Set("PBRMaterial", pbrMaterialCB);
-
-                        pbrStaticMaterial->Set("t_Albedo", material->GetTexture2D("t_Albedo"));
-                        pbrStaticMaterial->Set("t_Normal", material->GetTexture2D("t_Normal"));
-
-                        if (pbrMaterialCBData.HasMetalnessMap)
-                            pbrStaticMaterial->Set("t_Metalness", material->GetTexture2D("t_Metalness"));
-
-                        if (pbrMaterialCBData.HasRoughnessMap)
-                            pbrStaticMaterial->Set("t_Roughness", material->GetTexture2D("t_Roughness"));
-
-                        m_MeshRegistry.AddSubmesh(mesh, submeshIndex, pbrStaticMaterial, pbrStaticInstance);
-
-                        // Removing an instance invalidates current iterator, so postponing it
-                        submeshIDsToRemove.emplace(mesh, material, instance, submeshIndex);
-                    }
-                }
-            }
-        }
-
-        for (const auto& submeshID : submeshIDsToRemove)
-            m_MeshRegistry.RemoveSubmesh(submeshID.Mesh, submeshID.SubmeshIndex, submeshID.Material, submeshID.Instance);
+        UpdateSmokeEmitters(dt);
+        SortSmokeParticles();
     }
 
     void Scene::OnEvent(Event& e)
@@ -117,11 +55,6 @@ namespace DLEngine
         dispatcher.Dispatch<WindowResizeEvent>(DL_BIND_EVENT_FN(Scene::OnWindowResize));
         dispatcher.Dispatch<MouseButtonPressedEvent>(DL_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
         dispatcher.Dispatch<MouseButtonReleasedEvent>(DL_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
-    }
-
-    void Scene::AddSubmesh(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<Material>& material, const Ref<Instance>& instance)
-    {
-        m_MeshRegistry.AddSubmesh(mesh, submeshIndex, material, instance);
     }
 
     void Scene::AddDirectionalLight(const Math::Vec3& direction, const Math::Vec3& radiance, float solidAngle)
@@ -147,7 +80,7 @@ namespace DLEngine
         instance->Set("TRANSFORM", Buffer{ &transform, sizeof(Math::Mat4x4) });
         instance->Set("RADIANCE", Buffer{ &radiance, sizeof(Math::Vec3) });
 
-        AddSubmesh(unitSphere, 0u, material, instance);
+        m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance);
         AddPointLight(position, irradiance, radius, distance, instance);
     }
     void Scene::AddPointLight(const Math::Vec3& position, const Math::Vec3& irradiance, float radius, float distance, const Ref<Instance>& meshInstance)
@@ -177,7 +110,7 @@ namespace DLEngine
         instance->Set("TRANSFORM", Buffer{ &transform, sizeof(Math::Mat4x4) });
         instance->Set("RADIANCE", Buffer{ &radiance, sizeof(Math::Vec3) });
 
-        AddSubmesh(unitSphere, 0u, material, instance);
+        m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance);
         AddSpotLight(position, direction, radius, innerCutoffCos, outerCutoffCos, irradiance, distance, instance);
     }
 
@@ -198,6 +131,154 @@ namespace DLEngine
         spotLight.OuterCutoffCos = outerCutoffCos;
 
         m_LightEnvironment.SpotLights.emplace_back(spotLight, meshInstance);
+    }
+
+    void Scene::AddSmokeEmitter(const SmokeEmitter& emitter, const Math::Vec3& emissionMeshTranslation)
+    {
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
+
+        const auto& material{ Material::Create(emissionShader) };
+        const auto& instance{ Instance::Create(emissionShader) };
+
+        const auto transform{ Math::Mat4x4::Scale(Math::Vec3{ 0.01f }) * Math::Mat4x4::Translate(emissionMeshTranslation) };
+        instance->Set("TRANSFORM", Buffer{ &transform, sizeof(Math::Mat4x4) });
+        instance->Set("RADIANCE", Buffer{ &emitter.SpawnedParticleTintColor, sizeof(Math::Vec3) });
+
+        m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance);
+        AddSmokeEmitter(emitter, instance);
+    }
+
+    void Scene::AddSmokeEmitter(const SmokeEmitter& emitter, const Ref<Instance>& meshInstance)
+    {
+        m_SmokeEnvironment.SmokeEmitters.emplace_back(emitter, meshInstance);
+    }
+
+    void Scene::ClearSmokeEmitters()
+    {
+        const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& material{ Material::Create(emissionShader) };
+
+        for (const auto& smokeEmitterData : m_SmokeEnvironment.SmokeEmitters)
+            m_MeshRegistry.RemoveSubmesh(unitSphere, 0u, material, smokeEmitterData.second);
+
+        m_SmokeEnvironment.SmokeEmitters.clear();
+    }
+
+    void Scene::UpdateSmokeEmitters(DeltaTime dt)
+    {
+        std::for_each(std::execution::par_unseq, m_SmokeEnvironment.SmokeEmitters.begin(), m_SmokeEnvironment.SmokeEmitters.end(),
+            [dt]
+            (auto& smokeEmitterData)
+            {
+                SmokeEmitter& smokeEmitter{ smokeEmitterData.first };
+                const auto& instance{ smokeEmitterData.second };
+
+                smokeEmitter.Particles.erase(std::remove_if(std::execution::par_unseq, smokeEmitter.Particles.begin(), smokeEmitter.Particles.end(),
+                    [dt](SmokeParticle& particle)
+                    {
+                        particle.LifetimePassedMS += dt;
+                        particle.Position += particle.VelocityPerSecond * dt.GetSeconds();
+                        return particle.LifetimePassedMS > particle.LifetimeMS;
+                    }),
+                    smokeEmitter.Particles.end()
+                );
+
+                const uint32_t particlesToSpawn{ static_cast<uint32_t>(dt.GetSeconds() * static_cast<float>(smokeEmitter.ParticleSpawnRatePerSecond)) };
+
+                const auto& transform{ instance->Get<Math::Mat4x4>("TRANSFORM") };
+                const auto& smokeEmitterWorldPos{ Math::PointToSpace(smokeEmitter.Position, transform) };
+
+                const uint32_t beginSpawnIndex{ static_cast<uint32_t>(smokeEmitter.Particles.size()) };
+                smokeEmitter.Particles.resize(smokeEmitter.Particles.size() + particlesToSpawn);
+                std::generate(std::execution::par_unseq, smokeEmitter.Particles.begin() + beginSpawnIndex, smokeEmitter.Particles.end(),
+                    [&smokeEmitter{ std::as_const(smokeEmitter) }, &smokeEmitterWorldPos{ std::as_const(smokeEmitterWorldPos) }]()
+                    {
+                        SmokeParticle particle{};
+
+                        const float theta{ RandomGenerator::GenerateRandomInRange(0.0f, 2.0f * Math::Numeric::Pi) };
+                        const float phi{ RandomGenerator::GenerateRandomInRange(0.0f, Math::Numeric::Pi) };
+                        const float distance{ RandomGenerator::GenerateRandomInRange(0.0f, smokeEmitter.ParticleSpawnRadius) };
+
+                        const Math::Vec3 emitterRelativePos{
+                            distance * Math::SinEst(phi) * Math::CosEst(theta),
+                            distance * Math::SinEst(phi) * Math::SinEst(theta),
+                            distance * Math::CosEst(phi)
+                        };
+
+                        particle.Position = smokeEmitterWorldPos + emitterRelativePos;
+
+                        constexpr Math::Vec3 worldUp{ 0.0f, 1.0f, 0.0f };
+                        constexpr Math::Vec3 worldRight{ 1.0f, 0.0f, 0.0f };
+                        constexpr Math::Vec3 worldForward{ 0.0f, 0.0f, 1.0f };
+
+                        const float particleRightVelocity{
+                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
+                        };
+                        const float particleForwardVelocity{
+                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
+                        };
+
+                        particle.VelocityPerSecond = worldUp * smokeEmitter.ParticleVerticalVelocity +
+                            worldRight * particleRightVelocity +
+                            worldForward * particleForwardVelocity;
+
+                        particle.LifetimeMS = RandomGenerator::GenerateRandomInRange(
+                            smokeEmitter.MinParticleLifetimeMS,
+                            smokeEmitter.MaxParticleLifetimeMS
+                        );
+
+                        return particle;
+                    }
+                );
+            }
+        );
+    }
+
+    void Scene::SortSmokeParticles()
+    {
+        using SmokeParticleID = std::pair<SmokeEnvironment::EmitterIndex, SmokeEnvironment::ParticleIndex>;
+
+        const auto& camera{ m_SceneCameraController.GetCamera() };
+        const auto& cameraPos{ camera.GetPosition() };
+        const Math::Vec3& particlePlaneNormal{ -camera.GetForward() };
+        
+        std::unordered_map<float, SmokeParticleID> distancesToParticles{};
+        std::vector<float> particleDistances{};
+        for (uint32_t emitterIndex{ 0u }; emitterIndex < m_SmokeEnvironment.SmokeEmitters.size(); ++emitterIndex)
+        {
+            const auto& smokeEmitter{ m_SmokeEnvironment.SmokeEmitters[emitterIndex].first };
+
+            distancesToParticles.reserve(distancesToParticles.size() + smokeEmitter.Particles.size());
+            particleDistances.reserve(particleDistances.size() + smokeEmitter.Particles.size());
+
+            for (uint32_t particleIndex{ 0u }; particleIndex < smokeEmitter.Particles.size(); ++particleIndex)
+            {
+                const auto& particle{ smokeEmitter.Particles[particleIndex] };
+
+                // Plane equation: Ax + By + Cz + D = 0, where (A, B, C) is its normal.
+                const float D{ -Math::Dot(particle.Position, particlePlaneNormal) };
+                const float distanceToPlane{ Math::Dot(cameraPos, particlePlaneNormal) + D };
+
+                if (distanceToPlane < 0.0f)
+                    continue;
+
+                particleDistances.emplace_back(distanceToPlane);
+                distancesToParticles[distanceToPlane] = std::make_pair(emitterIndex, particleIndex);
+            }
+        }
+
+        const uint32_t particlesCount{ static_cast<uint32_t>(particleDistances.size()) };
+        
+        std::vector<float> sortedParticleDistances(particlesCount);
+        Utils::RadixSort11(particleDistances.data(), sortedParticleDistances.data(), particlesCount);
+
+        m_SmokeEnvironment.SortedSmokeParticles.reserve(particlesCount);
+        m_SmokeEnvironment.SortedSmokeParticles.clear();
+
+        for (const auto& paricleDistance : sortedParticleDistances | std::views::reverse)
+            m_SmokeEnvironment.SortedSmokeParticles.emplace_back(distancesToParticles[paricleDistance]);
     }
 
     bool Scene::OnWindowResize(WindowResizeEvent& e)

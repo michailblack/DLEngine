@@ -28,7 +28,9 @@ namespace DLEngine::Math
     float Clamp(float value, float min, float max);
 
     float Cos(float angle) noexcept;
+    float CosEst(float angle) noexcept;
     float Sin(float angle) noexcept;
+    float SinEst(float angle) noexcept;
 
     float Acos(float x) noexcept;
     float AcosEst(float x) noexcept;

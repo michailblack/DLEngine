@@ -116,6 +116,31 @@ namespace DLEngine
         dissolutionShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
         dissolutionShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
         Load(dissolutionShaderSpec);
+
+        ShaderSpecification smokeParticleShaderSpec{};
+        smokeParticleShaderSpec.Path = Shader::GetShaderDirectoryPath() / "SmokeParticle.hlsl";
+        smokeParticleShaderSpec.VertexLayout = VertexBufferLayout{};
+        smokeParticleShaderSpec.InstanceLayout = VertexBufferLayout{
+            { "PARTICLE_WORLD_POS"         , ShaderDataType::Float3 },
+            { "PARTICLE_TINT_COLOR"        , ShaderDataType::Float3 },
+            { "PARTICLE_INITIAL_SIZE"      , ShaderDataType::Float2 },
+            { "PARTICLE_END_SIZE"          , ShaderDataType::Float2 },
+            { "PARTICLE_EMISSION_INTENSITY", ShaderDataType::Float },
+            { "PARTICLE_LIFETIME_MS"       , ShaderDataType::Float },
+            { "PARTICLE_LIFETIME_PASSED_MS", ShaderDataType::Float },
+            { "PARTICLE_ROTATION"          , ShaderDataType::Float }
+        };
+        smokeParticleShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        smokeParticleShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(smokeParticleShaderSpec);
+
+        ShaderSpecification maxDepthShaderSpec{};
+        maxDepthShaderSpec.Path = Shader::GetShaderDirectoryPath() / "MaxDepth.hlsl";
+        maxDepthShaderSpec.VertexLayout = VertexBufferLayout{};
+        maxDepthShaderSpec.InstanceLayout = VertexBufferLayout{};
+        maxDepthShaderSpec.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        maxDepthShaderSpec.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(maxDepthShaderSpec);
     }
 
     void ShaderLibrary::Add(const Ref<Shader>& shader) noexcept

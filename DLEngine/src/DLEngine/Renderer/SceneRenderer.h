@@ -35,7 +35,7 @@ namespace DLEngine
     struct ShadowMappingSettings
     {
         uint32_t MapSize{ 2048u };
-        float ShadowBias{ 0.01f };
+        float ShadowBias{ 0.05f };
         float DirectionalLightShadowMargin{ 5.0f };
         float DirectionalLightShadowDistance{ 10.0f };
         bool UseDirectionalShadows{ true };
@@ -115,12 +115,15 @@ namespace DLEngine
         void ShadowPass();
         void GeometryPass();
         void SkyboxPass();
+        void SmokeParticlesPass();
         void PostProcessPass();
 
         void UpdateCBCamera(const Camera& camera);
         void UpdateDirectionalLightsData();
         void UpdatePointLightsData();
         void UpdateSpotLightsData();
+
+        void UpdateSmokeParticlesData();
 
         void BuildIrradianceMap();
         void BuildPrefilteredMap();
@@ -137,6 +140,7 @@ namespace DLEngine
         Ref<ConstantBuffer> m_CBShadowMappingData;
         Ref<ConstantBuffer> m_CBLightsCount;
         Ref<ConstantBuffer> m_CBPostProcessSettings;
+        Ref<ConstantBuffer> m_CBTextureAtlasData;
 
         Ref<Framebuffer> m_MainFramebuffer;
         
@@ -158,6 +162,18 @@ namespace DLEngine
 
         Ref<Pipeline> m_SpotShadowMapPipeline;
         Ref<Framebuffer> m_SpotShadowMapFramebuffer;
+
+        Ref<VertexBuffer> m_SmokeParticlesInstanceBuffer;
+        Ref<Pipeline> m_SmokeParticlePipeline;
+        Ref<Texture2D> m_SmokeParticlesRLU;
+        Ref<Texture2D> m_SmokeParticlesDBF;
+        Ref<Texture2D> m_SmokeParticlesEMVA;
+
+        Ref<Pipeline> m_MaxDepthPipeline;
+        Ref<Framebuffer> m_MaxDepthFramebuffer;
+
+        // Used for unbinding textures
+        Ref<Texture2D> m_NullTexture;
 
         uint32_t m_ViewportWidth;
         uint32_t m_ViewportHeight;
