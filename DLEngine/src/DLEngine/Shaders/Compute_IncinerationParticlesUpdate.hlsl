@@ -12,6 +12,11 @@ Texture2D<float>  t_GBuffer_Depth                  : register(t22);
 
 static const float GravitionalAcceleration = 9.81; // m/s^2
 
+float LinearizeReversedDepth(float depth)
+{
+    return (c_zNear * c_zFar) / lerp(c_zFar, c_zNear, depth);
+}
+
 [numthreads(64, 1, 1)]
 void mainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
@@ -32,15 +37,18 @@ void mainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
     
-    const float3 nextWorldPos = particle.WorldPosition + particle.Velocity * c_DeltaTimeS;
-    const float4 particleClipPos = mul(float4(nextWorldPos, 1.0), c_ViewProjection);
+    const float3 nextParticleWorldPos = particle.WorldPosition + particle.Velocity * c_DeltaTimeS;
+    const float4 particleClipPos = mul(float4(nextParticleWorldPos, 1.0), c_ViewProjection);
     const float3 particleNDCPos = particleClipPos.xyz / particleClipPos.w;
     
     float2 uv = particleNDCPos.xy * 0.5 + float2(0.5, 0.5);
     uv.y = 1.0 - uv.y;
     
     const float sceneDepth = t_GBuffer_Depth.SampleLevel(s_NearestClamp, uv, 0.0).r;
-    if (sceneDepth > particleNDCPos.z)
+    float4 fragmentWorldPos = mul(float4(particleNDCPos.xy, sceneDepth, 1.0), c_InvViewProjection);
+    fragmentWorldPos /= fragmentWorldPos.w;
+    
+    if (distance(nextParticleWorldPos, fragmentWorldPos.xyz) < 2.0 * ParticlePointLightWorldRadius)
     {
         const uint2 pixelCoords = uint2(uv * float2(c_ViewportWidth, c_ViewportHeight));
         const uint2 instanceUUID = t_GBuffer_InstanceUUID.Load(int3(pixelCoords, 0)).rg;

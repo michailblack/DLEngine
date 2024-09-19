@@ -70,7 +70,7 @@ void SpawnIncinerationPartilce(float3 worldPos, float3 velocity, float3 emission
     u_IncinerationParticles[particleIndex] = particle;
 }
 
-static const uint ParticlesDiscardPercentage = 128;
+static const uint ParticlesDiscardPercentage = 256;
 
 VertexOutput mainVS(uint vertexID : SV_VertexID, VertexInput vsInput, TransformInput transformInput, InstanceInput instInput)
 {

@@ -649,7 +649,7 @@ namespace DLEngine
         incinerationParticlesInfluenceSpecification.DebugName = "Incineration Particles Influence Pipeline";
         incinerationParticlesInfluenceSpecification.Shader = Renderer::GetShaderLibrary()->Get("IncinerationParticlesInfluence");
         incinerationParticlesInfluenceSpecification.TargetFramebuffer = m_HDR_ResolvePBR_StaticFramebuffer;
-        incinerationParticlesInfluenceSpecification.DepthStencilState.DepthTest = false;
+        incinerationParticlesInfluenceSpecification.DepthStencilState.DepthTest = true;
         incinerationParticlesInfluenceSpecification.DepthStencilState.DepthWrite = false;
         incinerationParticlesInfluenceSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Always;
         incinerationParticlesInfluenceSpecification.DepthStencilState.StencilTest = true;
@@ -663,7 +663,7 @@ namespace DLEngine
         incinerationParticlesSpecification.DebugName = "Incineration Particles Pipeline";
         incinerationParticlesSpecification.Shader = Renderer::GetShaderLibrary()->Get("IncinerationParticles");
         incinerationParticlesSpecification.TargetFramebuffer = m_HDR_ResolveFramebuffer;
-        incinerationParticlesSpecification.DepthStencilState.DepthTest = false;
+        incinerationParticlesSpecification.DepthStencilState.DepthTest = true;
         incinerationParticlesSpecification.DepthStencilState.DepthWrite = false;
         incinerationParticlesSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;
         incinerationParticlesSpecification.RasterizerState.Cull = CullMode::Back;
@@ -1251,10 +1251,6 @@ namespace DLEngine
         );
         Renderer::SubmitFullscreenQuad();
 
-        m_HDR_ResolveEmissionFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteViewSpecification);
-        Renderer::SetPipeline(m_GBufferResolve_EmissionPipeline, DL_CLEAR_NONE);
-        Renderer::SubmitFullscreenQuad();
-
         Renderer::SetPipeline(m_IncinerationParticlesInfluencePipeline, DL_CLEAR_NONE);
 
         BufferViewSpecification incinerationParticlesBufferViewSpec{};
@@ -1268,6 +1264,10 @@ namespace DLEngine
         Renderer::SetPrimitiveBuffers(22u, DL_VERTEX_SHADER_BIT, { m_PBIncinerationParticleRangeBuffer }, { incinerationParticlesRangeBufferViewSpec });
 
         Renderer::SubmitParticleBillboardIndirect(m_PBIncinerationParticleRangeBuffer, 6u * sizeof(uint32_t));
+
+        m_HDR_ResolveEmissionFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteViewSpecification);
+        Renderer::SetPipeline(m_GBufferResolve_EmissionPipeline, DL_CLEAR_NONE);
+        Renderer::SubmitFullscreenQuad();
     }
 
     void SceneRenderer::SkyboxPass()
