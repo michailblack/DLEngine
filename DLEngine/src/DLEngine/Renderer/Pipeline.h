@@ -1,63 +1,51 @@
 #pragma once
 #include "DLEngine/Renderer/Framebuffer.h"
+#include "DLEngine/Renderer/RendererEnums.h"
 #include "DLEngine/Renderer/Shader.h"
 
 namespace DLEngine
 {
-    enum class PrimitiveTopology
-    {
-        None = 0,
-        TrianglesList,
-        TriangleStrip,
-    };
-
-    enum class FillMode
-    {
-        Solid = 0,
-        Wireframe
-    };
-
-    enum class CullMode
-    {
-        None = 0,
-        Front,
-        Back
-    };
-
     struct RasterizerSpecification
     {
         FillMode Fill{ FillMode::Solid };
-        CullMode Cull{ CullMode::Back };
+        CullMode Cull{ CullMode::Back  };
         int32_t DepthBias{ 0 };
         float SlopeScaledDepthBias{ 0.0f };
 
-        bool operator==(const RasterizerSpecification& other) const noexcept
-        {
-            return Fill == other.Fill && Cull == other.Cull && DepthBias == other.DepthBias && SlopeScaledDepthBias == other.SlopeScaledDepthBias;
-        }
+        bool operator==(const RasterizerSpecification& other) const noexcept { return memcmp(this, &other, sizeof(RasterizerSpecification)) == 0; }
+    };
+
+    struct StencilFaceSpecification
+    {
+        CompareOperator CompareOp  { CompareOperator::Always };
+        StencilOperator FailOp     { StencilOperator::Keep   };
+        StencilOperator DepthFailOp{ StencilOperator::Keep   };
+        StencilOperator PassOp     { StencilOperator::Keep   };
     };
 
     struct DepthStencilSpecification
     {
-        CompareOperator CompareOp{ CompareOperator::None };
-        bool DepthTest{ true };
+        bool DepthTest { true };
         bool DepthWrite{ true };
+        CompareOperator DepthCompareOp{ CompareOperator::None };
 
-        bool operator==(const DepthStencilSpecification& other) const noexcept
-        {
-            return CompareOp == other.CompareOp && DepthTest == other.DepthTest && DepthWrite == other.DepthWrite;
-        }
+        bool StencilTest{ false };
+        uint8_t StencilReadMask { 0xFF };
+        uint8_t StencilWriteMask{ 0xFF };
+
+        StencilFaceSpecification FrontFace;
+        StencilFaceSpecification BackFace;
+
+        bool operator==(const DepthStencilSpecification& other) const noexcept { return memcmp(this, &other, sizeof(DepthStencilSpecification)) == 0; }
     };
 
-    enum class BlendState
+    struct BlendSpecification
     {
-        None = 0,
+        std::map<uint32_t, BlendType> BlendTypes;
+        bool IndependentBlend{ false };
+        bool AlphaToCoverage{ false };
 
-        General,
-        AlphaToCoverage,
-
-        PremultipliedAlpha,
-        Additive,
+        bool operator==(const BlendSpecification& other) const noexcept { return memcmp(this, &other, sizeof(BlendSpecification)) == 0; }
     };
 
     struct PipelineSpecification
@@ -69,7 +57,7 @@ namespace DLEngine
         PrimitiveTopology Topology{ PrimitiveTopology::TrianglesList };
         DepthStencilSpecification DepthStencilState;
         RasterizerSpecification RasterizerState;
-        BlendState BlendState{ BlendState::None };
+        BlendSpecification BlendState;
     };
     
     class Pipeline
@@ -77,31 +65,8 @@ namespace DLEngine
     public:
         virtual ~Pipeline() = default;
 
-        virtual void SetFramebuffer(const Ref<Framebuffer>& framebuffer) noexcept = 0;
-
         virtual const PipelineSpecification& GetSpecification() const noexcept = 0;
 
         static Ref<Pipeline> Create(const PipelineSpecification& specification);
-    };
-
-    struct RasterizerSpecificationHash
-    {
-        std::size_t operator()(const RasterizerSpecification& specification) const noexcept
-        {
-            return std::hash<FillMode>{}(specification.Fill) ^
-                std::hash<CullMode>{}(specification.Cull) ^
-                std::hash<int32_t>{}(specification.DepthBias) ^
-                std::hash<float>{}(specification.SlopeScaledDepthBias);
-        };
-    };
-
-    struct DepthStencilSpecificationHash
-    {
-        std::size_t operator()(const DepthStencilSpecification& specification) const noexcept
-        {
-            return std::hash<CompareOperator>{}(specification.CompareOp) ^
-                std::hash<bool>{}(specification.DepthTest) ^
-                std::hash<bool>{}(specification.DepthWrite);
-        };
     };
 }

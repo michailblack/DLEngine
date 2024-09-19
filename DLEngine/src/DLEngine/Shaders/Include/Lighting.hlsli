@@ -44,13 +44,13 @@ Surface CalculatePBR_Surface(float2 texCoords, float3 geometryNormal, float3x3 t
     if (c_HasRoughnessMap)
         roughness = t_Roughness.Sample(s_ActiveSampler, texCoords).r;
 
-    float3 surfaceNormal = geometryNormal;
+    const float3 normalizedGeometryNormal = normalize(geometryNormal);
+    float3 surfaceNormal = normalizedGeometryNormal;
     if (c_UseNormalMap)
     {
-        float2 normalMapSampleCoords = texCoords;
+        float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, texCoords).rg;
         if (c_FlipNormalMapY)
-            normalMapSampleCoords.y = 1.0 - normalMapSampleCoords.y;
-        const float2 normalBC5 = t_Normal.Sample(s_ActiveSampler, normalMapSampleCoords).rg;
+            normalBC5.y = -normalBC5.y;
     
         const float3 normalTangentSpace = float3(normalBC5.x, normalBC5.y, sqrt(saturate(1.0 - dot(normalBC5.xy, normalBC5.yx))));
         surfaceNormal = normalize(mul(
@@ -61,7 +61,7 @@ Surface CalculatePBR_Surface(float2 texCoords, float3 geometryNormal, float3x3 t
     
     Surface surface;
     surface.Albedo = albedo;
-    surface.GeometryNormal = normalize(geometryNormal);
+    surface.GeometryNormal = normalizedGeometryNormal;
     surface.SurfaceNormal = surfaceNormal;
     surface.Metalness = metalness;
     surface.Roughness = roughness;
@@ -184,7 +184,7 @@ float3 PointLightContribution(in const View view, in const Surface surface, in c
 
         const float falloff = geometryFalloff * surfaceFalloff;
         
-        currentView.NoL = max(dot(surface.SurfaceNormal, sphereDir), surfaceFalloff * sphereSin);
+        currentView.NoL = max(max(dot(surface.SurfaceNormal, sphereDir), surfaceFalloff * sphereSin), Epsilon);
         
         Light light;
         light.SpecularLightDir = lightDir;

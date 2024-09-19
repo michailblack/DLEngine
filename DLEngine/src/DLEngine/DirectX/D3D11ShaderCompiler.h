@@ -30,7 +30,7 @@ namespace DLEngine
         void PreProcess();
         void CompilePreProcessedSource(ShaderStage stage, std::string_view entryPoint, uint32_t compileFlags);
         void ReflectShaderStage(ShaderStage stage);
-        void BuildInputLayout(const VertexBufferLayout& layout, uint32_t inputSlot, D3D11_INPUT_CLASSIFICATION inputSlotClass, uint32_t instanceDataStepRate);
+        void BuildInputLayout(const VertexBufferLayout& layout, uint32_t slot, InputLayoutType type, uint32_t instanceDataStepRate);
 
     private:
         std::unordered_map<ShaderStage, Microsoft::WRL::ComPtr<ID3DBlob>> m_D3D11ShaderData;

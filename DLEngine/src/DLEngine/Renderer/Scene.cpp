@@ -6,8 +6,6 @@
 
 #include "DLEngine/Utils/RadixSort.h"
 
-#include <execution>
-
 namespace DLEngine
 {
 
@@ -43,6 +41,25 @@ namespace DLEngine
             m_Dragger->Drag(ray);
         }
 
+        m_Decals.erase(std::remove_if(m_Decals.begin(), m_Decals.end(),
+            [this](const Decal& decal)
+            {
+                if (!m_MeshRegistry.HasInstance(decal.ParentMeshUUID))
+                    return true;
+
+                const auto& parentMeshInstance{ m_MeshRegistry.GetInstance(decal.ParentMeshUUID) };
+                const auto& parentMeshTransform{ parentMeshInstance->Get<Math::Mat4x4>("TRANSFORM") };
+
+                const auto& decalToWorld{ decal.DecalToMesh * parentMeshTransform };
+                const auto& worldToDecal{ Math::Mat4x4::Inverse(decalToWorld) };
+
+                decal.DecalInstance->Set("DECAL_TO_WORLD", Buffer{ &decalToWorld, sizeof(Math::Mat4x4) });
+                decal.DecalInstance->Set("WORLD_TO_DECAL", Buffer{ &worldToDecal, sizeof(Math::Mat4x4) });
+
+                return false;
+            }
+        ), m_Decals.end());
+
         UpdateSmokeEmitters(dt);
         SortSmokeParticles();
     }
@@ -69,7 +86,7 @@ namespace DLEngine
 
     void Scene::AddPointLight(const Math::Vec3& position, const Math::Vec3& irradiance, float radius, float distance, const Math::Vec3& emissionMeshTranslation)
     {
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("GBuffer_Emission") };
         const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
 
         const auto& material{ Material::Create(emissionShader) };
@@ -80,12 +97,11 @@ namespace DLEngine
         instance->Set("TRANSFORM", Buffer{ &transform, sizeof(Math::Mat4x4) });
         instance->Set("RADIANCE", Buffer{ &radiance, sizeof(Math::Vec3) });
 
-        m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance);
-        AddPointLight(position, irradiance, radius, distance, instance);
+        const MeshRegistry::MeshUUID meshUUID{ m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance) };
+        AddPointLight(position, irradiance, radius, distance, meshUUID);
     }
-    void Scene::AddPointLight(const Math::Vec3& position, const Math::Vec3& irradiance, float radius, float distance, const Ref<Instance>& meshInstance)
+    void Scene::AddPointLight(const Math::Vec3& position, const Math::Vec3& irradiance, float radius, float distance, const MeshRegistry::MeshUUID& meshInstance)
     {
-        DL_ASSERT(meshInstance->HasUniform("TRANSFORM"), "Mesh instance must have a transform");
         DL_ASSERT(radius > 0.0f, "Radius must be greater than 0.0f");
         DL_ASSERT(distance > 0.0f, "Distance must be greater than 0.0f");
 
@@ -99,7 +115,7 @@ namespace DLEngine
 
     void Scene::AddSpotLight(const Math::Vec3& position, const Math::Vec3& direction, float radius, float innerCutoffCos, float outerCutoffCos, const Math::Vec3& irradiance, float distance, const Math::Vec3& emissionMeshTranslation)
     {
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("GBuffer_Emission") };
         const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
 
         const auto& material{ Material::Create(emissionShader) };
@@ -110,13 +126,12 @@ namespace DLEngine
         instance->Set("TRANSFORM", Buffer{ &transform, sizeof(Math::Mat4x4) });
         instance->Set("RADIANCE", Buffer{ &radiance, sizeof(Math::Vec3) });
 
-        m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance);
-        AddSpotLight(position, direction, radius, innerCutoffCos, outerCutoffCos, irradiance, distance, instance);
+        const MeshRegistry::MeshUUID meshUUID{ m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance) };
+        AddSpotLight(position, direction, radius, innerCutoffCos, outerCutoffCos, irradiance, distance, meshUUID);
     }
 
-    void Scene::AddSpotLight(const Math::Vec3& position, const Math::Vec3& direction, float radius, float innerCutoffCos, float outerCutoffCos, const Math::Vec3& irradiance, float distance, const Ref<Instance>& meshInstance)
+    void Scene::AddSpotLight(const Math::Vec3& position, const Math::Vec3& direction, float radius, float innerCutoffCos, float outerCutoffCos, const Math::Vec3& irradiance, float distance, const MeshRegistry::MeshUUID& meshInstance)
     {
-        DL_ASSERT(meshInstance->HasUniform("TRANSFORM"), "Mesh instance must have a transform");
         DL_ASSERT(radius > 0.0f, "Radius must be greater than 0.0f");
         DL_ASSERT(distance > 0.0f, "Distance must be greater than 0.0f");
         DL_ASSERT(innerCutoffCos >= -1.0f && innerCutoffCos <= 1.0f, "Inner cutoff cosine must be in the range [-1.0f, 1.0f]");
@@ -135,7 +150,7 @@ namespace DLEngine
 
     void Scene::AddSmokeEmitter(const SmokeEmitter& emitter, const Math::Vec3& emissionMeshTranslation)
     {
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
+        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("GBuffer_Emission") };
         const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
 
         const auto& material{ Material::Create(emissionShader) };
@@ -145,35 +160,65 @@ namespace DLEngine
         instance->Set("TRANSFORM", Buffer{ &transform, sizeof(Math::Mat4x4) });
         instance->Set("RADIANCE", Buffer{ &emitter.SpawnedParticleTintColor, sizeof(Math::Vec3) });
 
-        m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance);
-        AddSmokeEmitter(emitter, instance);
+        const MeshRegistry::MeshUUID meshUUID{ m_MeshRegistry.AddSubmesh(unitSphere, 0u, material, instance) };
+        AddSmokeEmitter(emitter, meshUUID);
     }
 
-    void Scene::AddSmokeEmitter(const SmokeEmitter& emitter, const Ref<Instance>& meshInstance)
+    void Scene::AddSmokeEmitter(const SmokeEmitter& emitter, const MeshRegistry::MeshUUID& meshInstance)
     {
         m_SmokeEnvironment.SmokeEmitters.emplace_back(emitter, meshInstance);
     }
 
     void Scene::ClearSmokeEmitters()
     {
-        const auto& unitSphere{ Renderer::GetMeshLibrary()->Get("UNIT_SPHERE") };
-        const auto& emissionShader{ Renderer::GetShaderLibrary()->Get("Emission") };
-        const auto& material{ Material::Create(emissionShader) };
-
         for (const auto& smokeEmitterData : m_SmokeEnvironment.SmokeEmitters)
-            m_MeshRegistry.RemoveSubmesh(unitSphere, 0u, material, smokeEmitterData.second);
+            m_MeshRegistry.RemoveSubmesh(smokeEmitterData.second);
 
         m_SmokeEnvironment.SmokeEmitters.clear();
+    }
+
+    void Scene::SpawnDecal(const Math::Ray& ray, const Math::Vec3& tintColor, float rotation)
+    {
+        MeshRegistry::IntersectInfo intersectInfo{};
+        if (!Math::Intersects(ray, m_MeshRegistry, intersectInfo))
+            return;
+
+        const auto& triangleIntersectInfo{ intersectInfo.SubmeshIntersectInfo.TriangleIntersectInfo };
+
+        const auto& parentInstance{ m_MeshRegistry.GetInstance(intersectInfo.UUID) };
+        const Math::Mat4x4& parentInverseTransform{ Math::Mat4x4::Inverse(parentInstance->Get<Math::Mat4x4>("TRANSFORM")) };
+
+        const auto& camera{ m_SceneCameraController.GetCamera() };
+
+        const Math::Mat4x4 decalRotationMatrix{ Math::Mat4x4::Rotate(ray.Direction, rotation) };
+
+        const Math::Vec3& decalWorldForward{ Math::Normalize(ray.Direction) };
+        const Math::Vec3& decalWorldUp{ Math::Normalize(
+            Math::DirectionToSpace(Math::Cross(decalWorldForward, camera.GetRight()), decalRotationMatrix)
+        ) };
+        const Math::Vec3& decalWorldRight{ Math::Normalize(Math::Cross(decalWorldUp, decalWorldForward)) };
+
+        const Math::Mat4x4 decalToWorld{ decalWorldRight, decalWorldUp, decalWorldForward, triangleIntersectInfo.IntersectionPoint };
+
+        Decal decal{};
+        decal.DecalToMesh = decalToWorld * parentInverseTransform;
+        decal.ParentMeshUUID = intersectInfo.UUID;
+
+        decal.DecalInstance = Instance::Create(Renderer::GetShaderLibrary()->Get("GBuffer_Decal"), "Decal Instance");
+        decal.DecalInstance->Set("DECAL_TINT_COLOR", Buffer{ &tintColor, sizeof(Math::Vec3) });
+        decal.DecalInstance->Set("PARENT_INSTANCE_UUID", Buffer{ &intersectInfo.UUID, sizeof(MeshRegistry::MeshUUID) });
+
+        m_Decals.emplace_back(decal);
     }
 
     void Scene::UpdateSmokeEmitters(DeltaTime dt)
     {
         std::for_each(std::execution::par_unseq, m_SmokeEnvironment.SmokeEmitters.begin(), m_SmokeEnvironment.SmokeEmitters.end(),
-            [dt]
+            [dt, this]
             (auto& smokeEmitterData)
             {
                 SmokeEmitter& smokeEmitter{ smokeEmitterData.first };
-                const auto& instance{ smokeEmitterData.second };
+                const MeshRegistry::MeshUUID meshUUID{ smokeEmitterData.second };
 
                 smokeEmitter.Particles.erase(std::remove_if(std::execution::par_unseq, smokeEmitter.Particles.begin(), smokeEmitter.Particles.end(),
                     [dt](SmokeParticle& particle)
@@ -187,7 +232,7 @@ namespace DLEngine
 
                 const uint32_t particlesToSpawn{ static_cast<uint32_t>(dt.GetSeconds() * static_cast<float>(smokeEmitter.ParticleSpawnRatePerSecond)) };
 
-                const auto& transform{ instance->Get<Math::Mat4x4>("TRANSFORM") };
+                const auto& transform{ m_MeshRegistry.GetInstance(meshUUID)->Get<Math::Mat4x4>("TRANSFORM") };
                 const auto& smokeEmitterWorldPos{ Math::PointToSpace(smokeEmitter.Position, transform) };
 
                 const uint32_t beginSpawnIndex{ static_cast<uint32_t>(smokeEmitter.Particles.size()) };
@@ -197,9 +242,9 @@ namespace DLEngine
                     {
                         SmokeParticle particle{};
 
-                        const float theta{ RandomGenerator::GenerateRandomInRange(0.0f, 2.0f * Math::Numeric::Pi) };
-                        const float phi{ RandomGenerator::GenerateRandomInRange(0.0f, Math::Numeric::Pi) };
-                        const float distance{ RandomGenerator::GenerateRandomInRange(0.0f, smokeEmitter.ParticleSpawnRadius) };
+                        const float theta{ RandomGenerator::GenerateRandom(0.0f, 2.0f * Math::Numeric::Pi) };
+                        const float phi{ RandomGenerator::GenerateRandom(0.0f, Math::Numeric::Pi) };
+                        const float distance{ RandomGenerator::GenerateRandom(0.0f, smokeEmitter.ParticleSpawnRadius) };
 
                         const Math::Vec3 emitterRelativePos{
                             distance * Math::SinEst(phi) * Math::CosEst(theta),
@@ -214,17 +259,17 @@ namespace DLEngine
                         constexpr Math::Vec3 worldForward{ 0.0f, 0.0f, 1.0f };
 
                         const float particleRightVelocity{
-                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
+                            RandomGenerator::GenerateRandom(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
                         };
                         const float particleForwardVelocity{
-                            RandomGenerator::GenerateRandomInRange(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
+                            RandomGenerator::GenerateRandom(-smokeEmitter.ParticleHorizontalVelocity, smokeEmitter.ParticleHorizontalVelocity)
                         };
 
                         particle.VelocityPerSecond = worldUp * smokeEmitter.ParticleVerticalVelocity +
                             worldRight * particleRightVelocity +
                             worldForward * particleForwardVelocity;
 
-                        particle.LifetimeMS = RandomGenerator::GenerateRandomInRange(
+                        particle.LifetimeMS = RandomGenerator::GenerateRandom(
                             smokeEmitter.MinParticleLifetimeMS,
                             smokeEmitter.MaxParticleLifetimeMS
                         );
@@ -313,7 +358,7 @@ namespace DLEngine
                 m_Dragger.reset(new InstanceDragger{
                     intersectInfo.SubmeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint,
                     intersectInfo.SubmeshIntersectInfo.TriangleIntersectInfo.T,
-                    intersectInfo.SubmeshID.Instance
+                    m_MeshRegistry.GetInstance(intersectInfo.UUID)
                 });
             }
         } break;

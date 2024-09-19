@@ -7,7 +7,7 @@ namespace DLEngine
     {
     public:
         template <typename T>
-        static T GenerateRandomInRange(T min, T max)
+        static T GenerateRandom(T min, T max)
         {
             thread_local std::random_device rd;
             thread_local std::mt19937 eng(rd());
@@ -31,12 +31,12 @@ namespace DLEngine
         template <typename T>
         static T GenerateRandom()
         {
-            return GenerateRandomInRange<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+            return GenerateRandom<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
         }
 
         static bool GenerateRandomBool(float probability = 0.5f)
         {
-            return GenerateRandomInRange<float>(0.0f, 1.0f) <= probability;
+            return GenerateRandom<float>(0.0f, 1.0f) <= probability;
         }
     };
 }

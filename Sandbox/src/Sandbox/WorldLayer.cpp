@@ -45,30 +45,6 @@ void WorldLayer::OnAttach()
     m_SmokeEmitterToSpawn.SpawnedParticleTintColor = DLEngine::Math::Vec3{ 0.5f, 0.5f, 0.5f };
     m_SmokeEmitterToSpawn.ParticleEmissionIntensity = 2.0f;
     m_SmokeEmitterToSpawn.InitialParticleSize = DLEngine::Math::Vec2{ 0.1f, 0.1f };
-    m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.5f, 0.5f };
-    m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.2f;
-    m_SmokeEmitterToSpawn.MinParticleLifetimeMS = 3000.0f;
-    m_SmokeEmitterToSpawn.MaxParticleLifetimeMS = 6000.0f;
-    m_SmokeEmitterToSpawn.ParticleVerticalVelocity = 0.2f;
-    m_SmokeEmitterToSpawn.ParticleHorizontalVelocity = 0.1f;
-    m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond = 100u;
-    m_Scene->AddSmokeEmitter(m_SmokeEmitterToSpawn, DLEngine::Math::Vec3{ 2.0f, 1.5f, 0.0f });
-
-    m_SmokeEmitterToSpawn.SpawnedParticleTintColor = DLEngine::Math::Vec3{ 0.5f, 0.5f, 0.5f };
-    m_SmokeEmitterToSpawn.ParticleEmissionIntensity = 2.0f;
-    m_SmokeEmitterToSpawn.InitialParticleSize = DLEngine::Math::Vec2{ 0.1f, 0.1f };
-    m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.5f, 0.5f };
-    m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.2f;
-    m_SmokeEmitterToSpawn.MinParticleLifetimeMS = 3000.0f;
-    m_SmokeEmitterToSpawn.MaxParticleLifetimeMS = 6000.0f;
-    m_SmokeEmitterToSpawn.ParticleVerticalVelocity = 0.1f;
-    m_SmokeEmitterToSpawn.ParticleHorizontalVelocity = 0.2f;
-    m_SmokeEmitterToSpawn.ParticleSpawnRatePerSecond = 100u;
-    m_Scene->AddSmokeEmitter(m_SmokeEmitterToSpawn, DLEngine::Math::Vec3{ -2.0f, 1.5f, 0.0f });
-
-    m_SmokeEmitterToSpawn.SpawnedParticleTintColor = DLEngine::Math::Vec3{ 0.5f, 0.5f, 0.5f };
-    m_SmokeEmitterToSpawn.ParticleEmissionIntensity = 2.0f;
-    m_SmokeEmitterToSpawn.InitialParticleSize = DLEngine::Math::Vec2{ 0.1f, 0.1f };
     m_SmokeEmitterToSpawn.FinalParticleSize = DLEngine::Math::Vec2{ 0.3f, 0.3f };
     m_SmokeEmitterToSpawn.ParticleSpawnRadius = 0.1f;
     m_SmokeEmitterToSpawn.MinParticleLifetimeMS = 100.0f;
@@ -105,7 +81,7 @@ void WorldLayer::OnUpdate(DLEngine::DeltaTime dt)
             DLEngine::Math::Mat4x4::Translate(sceneCamera.GetUp() * -0.15f)
         };
         
-        m_FlashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &newFlashlightTransform, sizeof(DLEngine::Math::Mat4x4) });
+        m_Scene->GetMeshRegistry().GetInstance(m_FlashlightMeshUUID)->Set("TRANSFORM", DLEngine::Buffer{ &newFlashlightTransform, sizeof(DLEngine::Math::Mat4x4) });
     }
 
     SwapDissolutionGroupInstances(scaledDeltaTime);
@@ -206,6 +182,15 @@ void WorldLayer::OnImGuiRender()
 
             ImGui::Text("Gamma");
             ImGui::SliderFloat("##gamma", &m_PostProcessingSettings.Gamma, 0.1f, 5.0f);
+
+            ImGui::Text("FXAA Quality Sub-pixel");
+            ImGui::SliderFloat("##fxaa_quality_subpix", &m_PostProcessingSettings.FXAA_QualitySubpix, 0.0f, 1.0f);
+
+            ImGui::Text("FXAA Quality Edge Threshold");
+            ImGui::SliderFloat("##fxaa_quality_edge_threshold", &m_PostProcessingSettings.FXAA_QualityEdgeThreshold, 0.063f, 0.333f);
+
+            ImGui::Text("FXAA Quality Edge Threshold Min");
+            ImGui::SliderFloat("##fxaa_quality_edge_threshold_min", &m_PostProcessingSettings.FXAA_QualityEdgeThresholdMin, 0.0312f, 0.0833f);
         }
 
         ImGui::Unindent();
@@ -476,7 +461,7 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     }
 
     auto baseSamuraiMaterial{ DLEngine::Material::Create(shader, std::format("{0} Base Samurai Material", shaderName).c_str()) };
-    if (shaderName == "PBR_Static_Dissolution")
+    if (shaderName == "GBuffer_PBR_Static_Dissolution")
     {
         const auto& dissolutionMap{ AsRef<DLEngine::Texture2D>(textureLibrary->Get(textureDirectoryPath / "Noise_2.dds")) };
         baseSamuraiMaterial->Set("t_DissolutionNoiseMap", dissolutionMap);
@@ -652,7 +637,10 @@ void WorldLayer::AddPBRSamuraiToScene(std::string_view shaderName, const std::in
     torsoMaterial->Set("t_Roughness", torsoRoughness);
     torsoMaterial->Set("PBRMaterial", torsoPBRCB);
 
-    sceneMeshRegistry.AddSubmesh(samurai, 7u, torsoMaterial, samuraiInstance);
+    const DLEngine::MeshRegistry::MeshUUID samuraiUUID{ sceneMeshRegistry.AddSubmesh(samurai, 7u, torsoMaterial, samuraiInstance) };
+
+    if (shaderName == "GBuffer_PBR_Static_Dissolution")
+        m_DissolutionGroupMeshes.emplace(samuraiUUID);
 }
 
 void WorldLayer::AddObjectsToScene()
@@ -664,7 +652,7 @@ void WorldLayer::AddObjectsToScene()
     const auto& textureLibrary{ DLEngine::Renderer::GetTextureLibrary() };
     const auto& textureDirectoryPath{ DLEngine::Texture::GetTextureDirectoryPath() };
     
-    const auto& pbrStaticShader{ DLEngine::Renderer::GetShaderLibrary()->Get("PBR_Static") };
+    const auto& pbrStaticShader{ DLEngine::Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static") };
 
     const auto& cube{ meshLibrary->Get("cube") };
     const auto& flashlight{ meshLibrary->Get("flashlight") };
@@ -742,7 +730,7 @@ void WorldLayer::AddObjectsToScene()
         auto crystallPBRCB{ DLEngine::ConstantBuffer::Create(sizeof(DLEngine::CBPBRMaterial)) };
         DLEngine::CBPBRMaterial crystallCBPBRMaterial{};
         crystallCBPBRMaterial.UseNormalMap = true;
-        crystallCBPBRMaterial.FlipNormalMapY = false;
+        crystallCBPBRMaterial.FlipNormalMapY = true;
         crystallCBPBRMaterial.HasMetalnessMap = false;
         crystallCBPBRMaterial.DefaultMetalness = 0.0f;
         crystallCBPBRMaterial.HasRoughnessMap = false;
@@ -794,12 +782,12 @@ void WorldLayer::AddObjectsToScene()
         DLEngine::Math::Mat4x4::Translate(DLEngine::Math::Vec3{  1.5f, 0.0f, 2.0f }),
     } };
 
-    AddPBRSamuraiToScene("PBR_Static",
+    AddPBRSamuraiToScene("GBuffer_PBR_Static",
         {
             { "TRANSFORM", DLEngine::Buffer{ &transforms[0u], sizeof(DLEngine::Math::Mat4x4) } },
         });
 
-    AddPBRSamuraiToScene("PBR_Static",
+    AddPBRSamuraiToScene("GBuffer_PBR_Static",
         {
             { "TRANSFORM", DLEngine::Buffer{ &transforms[1u], sizeof(DLEngine::Math::Mat4x4) } },
         });
@@ -834,10 +822,10 @@ void WorldLayer::AddObjectsToScene()
         flashlightMaterial->Set("t_Roughness", flashlightRoughness);
         flashlightMaterial->Set("PBRMaterial", flashlightPBRCB);
 
-        m_FlashlightInstance = DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Flashlight Instance");
-        m_FlashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &m_FlashlightBaseTransform, sizeof(DLEngine::Math::Mat4x4) });
+        DLEngine::Ref<DLEngine::Instance> flashlightInstance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Flashlight Instance") };
+        flashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &m_FlashlightBaseTransform, sizeof(DLEngine::Math::Mat4x4) });
 
-        sceneMeshRegistry.AddSubmesh(flashlight, 0u, flashlightMaterial, m_FlashlightInstance);
+        m_FlashlightMeshUUID = sceneMeshRegistry.AddSubmesh(flashlight, 0u, flashlightMaterial, flashlightInstance);
 
         m_Scene->AddSpotLight(
             DLEngine::Math::Vec3{ 0.0f },
@@ -847,7 +835,7 @@ void WorldLayer::AddObjectsToScene()
             DLEngine::Math::Cos(DLEngine::Math::ToRadians(7.5f)),
             DLEngine::Math::Vec3{ 4.0f, 1.0f, 15.0f },
             2.0f,
-            m_FlashlightInstance
+            m_FlashlightMeshUUID
         );
     }
 }
@@ -857,74 +845,35 @@ void WorldLayer::SwapDissolutionGroupInstances(DLEngine::DeltaTime dt)
     using namespace DLEngine;
 
     auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
-    auto& dissolutionMeshBatch{ sceneMeshRegistry.GetMeshBatch("PBR_Static_Dissolution") };
-    std::unordered_map<Ref<Instance>, std::pair<Ref<Instance>, bool>> dissolutionToPBR_StaticInstances{};
-    std::unordered_set<MeshRegistry::SubmeshID, MeshRegistry::SubmeshIDHash, MeshRegistry::SubmeshIDEqual> submeshIDsToRemove{};
-    const auto& pbrStaticShader{ Renderer::GetShaderLibrary()->Get("PBR_Static") };
-    for (auto& [mesh, submeshBatch] : dissolutionMeshBatch.SubmeshBatches)
-    {
-        for (uint32_t submeshIndex{ 0u }; submeshIndex < submeshBatch.MaterialBatches.size(); ++submeshIndex)
+
+    std::erase_if(m_DissolutionGroupMeshes, [&](MeshRegistry::MeshUUID submeshUUID)
         {
-            auto& materialBatch{ submeshBatch.MaterialBatches[submeshIndex] };
-            for (auto& [material, instanceBatch] : materialBatch.InstanceBatches)
-            {
-                for (auto& instance : instanceBatch.SubmeshInstances)
+            Ref<Instance> instance{ sceneMeshRegistry.GetInstance(submeshUUID) };
+
+            const float dissolutionDuration{ instance->Get<float>("DISSOLUTION_DURATION") };
+            const float elapsedTime{ instance->Get<float>("ELAPSED_TIME") };
+
+            const float updatedElapsedTime{ elapsedTime + dt };
+            instance->Set("ELAPSED_TIME", Buffer{ &updatedElapsedTime, sizeof(float) });
+
+            if (elapsedTime < dissolutionDuration)
+                return false;
+
+            const Math::Mat4x4& transform{
+                DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(90.0f), 0.0f, 0.0f) *
+                instance->Get<Math::Mat4x4>("TRANSFORM")
+            };
+
+            AddPBRSamuraiToScene("GBuffer_PBR_Static",
                 {
-                    if (!dissolutionToPBR_StaticInstances.contains(instance))
-                    {
-                        auto pbrStaticInstance{ Instance::Create(pbrStaticShader) };
-                        pbrStaticInstance->Set("TRANSFORM", Buffer{ &instance->Get<Math::Mat4x4>("TRANSFORM"), sizeof(Math::Mat4x4) });
+                    { "TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) } },
+                });
 
-                        dissolutionToPBR_StaticInstances[instance] = std::make_pair(pbrStaticInstance, false);
-                    }
+            sceneMeshRegistry.RemoveSubmesh(submeshUUID);
 
-                    const auto& pbrStaticInstance{ dissolutionToPBR_StaticInstances[instance].first };
-                    const bool isUpdated{ dissolutionToPBR_StaticInstances[instance].second };
-
-                    const auto& dissolutionDuration{ instance->Get<float>("DISSOLUTION_DURATION") };
-                    const auto& elapsedTime{ instance->Get<float>("ELAPSED_TIME") };
-
-                    if (isUpdated && elapsedTime < dissolutionDuration)
-                        continue;
-
-                    if (elapsedTime < dissolutionDuration)
-                    {
-                        const float updatedElapsedTime{ elapsedTime + dt };
-                        instance->Set("ELAPSED_TIME", Buffer{ &updatedElapsedTime, sizeof(float) });
-
-                        dissolutionToPBR_StaticInstances[instance].second = true;
-                    }
-
-                    if (elapsedTime < dissolutionDuration)
-                        continue;
-
-                    // Replace instance
-                    const auto& pbrMaterialCB{ material->GetConstantBuffer("PBRMaterial") };
-                    const auto& pbrMaterialCBData{ pbrMaterialCB->GetLocalData().Read<CBPBRMaterial>() };
-
-                    auto pbrStaticMaterial{ Material::Create(pbrStaticShader) };
-                    pbrStaticMaterial->Set("PBRMaterial", pbrMaterialCB);
-
-                    pbrStaticMaterial->Set("t_Albedo", material->GetTexture2D("t_Albedo"));
-                    pbrStaticMaterial->Set("t_Normal", material->GetTexture2D("t_Normal"));
-
-                    if (pbrMaterialCBData.HasMetalnessMap)
-                        pbrStaticMaterial->Set("t_Metalness", material->GetTexture2D("t_Metalness"));
-
-                    if (pbrMaterialCBData.HasRoughnessMap)
-                        pbrStaticMaterial->Set("t_Roughness", material->GetTexture2D("t_Roughness"));
-
-                    sceneMeshRegistry.AddSubmesh(mesh, submeshIndex, pbrStaticMaterial, pbrStaticInstance);
-
-                    // Removing an instance invalidates current iterator, so postponing it
-                    submeshIDsToRemove.emplace(mesh, material, instance, submeshIndex);
-                }
-            }
+            return true;
         }
-    }
-
-    for (const auto& submeshID : submeshIDsToRemove)
-        sceneMeshRegistry.RemoveSubmesh(submeshID.Mesh, submeshID.SubmeshIndex, submeshID.Material, submeshID.Instance);
+    );
 }
 
 bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)
@@ -942,16 +891,42 @@ bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)
             const auto& samuraiPosition{ sceneCameraPosition + sceneCameraForward * m_DissolutionGroupSpawnSettings.DistanceToCamera };
 
             const auto& transform{ DLEngine::Math::Mat4x4::Inverse(DLEngine::Math::Mat4x4::LookTo(samuraiPosition, sceneCameraForward, sceneCamera.GetUp())) };
-            const float duration{ DLEngine::RandomGenerator::GenerateRandomInRange(m_DissolutionGroupSpawnSettings.MinDissolutionDuration, m_DissolutionGroupSpawnSettings.MaxDissolutionDuration) * 1.0e3f }; // Seconds to milliseconds
+            const float duration{ DLEngine::RandomGenerator::GenerateRandom(m_DissolutionGroupSpawnSettings.MinDissolutionDuration, m_DissolutionGroupSpawnSettings.MaxDissolutionDuration) * 1.0e3f }; // Seconds to milliseconds
             const float elapsedTime{ 0.0f };
 
-            AddPBRSamuraiToScene("PBR_Static_Dissolution",
+            AddPBRSamuraiToScene("GBuffer_PBR_Static_Dissolution",
                 {
                     { "TRANSFORM"           , DLEngine::Buffer{ &transform  , sizeof(DLEngine::Math::Mat4x4) } },
                     { "DISSOLUTION_DURATION", DLEngine::Buffer{ &duration   , sizeof(float)                  } },
                     { "ELAPSED_TIME"        , DLEngine::Buffer{ &elapsedTime, sizeof(float)                  } },
                 });
         } break;
+    case 'G':
+    {
+        const auto& camera{ m_Scene->GetCamera() };
+        const auto& cursorPos{ DLEngine::Input::GetCursorPosition() };
+        DLEngine::Math::Vec3 cursorPosNDC{
+            cursorPos.x / static_cast<float>(m_Scene->GetViewportWidth()) * 2.0f - 1.0f,
+            (1.0f - cursorPos.y / static_cast<float>(m_Scene->GetViewportHeight())) * 2.0f - 1.0f,
+            1.0f
+        };
+
+        DLEngine::Math::Ray ray{};
+        ray.Origin = camera.GetPosition();
+        ray.Direction = DLEngine::Math::Normalize(camera.ConstructFrustumPosNoTranslation(cursorPosNDC));
+
+        const DLEngine::Math::Vec3 decalTintColor{
+            DLEngine::RandomGenerator::GenerateRandom(0.0f, 1.0f),
+            DLEngine::RandomGenerator::GenerateRandom(0.0f, 1.0f),
+            DLEngine::RandomGenerator::GenerateRandom(0.0f, 1.0f)
+        };
+
+        const float decalRotation{
+            DLEngine::RandomGenerator::GenerateRandom(-2.0f * DLEngine::Math::Numeric::Pi, 2.0f * DLEngine::Math::Numeric::Pi)
+        };
+
+        m_Scene->SpawnDecal(ray, decalTintColor, decalRotation);
+    } break;
     default:
         break;
     }

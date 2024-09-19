@@ -4,6 +4,8 @@
 #include "DLEngine/Renderer/Scene.h"
 #include "DLEngine/Renderer/SceneRenderer.h"
 
+#include <unordered_set>
+
 struct DissolutionGroupSpawnSettings
 {
     float DistanceToCamera{ 2.5f };
@@ -40,10 +42,11 @@ private:
     DLEngine::ShadowMappingSettings m_ShadowMappingSettings{};
 
     DLEngine::Math::Mat4x4 m_FlashlightBaseTransform{};
-    DLEngine::Ref<DLEngine::Instance> m_FlashlightInstance{};
+    DLEngine::MeshRegistry::MeshUUID m_FlashlightMeshUUID{ 0u };
     bool m_IsFlashlightAttached{ true };
 
     DissolutionGroupSpawnSettings m_DissolutionGroupSpawnSettings{};
+    std::unordered_set<DLEngine::MeshRegistry::MeshUUID> m_DissolutionGroupMeshes{};
 
     DLEngine::SmokeEmitter m_SmokeEmitterToSpawn{};
     float m_SmokeEmitterSpawnDistanceToCamera{ 1.5f };

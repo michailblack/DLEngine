@@ -202,8 +202,7 @@ namespace DLEngine
         PreProcess();
 
         UINT compileFlags = D3DCOMPILE_PACK_MATRIX_ROW_MAJOR |
-            D3DCOMPILE_ENABLE_STRICTNESS |
-            D3DCOMPILE_WARNINGS_ARE_ERRORS;
+            D3DCOMPILE_ENABLE_STRICTNESS;
 
 #ifdef DL_DEBUG
         compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -274,8 +273,8 @@ namespace DLEngine
         for (const auto& [stage, data] : m_D3D11ShaderData)
             ReflectShaderStage(stage);
 
-        BuildInputLayout(m_D3D11Shader->m_Specification.VertexLayout, 0u, D3D11_INPUT_PER_VERTEX_DATA, 0u);
-        BuildInputLayout(m_D3D11Shader->m_Specification.InstanceLayout, 1u, D3D11_INPUT_PER_INSTANCE_DATA, 1u);
+        for (const auto& [bindingPoint, inputLayoutEntry] : m_D3D11Shader->m_Specification.InputLayouts)
+            BuildInputLayout(inputLayoutEntry.Layout, bindingPoint, inputLayoutEntry.Type, inputLayoutEntry.InstanceStepRate);
 
         if (m_D3D11InputLayoutDesc.empty())
             return;
@@ -461,19 +460,14 @@ namespace DLEngine
         }
     }
 
-    void D3D11ShaderCompiler::BuildInputLayout(
-        const VertexBufferLayout& layout,
-        uint32_t inputSlot,
-        D3D11_INPUT_CLASSIFICATION inputSlotClass,
-        uint32_t instanceDataStepRate
-    )
+    void D3D11ShaderCompiler::BuildInputLayout(const VertexBufferLayout& layout, uint32_t slot, InputLayoutType type, uint32_t instanceDataStepRate)
     {
         m_D3D11InputLayoutDesc.reserve(m_D3D11InputLayoutDesc.size() + layout.GetElements().size());
 
         D3D11_INPUT_ELEMENT_DESC elementDesc{};
-        elementDesc.InputSlot = inputSlot;
+        elementDesc.InputSlot = slot;
         elementDesc.AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-        elementDesc.InputSlotClass = inputSlotClass;
+        elementDesc.InputSlotClass = type == InputLayoutType::PerVertex ? D3D11_INPUT_PER_VERTEX_DATA : D3D11_INPUT_PER_INSTANCE_DATA;
         elementDesc.InstanceDataStepRate = instanceDataStepRate;
 
         for (const auto& bufferElement : layout)

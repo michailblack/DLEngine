@@ -75,12 +75,30 @@ namespace DLEngine
         std::string Value{};
     };
 
+    enum class InputLayoutType
+    {
+        PerVertex,
+        PerInstance
+    };
+
+    struct InputLayoutSpecification
+    {
+        VertexBufferLayout Layout{};
+        InputLayoutType Type{ InputLayoutType::PerVertex };
+        uint32_t InstanceStepRate{ 0u };
+
+        InputLayoutSpecification() = default;
+
+        InputLayoutSpecification(const VertexBufferLayout& layout, InputLayoutType type, uint32_t instanceStepRate)
+            : Layout(layout), Type(type), InstanceStepRate(instanceStepRate)
+        {}
+    };
+
     struct ShaderSpecification
     {
         std::unordered_map<ShaderStage, std::string_view> EntryPoints{};
         std::filesystem::path Path{};
-        VertexBufferLayout VertexLayout{};
-        VertexBufferLayout InstanceLayout{};
+        std::map<uint32_t, InputLayoutSpecification> InputLayouts{};
         std::vector<ShaderDefine> Defines{};
     };
 
@@ -91,7 +109,7 @@ namespace DLEngine
 
         virtual const std::string& GetName() const noexcept = 0;
 
-        virtual const VertexBufferLayout& GetInstanceLayout() const noexcept = 0;
+        virtual const std::map<uint32_t, InputLayoutSpecification>& GetInputLayout() const noexcept = 0;
 
         static Ref<Shader> Create(const ShaderSpecification& specification);
 

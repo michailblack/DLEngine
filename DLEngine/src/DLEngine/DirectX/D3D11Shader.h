@@ -21,7 +21,7 @@ namespace DLEngine
 
         const std::string& GetName() const noexcept override { return m_Name; }
 
-        const VertexBufferLayout& GetInstanceLayout() const noexcept override { return m_Specification.InstanceLayout; }
+        const std::map<uint32_t, InputLayoutSpecification>& GetInputLayout() const noexcept override { return m_Specification.InputLayouts; }
 
         const ReflectionData& GetReflectionData() const noexcept { return m_ReflectionData; }
 

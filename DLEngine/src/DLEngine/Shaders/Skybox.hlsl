@@ -18,7 +18,7 @@ VertexOutput mainVS(uint vertexID : SV_VertexID)
     return vsOutput;
 }
 
-TextureCube<float3> t_Skybox : register(t16);
+TextureCube<float3> t_Skybox : register(t20);
 
 float4 mainPS(VertexOutput psInput) : SV_TARGET
 {

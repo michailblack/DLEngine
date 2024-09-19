@@ -40,7 +40,7 @@ namespace DLEngine
         // where key is the index of the attachment in the framebuffer
         std::map<uint32_t, Ref<Texture>> ExistingAttachments;
 
-        Math::Vec4 ClearColor{ 1.0f, 0.0f, 1.0f, 1.0f };
+        Math::Vec4 ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
         float DepthClearValue{ 0.0f };
 
         TextureType AttachmentsType{ TextureType::Texture2D };
@@ -53,6 +53,9 @@ namespace DLEngine
         // If true, then Attachments, ExistingAttachments, Width and Height are ignored.
         // Framebuffer is created with back buffer and depth-stencil attachments automatically
         bool SwapChainTarget{ false };
+      
+        uint8_t StencilClearValue{ 0u };
+        uint8_t StencilReferenceValue{ 0u };
     };
 
     class Framebuffer

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <memory>
+#include <string_view>
 
 #define BIT(x) (1 << (x))
 
@@ -30,4 +31,13 @@ namespace DLEngine
     {
         return std::make_unique<T>(std::forward<Args>(args)...);
     }
+
+    template <typename T>
+    struct ByteBufferHash
+    {
+        std::size_t operator()(const T& value) const noexcept
+        {
+            return std::hash<std::string_view>{}(std::string_view{ reinterpret_cast<const char*>(&value), sizeof(T) });
+        };
+    };
 }

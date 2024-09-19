@@ -18,6 +18,11 @@ namespace DLEngine
         return CreateRef<D3D11Texture2D>(specification, path);
     }
 
+    Ref<Texture2D> Texture2D::Copy(const Ref<Texture2D>& other)
+    {
+        return CreateRef<D3D11Texture2D>(other);
+    }
+
     Ref<TextureCube> TextureCube::Create(const TextureSpecification& specification)
     {
         return CreateRef<D3D11TextureCube>(specification);

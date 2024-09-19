@@ -123,7 +123,7 @@ namespace DLEngine
             hash ^= std::hash<Ref<TextureCube>>{}(textureCube);
 
         for (const auto& [bindPoint, view] : m_TextureViews)
-            hash ^= TextureViewSpecificationHash{}(view);
+            hash ^= ByteBufferHash<TextureViewSpecification>{}(view);
 
         for (const auto& [bindPoint, shaderStage] : m_TextureShaderStages)
             hash ^= std::hash<uint8_t>{}(shaderStage);

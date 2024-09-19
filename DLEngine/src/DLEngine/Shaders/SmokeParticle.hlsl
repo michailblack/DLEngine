@@ -28,7 +28,7 @@ struct VertexOutput
     uint     v_FrameIndex        : FRAME_INDEX;
 };
 
-cbuffer TextureAtlasData : register(b4)
+cbuffer TextureAtlasData : register(b5)
 {
     float2 c_TextureAtlasSize;
     float2 c_TextureAtlasTileSize;
@@ -52,13 +52,13 @@ static const float2 BillboardTexCoords[4] =
     float2(1.0, 1.0)
 };
 
-Texture2D<float3> t_RLU_Atlas  : register(t16);
-Texture2D<float3> t_DBF_Atlas  : register(t17);
-Texture2D<float4> t_EMVA_Atlas : register(t18);
-Texture2D<float>  t_SceneDepth : register(t19);
+Texture2D<float3> t_RLU_Atlas  : register(t20);
+Texture2D<float3> t_DBF_Atlas  : register(t21);
+Texture2D<float4> t_EMVA_Atlas : register(t22);
+Texture2D<float>  t_SceneDepth : register(t23);
 
 static const float MotionVectorScale = 0.0015;
-static const float SmokeThickness    = 15.0;
+static const float SmokeThickness    = 0.1;
 
 float2 LocalUVToTextureAtlasUV(float2 uv, uint frameIndex)
 {

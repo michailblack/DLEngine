@@ -1,9 +1,11 @@
 #include "dlpch.h"
 #include "MeshRegistry.h"
 
+#include "DLEngine/Utils/RandomGenerator.h"
+
 namespace DLEngine
 {
-    void MeshRegistry::AddSubmesh(
+    MeshRegistry::MeshUUID MeshRegistry::AddSubmesh(
         const Ref<Mesh>& mesh,
         uint32_t submeshIndex,
         const Ref<Material>& material,
@@ -15,6 +17,11 @@ namespace DLEngine
         DL_ASSERT(shader == instance->GetShader(),
             "Material [{0}] and instance [{1}] are made for different shaders",
             material->GetName(), instance->GetName()
+        );
+
+        DL_ASSERT(instance->HasUniform("INSTANCE_UUID"),
+            "Instance [{0}] does not have an 'INSTANCE_UUID' uniform",
+            instance->GetName()
         );
 
         MeshBatch* meshBatch{ nullptr };
@@ -46,66 +53,70 @@ namespace DLEngine
         {
             instanceBatch = &materialBatch->InstanceBatches[material];
 
-            const auto& instanceBufferLayout{ instance->GetShader()->GetInstanceLayout() };
-            const size_t instanceBufferSize{ instanceBufferLayout.GetStride() };
-            instanceBatch->InstanceBuffer = VertexBuffer::Create(instanceBufferLayout, instanceBufferSize);
+            const auto& inputLayout{ instance->GetShader()->GetInputLayout() };
+            for (const auto& [bindingPoint, inputLayoutEntry] : inputLayout)
+            {
+                if (inputLayoutEntry.Type == InputLayoutType::PerVertex)
+                    continue;
+
+                const auto& instanceBufferLayout{ inputLayoutEntry.Layout };
+                instanceBatch->InstanceBuffers.emplace(bindingPoint, VertexBuffer::Create(instanceBufferLayout, instanceBufferLayout.GetStride()));
+            }
         }
         else
             instanceBatch = &instanceBatchIt->second;
 
         instanceBatch->SubmeshInstances.push_back(instance);
+
+        if (m_InstanceToUUID.contains(instance))
+            return m_InstanceToUUID[instance];
+
+        const MeshUUID uuid{ RandomGenerator::GenerateRandom<MeshUUID>() };
+        instance->Set("INSTANCE_UUID", Buffer{ &uuid, sizeof(MeshUUID) });
+        
+        m_UUID_ToIntsance[uuid] = instance;
+        m_InstanceToUUID[instance] = uuid;
+
+        return uuid;
     }
 
-    void MeshRegistry::RemoveSubmesh(const Ref<Mesh>& mesh, uint32_t submeshIndex, const Ref<Material>& material, const Ref<Instance>& instance)
+    void MeshRegistry::RemoveSubmesh(MeshUUID submeshUUID)
     {
-        const auto& shader{ material->GetShader() };
+        if (!m_UUID_ToIntsance.contains(submeshUUID))
+            return;
 
-        DL_ASSERT(shader == instance->GetShader(),
-            "Material [{0}] and instance [{1}] are made for different shaders",
-            material->GetName(), instance->GetName()
+        const Ref<Instance>& instance{ m_UUID_ToIntsance[submeshUUID] };
+        const Ref<Shader>& shader{ instance->GetShader() };
+        const std::string_view shaderName{ shader->GetName() };
+
+        MeshBatch& meshBatch{ m_MeshBatches[shaderName] };
+
+        std::for_each(meshBatch.SubmeshBatches.begin(), meshBatch.SubmeshBatches.end(),
+            [this, submeshUUID](std::pair<const Ref<Mesh>, SubmeshBatch>& submeshBatch)
+            {
+                auto& materialBatches{ submeshBatch.second.MaterialBatches };
+                std::for_each(materialBatches.begin(), materialBatches.end(),
+                    [this, submeshUUID](MaterialBatch& materialBatch)
+                    {
+                        std::for_each(materialBatch.InstanceBatches.begin(), materialBatch.InstanceBatches.end(),
+                            [this, submeshUUID](std::pair<const Ref<Material>, InstanceBatch>& materialBatch)
+                            {
+                                auto& instanceBatch{ materialBatch.second };
+                                std::erase_if(instanceBatch.SubmeshInstances,
+                                    [this, submeshUUID](const Ref<Instance>& instance)
+                                    {
+                                        m_InstanceToUUID.erase(instance);
+                                        return m_UUID_ToIntsance[submeshUUID] == instance;
+                                    }
+                                );
+                            }
+                        );
+                    }
+                );
+            }
         );
 
-        MeshBatch* meshBatch{ nullptr };
-        const auto meshBatchIt{ m_MeshBatches.find(shader->GetName()) };
-        if (meshBatchIt == m_MeshBatches.end())
-        {
-            DL_LOG_WARN_TAG("MeshRegistry", "Trying to remove submesh from non-existing mesh batch [{0}]", shader->GetName());
-            return;
-        }
-        else
-            meshBatch = &meshBatchIt->second;
-
-        SubmeshBatch* submeshBatch{ nullptr };
-        const auto submeshBatchIt{ meshBatch->SubmeshBatches.find(mesh) };
-        if (submeshBatchIt == meshBatch->SubmeshBatches.end())
-        {
-            DL_LOG_WARN_TAG("MeshRegistry", "Trying to remove submesh from non-existing submesh batch [{0}]", mesh->GetName());
-            return;
-        }
-        else
-            submeshBatch = &submeshBatchIt->second;
-
-        DL_ASSERT(submeshIndex < submeshBatch->MaterialBatches.size(),
-            "Submesh index [{0}] is out of range for mesh [{1}]",
-            submeshIndex, mesh->GetName()
-        );
-        MaterialBatch* materialBatch{ &submeshBatch->MaterialBatches[submeshIndex] };
-
-        InstanceBatch* instanceBatch{ nullptr };
-        const auto instanceBatchIt{ materialBatch->InstanceBatches.find(material) };
-        if (instanceBatchIt == materialBatch->InstanceBatches.end())
-        {
-            DL_LOG_WARN_TAG("MeshRegistry", "Trying to remove submesh from non-existing instance batch [{0}]", material->GetName());
-            return;
-        }
-        else
-            instanceBatch = &instanceBatchIt->second;
-
-        const auto removedInstanceCount{ std::erase(instanceBatch->SubmeshInstances, instance) };
-        DL_ASSERT(removedInstanceCount == 0u || removedInstanceCount == 1u,
-            "Removed more than one instance from instance batch [{0}]",
-            material->GetName()
-        );
+        m_UUID_ToIntsance.erase(submeshUUID);
     }
 
     void MeshRegistry::UpdateInstanceBuffers()
@@ -117,6 +128,16 @@ namespace DLEngine
                 for (auto& materialBatch : submeshBatch.MaterialBatches)
                     for (auto& instanceBatch : materialBatch.InstanceBatches | std::views::values)
                         UpdateInstanceBuffer(instanceBatch);
+    }
+
+    Ref<Instance> MeshRegistry::GetInstance(MeshUUID submeshUUID) const
+    {
+        DL_ASSERT(m_UUID_ToIntsance.contains(submeshUUID),
+            "Instance with UUID [{0}] does not exist",
+            submeshUUID
+        );
+
+        return m_UUID_ToIntsance.at(submeshUUID);
     }
 
     const MeshRegistry::MeshBatch& MeshRegistry::GetMeshBatch(std::string_view shaderName) const noexcept
@@ -136,16 +157,40 @@ namespace DLEngine
         if (instanceBatch.SubmeshInstances.empty())
             return;
 
-        const auto& instanceBufferLayout{ instanceBatch.SubmeshInstances.front()->GetShader()->GetInstanceLayout() };
-        const size_t instanceBufferSize{ instanceBufferLayout.GetStride() };
-        const size_t requiredInstanceBufferSize{ instanceBufferSize * instanceBatch.SubmeshInstances.size() };
-        if (instanceBatch.InstanceBuffer->GetSize() != requiredInstanceBufferSize)
-            instanceBatch.InstanceBuffer = VertexBuffer::Create(instanceBufferLayout, requiredInstanceBufferSize);
+        const auto& inputLayout{ instanceBatch.SubmeshInstances.front()->GetShader()->GetInputLayout() };
+        std::map<uint32_t, Buffer> mapBuffers{};
 
-        Buffer buffer{ instanceBatch.InstanceBuffer->Map() };
-        for (size_t i{ 0 }; i < instanceBatch.SubmeshInstances.size(); ++i)
-            buffer.Write(instanceBatch.SubmeshInstances[i]->GetInstanceData().Data, instanceBufferSize, instanceBufferSize * i);
-        instanceBatch.InstanceBuffer->Unmap();
+        for (const auto& [bindingPoint, inputLayoutEntry] : inputLayout)
+        {
+            if (inputLayoutEntry.Type == InputLayoutType::PerVertex)
+                continue;
+
+            const auto& instanceBufferLayout{ inputLayoutEntry.Layout };
+            const size_t instanceBufferStride{ instanceBufferLayout.GetStride() };
+            const size_t requiredInstanceBufferSize{ instanceBufferStride * instanceBatch.SubmeshInstances.size() };
+            if (instanceBatch.InstanceBuffers[bindingPoint]->GetSize() != requiredInstanceBufferSize)
+                instanceBatch.InstanceBuffers[bindingPoint] = VertexBuffer::Create(instanceBufferLayout, requiredInstanceBufferSize);
+
+            mapBuffers.emplace(bindingPoint, instanceBatch.InstanceBuffers[bindingPoint]->Map());
+        }
+
+        for (uint32_t submeshInstanceIndex{ 0u }; submeshInstanceIndex < instanceBatch.SubmeshInstances.size(); ++submeshInstanceIndex)
+        {
+            for (auto& [bindingPoint, mapBuffer] : mapBuffers)
+            {
+                const auto& instanceBufferLayout{ inputLayout.at(bindingPoint).Layout };
+                const size_t instanceBufferStride{ instanceBufferLayout.GetStride() };
+                for (const auto& bufferElement : instanceBufferLayout)
+                {
+                    const Buffer instanceData{ instanceBatch.SubmeshInstances[submeshInstanceIndex]->Get(bufferElement.Name) };
+                    const size_t offset{ instanceBufferStride * submeshInstanceIndex + bufferElement.Offset };
+                    mapBuffer.Write(instanceData.Data, instanceData.Size, offset);
+                }
+            }
+        }
+
+        for (const auto& [bindingPoint, instanceBuffer] : instanceBatch.InstanceBuffers)
+            instanceBuffer->Unmap();
     }
 
     void MeshRegistry::ClearEmptyBatches()
