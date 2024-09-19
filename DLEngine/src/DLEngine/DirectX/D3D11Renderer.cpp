@@ -1013,10 +1013,11 @@ namespace DLEngine
             {
                 switch (topology)
                 {
-                case PrimitiveTopology::TrianglesList: return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-                case PrimitiveTopology::TriangleStrip: return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+                case PrimitiveTopology::TrianglesList:          return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+                case PrimitiveTopology::TriangleStrip:          return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+                case PrimitiveTopology::ControlPointPatchList3: return D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
                 case PrimitiveTopology::None:
-                default: DL_ASSERT(false);             return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+                default: DL_ASSERT(false);                      return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
                 }
             }
 

@@ -97,7 +97,7 @@ void mainGS(triangle VertexOutput input[3], inout TriangleStream<GeometryOutput>
 
 Texture2D<float> t_IncinerationNoiseMap : register(t20);
 
-void mainPS(VertexOutput psInput)
+void mainPS(GeometryOutput psInput)
 {
     const float distanceToIncinerationSphere = distance(psInput.v_WorldPos, psInput.v_SpherePosition);
     

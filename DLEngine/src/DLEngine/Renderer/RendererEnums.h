@@ -74,6 +74,8 @@ namespace DLEngine
         None = 0,
         TrianglesList,
         TriangleStrip,
+
+        ControlPointPatchList3,
     };
 
     enum class FillMode

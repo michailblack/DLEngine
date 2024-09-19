@@ -4,6 +4,7 @@
 struct VertexOutput
 {
     float4                 v_Position         : SV_POSITION;
+    float2                 v_TexCoords        : TEXCOORDS;
     nointerpolation float3 v_Emisiion         : EMISSION;
     nointerpolation float  v_LifetimeFactor   : LIFETIME_FACTOR;
 };
@@ -29,6 +30,7 @@ VertexOutput mainVS(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
 
     VertexOutput vsOutput;
     vsOutput.v_Position = mul(float4(billboardVertexWorldPos, 1.0), c_ViewProjection);
+    vsOutput.v_TexCoords = BillboardTexCoords[vertexID % 4];
     vsOutput.v_Emisiion = particle.Emission;
     vsOutput.v_LifetimeFactor = max(particle.LifetimePassedMS / particle.LifetimeMS, 0.0);
     
@@ -41,8 +43,7 @@ float4 mainPS(VertexOutput psInput) : SV_TARGET
 {
     clip(1.0 - psInput.v_LifetimeFactor);
     
-    const float2 uv = psInput.v_Position.xy * float2(c_InvViewportWidth, c_InvViewportHeight);
-    const float particleTextureGrayscale = t_SparkTexture.Sample(s_TrilinearClamp, uv).r;
+    const float particleTextureGrayscale = t_SparkTexture.Sample(s_TrilinearClamp, psInput.v_TexCoords).r;
     
     return float4(psInput.v_Emisiion, saturate(particleTextureGrayscale));
 }

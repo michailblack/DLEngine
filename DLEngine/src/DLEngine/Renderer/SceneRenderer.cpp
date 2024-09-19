@@ -397,7 +397,7 @@ namespace DLEngine
         m_SmokeParticlesEMVA = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "smoke\\smoke_MVEA.dds");
 
         textureSpecification.DebugName = "Incineration Particles Spark Texture";
-        m_IncinerationParticlesSparkTexture = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "Noise_22.dds");
+        m_IncinerationParticlesSparkTexture = textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "spark.dds");
 
         CBTextureAtlasData textureAtlasData{};
         textureAtlasData.Size = Math::Vec2{
@@ -560,6 +560,7 @@ namespace DLEngine
         gBufferPBR_Static_IncinerationPipelineSpecification.DebugName = "G-Buffer PBR_Static Incineration Pipeline";
         gBufferPBR_Static_IncinerationPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static_Incineration");
         gBufferPBR_Static_IncinerationPipelineSpecification.TargetFramebuffer = m_GBuffer_PBR_StaticFramebuffer;
+        gBufferPBR_Static_IncinerationPipelineSpecification.Topology = PrimitiveTopology::ControlPointPatchList3;
         gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.DepthTest = true;
         gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.DepthWrite = true;
         gBufferPBR_Static_IncinerationPipelineSpecification.DepthStencilState.DepthCompareOp = CompareOperator::Greater;

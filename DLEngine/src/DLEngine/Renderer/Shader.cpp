@@ -70,6 +70,9 @@ namespace DLEngine
             InputLayoutType::PerInstance, 1u
         };
         gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_HULL_SHADER_BIT] = "mainHS";
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_DOMAIN_SHADER_BIT] = "mainDS";
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
         gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
         Load(gBufferPBR_Static_IncinerationSpecification);
 

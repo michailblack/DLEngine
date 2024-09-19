@@ -27,52 +27,21 @@ struct InstanceInput
 
 struct VertexOutput
 {
-    float4                 v_Position            : SV_POSITION;
-    float3x3               v_TangentToWorld      : TANGENT_TO_WORLD;
-    float3                 v_WorldPos            : WORLD_POS;
-    float3                 v_Normal              : NORMAL;
-    nointerpolation float3 v_SpherePosition      : INCINERATION_SPHERE_POSITION;
-    nointerpolation float3 v_Emission            : INCINERATION_EMISSION;
-    float2                 v_TexCoords           : TEXCOORDS;
-    nointerpolation uint2  v_InstanceUUID        : INSTANCE_UUID;
-    nointerpolation float  v_IncinerationFactor  : INCINERATION_FACTOR;
-    nointerpolation float  v_CurrentSphereRadius : CURRENT_INCINERATION_SPHERE_RADIUS;
-    nointerpolation float  v_EpsilonSphereRadius : EPSILON_INCINERATION_SPHERE_RADIUS;
+    float4                 v_Position             : SV_POSITION;
+    float3x3               v_TangentToWorld       : TANGENT_TO_WORLD;
+    float3                 v_WorldPos             : WORLD_POS;
+    float3                 v_Normal               : NORMAL;
+    nointerpolation float3 v_SpherePosition       : INCINERATION_SPHERE_POSITION;
+    nointerpolation float3 v_Emission             : INCINERATION_EMISSION;
+    float2                 v_TexCoords            : TEXCOORDS;
+    nointerpolation uint2  v_InstanceUUID         : INSTANCE_UUID;
+    nointerpolation float  v_IncinerationFactor   : INCINERATION_FACTOR;
+    nointerpolation float  v_CurrentSphereRadius  : CURRENT_INCINERATION_SPHERE_RADIUS;
+    nointerpolation float  v_PreviousSphereRadius : PREVIOUS_INCINERATION_SPHERE_RADIUS;
+    nointerpolation float  v_EpsilonSphereRadius  : EPSILON_INCINERATION_SPHERE_RADIUS;
 };
 
-RWStructuredBuffer<IncinerationParticle> u_IncinerationParticles           : register(u5);
-RWBuffer<uint>                           u_IncinerationParticleRangeBuffer : register(u6);
-
-void SpawnIncinerationPartilce(float3 worldPos, float3 velocity, float3 emission, uint2 parentInstanceUUID)
-{
-    uint maxParticlesCount = 0, particleStride = 0;
-    u_IncinerationParticles.GetDimensions(maxParticlesCount, particleStride);
-    
-    uint currentParticlesCount = 0;
-    InterlockedAdd(u_IncinerationParticleRangeBuffer[ParticlesCountIndex], 1, currentParticlesCount);
-    if (currentParticlesCount >= maxParticlesCount)
-    {
-        InterlockedAdd(u_IncinerationParticleRangeBuffer[ParticlesCountIndex], -1);
-        return;
-    }
-    
-    const uint particleOffset = u_IncinerationParticleRangeBuffer[ParticleOffsetIndex];
-    const uint particleIndex = (particleOffset + currentParticlesCount) % maxParticlesCount;
-    
-    IncinerationParticle particle;
-    particle.WorldPosition = worldPos;
-    particle.Velocity = velocity;
-    particle.Emission = emission;
-    particle.ParentInstanceUUID = parentInstanceUUID;
-    particle.LifetimeMS = frac(c_TimeS) * MaxIncinerationParticleLifetimeMS;
-    particle.LifetimePassedMS = 0.0;
-    
-    u_IncinerationParticles[particleIndex] = particle;
-}
-
-static const uint ParticlesDiscardPercentage = 256;
-
-VertexOutput mainVS(uint vertexID : SV_VertexID, VertexInput vsInput, TransformInput transformInput, InstanceInput instInput)
+VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, InstanceInput instInput)
 {
     VertexOutput vsOutput;
 
@@ -100,18 +69,127 @@ VertexOutput mainVS(uint vertexID : SV_VertexID, VertexInput vsInput, TransformI
     vsOutput.v_EpsilonSphereRadius = vsOutput.v_CurrentSphereRadius * (1.0 - incinerationSphereRadiusEpsilon);
     
     const float previousFrameIncinerationFactor = saturate((instInput.a_ElapsedTime - c_DeltaTimeMS) / instInput.a_IncinerationDuration);
-    const float previousFrameSphereRadius = instInput.a_MaxSphereRadius * previousFrameIncinerationFactor;
-    const float distanceToIncinerationSphere = distance(vsOutput.v_WorldPos, vsOutput.v_SpherePosition);
-    if (distanceToIncinerationSphere > previousFrameSphereRadius && distanceToIncinerationSphere < vsOutput.v_CurrentSphereRadius)
+    vsOutput.v_PreviousSphereRadius = instInput.a_MaxSphereRadius * previousFrameIncinerationFactor;
+    
+    return vsOutput;
+}
+
+struct HullPatchOutput
+{
+    float v_EdgeTessFactor[3] : SV_TessFactor;
+    float v_InsideTessFactor  : SV_InsideTessFactor;
+};
+
+static const uint NUM_CONTROL_POINTS = 3;
+static const float MAX_TESS_FACTOR = 4.0;
+static const float MIN_TESS_FACTOR = 2.0;
+
+HullPatchOutput CalcHSPatchConstants(InputPatch<VertexOutput, NUM_CONTROL_POINTS> inputPatch)
+{
+    HullPatchOutput patchOutput;
+
+    const float AB = length(inputPatch[1].v_WorldPos - inputPatch[0].v_WorldPos);
+    const float BC = length(inputPatch[2].v_WorldPos - inputPatch[1].v_WorldPos);
+    const float CA = length(inputPatch[0].v_WorldPos - inputPatch[2].v_WorldPos);
+    const float maxEdgeLength = max(AB, max(BC, CA));
+
+    patchOutput.v_EdgeTessFactor[0] = lerp(MIN_TESS_FACTOR, MAX_TESS_FACTOR, AB / maxEdgeLength);
+    patchOutput.v_EdgeTessFactor[1] = lerp(MIN_TESS_FACTOR, MAX_TESS_FACTOR, BC / maxEdgeLength);
+    patchOutput.v_EdgeTessFactor[2] = lerp(MIN_TESS_FACTOR, MAX_TESS_FACTOR, CA / maxEdgeLength);
+    patchOutput.v_InsideTessFactor = MAX_TESS_FACTOR / 2.0;
+
+    return patchOutput;
+}
+
+[domain("tri")]
+[partitioning("fractional_odd")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(NUM_CONTROL_POINTS)]
+[patchconstantfunc("CalcHSPatchConstants")]
+[maxtessfactor(MAX_TESS_FACTOR)]
+VertexOutput mainHS(InputPatch<VertexOutput, NUM_CONTROL_POINTS> inputPatch, uint pointID : SV_OutputControlPointID)
+{
+    return inputPatch[pointID];
+}
+
+[domain("tri")]
+VertexOutput mainDS(const OutputPatch<VertexOutput, NUM_CONTROL_POINTS> patch, HullPatchOutput patchConstantData, float3 bary : SV_DomainLocation)
+{
+    VertexOutput dsOutput;
+    
+    dsOutput.v_Position = patch[0].v_Position * bary.x + patch[1].v_Position * bary.y + patch[2].v_Position * bary.z;
+    dsOutput.v_WorldPos = patch[0].v_WorldPos * bary.x + patch[1].v_WorldPos * bary.y + patch[2].v_WorldPos * bary.z;
+    dsOutput.v_Normal = patch[0].v_Normal * bary.x + patch[1].v_Normal * bary.y + patch[2].v_Normal * bary.z;
+    dsOutput.v_Emission = patch[0].v_Emission * bary.x + patch[1].v_Emission * bary.y + patch[2].v_Emission * bary.z;
+    dsOutput.v_TexCoords = patch[0].v_TexCoords * bary.x + patch[1].v_TexCoords * bary.y + patch[2].v_TexCoords * bary.z;
+    
+    [unroll(3)]
+    for (uint i = 0; i < 3; ++i)
+        dsOutput.v_TangentToWorld[i].xyz = patch[0].v_TangentToWorld[i].xyz * bary.x + patch[1].v_TangentToWorld[i].xyz * bary.y + patch[2].v_TangentToWorld[i].xyz * bary.z;
+    
+    dsOutput.v_SpherePosition = patch[0].v_SpherePosition;
+    dsOutput.v_InstanceUUID = patch[0].v_InstanceUUID;
+    dsOutput.v_IncinerationFactor = patch[0].v_IncinerationFactor;
+    dsOutput.v_CurrentSphereRadius = patch[0].v_CurrentSphereRadius;
+    dsOutput.v_PreviousSphereRadius = patch[0].v_PreviousSphereRadius;
+    dsOutput.v_EpsilonSphereRadius = patch[0].v_EpsilonSphereRadius;
+
+    return dsOutput;
+}
+
+RWStructuredBuffer<IncinerationParticle> u_IncinerationParticles           : register(u5);
+RWBuffer<uint>                           u_IncinerationParticleRangeBuffer : register(u6);
+
+void SpawnIncinerationPartilce(float3 worldPos, float3 velocity, float3 emission, uint2 parentInstanceUUID)
+{
+    uint maxParticlesCount = 0, particleStride = 0;
+    u_IncinerationParticles.GetDimensions(maxParticlesCount, particleStride);
+    
+    uint currentParticlesCount = 0;
+    InterlockedAdd(u_IncinerationParticleRangeBuffer[ParticlesCountIndex], 1, currentParticlesCount);
+    if (currentParticlesCount >= maxParticlesCount)
     {
-        if (vertexID % ParticlesDiscardPercentage == 0)
+        InterlockedAdd(u_IncinerationParticleRangeBuffer[ParticlesCountIndex], -1);
+        return;
+    }
+    
+    const uint particleOffset = u_IncinerationParticleRangeBuffer[ParticleOffsetIndex];
+    const uint particleIndex = (particleOffset + currentParticlesCount) % maxParticlesCount;
+    
+    IncinerationParticle particle;
+    particle.WorldPosition = worldPos;
+    particle.Velocity = velocity;
+    particle.Emission = emission;
+    particle.ParentInstanceUUID = parentInstanceUUID;
+    particle.LifetimeMS = frac(c_TimeMS) * MaxIncinerationParticleLifetimeMS;
+    particle.LifetimePassedMS = 0.0;
+    
+    u_IncinerationParticles[particleIndex] = particle;
+}
+
+static const uint ParticlesDiscardPercentage = 128;
+
+[maxvertexcount(NUM_CONTROL_POINTS)]
+void mainGS(triangle VertexOutput input[3], inout TriangleStream<VertexOutput> output, uint primitiveID : SV_PrimitiveID)
+{
+    const float3 triangleCenter = (input[0].v_WorldPos + input[1].v_WorldPos + input[2].v_WorldPos) / 3.0;
+    
+    const float distanceToIncinerationSphere = distance(triangleCenter, input[0].v_SpherePosition);
+    if (distanceToIncinerationSphere > input[0].v_PreviousSphereRadius && distanceToIncinerationSphere < input[0].v_CurrentSphereRadius)
+    {
+        if (primitiveID % ParticlesDiscardPercentage == 0)
         {
-            const float3 velocity = normalize(vsOutput.v_Normal) * 1.5;
-            SpawnIncinerationPartilce(vsOutput.v_WorldPos, velocity, vsOutput.v_Emission, vsOutput.v_InstanceUUID);
+            const float3 triangleNormal = normalize(input[0].v_Normal + input[1].v_Normal + input[2].v_Normal);
+            const float3 velocity = triangleNormal * 2.0;
+            SpawnIncinerationPartilce(triangleCenter, velocity, input[0].v_Emission, input[0].v_InstanceUUID);
         }
     }
     
-    return vsOutput;
+    [unroll(3)]
+    for (uint i = 0; i < 3; ++i)
+        output.Append(input[i]);
+    
+    output.RestartStrip();
 }
 
 struct PixelOutput
