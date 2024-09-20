@@ -66,6 +66,7 @@ namespace DLEngine
                 { "MAX_INCINERATION_SPHERE_RADIUS"          , ShaderDataType::Float  },
                 { "INCINERATION_DURATION"                   , ShaderDataType::Float  },
                 { "ELAPSED_TIME"                            , ShaderDataType::Float  },
+                { "PARTICLE_DISCARD_DIVISOR"                , ShaderDataType::Uint   }
             },
             InputLayoutType::PerInstance, 1u
         };

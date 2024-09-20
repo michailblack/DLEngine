@@ -190,7 +190,7 @@ namespace DLEngine
 
         struct SBIncinerationParticle
         {
-            static constexpr uint32_t MaxParticlesCount{ 4096u };
+            static constexpr uint32_t MaxParticlesCount{ 8192u };
 
             Math::Vec3 Position;
             Math::Vec3 Velocity;
@@ -220,9 +220,9 @@ namespace DLEngine
 
         ShadowPass();
         GBufferPass();
-        IncinerationParticlesComputePass();
         FullscreenPass();
         SkyboxPass();
+        IncinerationParticlesPass();
         SmokeParticlesPass();
         PostProcessPass();
     }
@@ -1164,36 +1164,6 @@ namespace DLEngine
         );
     }
 
-    void SceneRenderer::IncinerationParticlesComputePass()
-    {
-        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdateIndirectArgsPipelineCompute);
-        Renderer::DispatchCompute(1u, 1u, 1u);
-
-        TextureViewSpecification defaultTextureViewSpecification{};
-
-        TextureViewSpecification depthAttachmentReadViewSpecification{};
-        depthAttachmentReadViewSpecification.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
-        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_COMPUTE_SHADER_BIT,
-            {
-                m_GBufferGeometrySurfaceNormalsCopy,
-                m_GBufferInstanceUUIDCopy,
-                m_GBufferDepthStencilCopy
-
-            },
-            {
-                defaultTextureViewSpecification,
-                defaultTextureViewSpecification,
-                depthAttachmentReadViewSpecification
-            }
-        );
-
-        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdatePipelineCompute);
-        Renderer::DispatchComputeIndirect(m_PBIncinerationParticleRangeBuffer, 3u * sizeof(uint32_t));
-
-        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdateAuxiliaryPipelineCompute);
-        Renderer::DispatchCompute(1u, 1u, 1u);
-    }
-
     void SceneRenderer::FullscreenPass()
     {
         const auto& lightsCount{ m_CBLightsCount->GetLocalData().As<CBLightsCount>() };
@@ -1221,8 +1191,6 @@ namespace DLEngine
         spotShadowMaps.Subresource.BaseLayer = 0u;
         spotShadowMaps.Subresource.LayersCount = lightsCount->SpotLightsCount;
         Renderer::SetTexture2Ds(BP_TEX_SPOT_SHADOW_MAPS, DL_PIXEL_SHADER_BIT, { m_SceneShadowEnvironment.SpotShadowMaps }, { spotShadowMaps });
-
-        Renderer::ClearRenderTargetsState();
 
         TextureViewSpecification defaultTextureViewSpecification{};
 
@@ -1252,20 +1220,6 @@ namespace DLEngine
         );
         Renderer::SubmitFullscreenQuad();
 
-        Renderer::SetPipeline(m_IncinerationParticlesInfluencePipeline, DL_CLEAR_NONE);
-
-        BufferViewSpecification incinerationParticlesBufferViewSpec{};
-        incinerationParticlesBufferViewSpec.FirstElementIndex = 0u;
-        incinerationParticlesBufferViewSpec.ElementCount = SBIncinerationParticle::MaxParticlesCount;
-        Renderer::SetStructuredBuffers(21u, DL_VERTEX_SHADER_BIT, { m_SBIncinerationParticles }, { incinerationParticlesBufferViewSpec });
-
-        BufferViewSpecification incinerationParticlesRangeBufferViewSpec{};
-        incinerationParticlesRangeBufferViewSpec.FirstElementIndex = 0u;
-        incinerationParticlesRangeBufferViewSpec.ElementCount = 16u;
-        Renderer::SetPrimitiveBuffers(22u, DL_VERTEX_SHADER_BIT, { m_PBIncinerationParticleRangeBuffer }, { incinerationParticlesRangeBufferViewSpec });
-
-        Renderer::SubmitParticleBillboardIndirect(m_PBIncinerationParticleRangeBuffer, 6u * sizeof(uint32_t));
-
         m_HDR_ResolveEmissionFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteViewSpecification);
         Renderer::SetPipeline(m_GBufferResolve_EmissionPipeline, DL_CLEAR_NONE);
         Renderer::SubmitFullscreenQuad();
@@ -1282,6 +1236,72 @@ namespace DLEngine
         Renderer::SetPipeline(m_SkyboxPipeline, DL_CLEAR_NONE);
         Renderer::SetTextureCubes(BP_TEX_NEXT_FREE, DL_PIXEL_SHADER_BIT, { m_SceneEnvironment.Skybox }, { defaultTextureViewSpecification });
         Renderer::SubmitFullscreenQuad();
+    }
+
+    void SceneRenderer::IncinerationParticlesPass()
+    {
+        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdateIndirectArgsPipelineCompute);
+        Renderer::DispatchCompute(1u, 1u, 1u);
+
+        TextureViewSpecification defaultTextureViewSpecification{};
+
+        TextureViewSpecification depthAttachmentReadViewSpecification{};
+        depthAttachmentReadViewSpecification.Format = TextureFormat::R24_UNORM_X8_TYPELESS;
+
+        TextureViewSpecification depthAttachmentWriteViewSpecification{};
+        depthAttachmentWriteViewSpecification.Format = TextureFormat::DEPTH24STENCIL8;
+
+        Renderer::SetTexture2Ds(BP_TEX_NEXT_FREE, DL_COMPUTE_SHADER_BIT,
+            {
+                m_GBufferGeometrySurfaceNormalsCopy,
+                m_GBufferInstanceUUIDCopy,
+                m_GBufferDepthStencilCopy
+
+            },
+            {
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                depthAttachmentReadViewSpecification
+            }
+        );
+
+        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdatePipelineCompute);
+        Renderer::DispatchComputeIndirect(m_PBIncinerationParticleRangeBuffer, 3u * sizeof(uint32_t));
+
+        Renderer::SetPipelineCompute(m_IncinerationParticlesUpdateAuxiliaryPipelineCompute);
+        Renderer::DispatchCompute(1u, 1u, 1u);
+
+        Renderer::ClearRenderTargetsState();
+
+        BufferViewSpecification incinerationParticlesBufferViewSpec{};
+        incinerationParticlesBufferViewSpec.FirstElementIndex = 0u;
+        incinerationParticlesBufferViewSpec.ElementCount = SBIncinerationParticle::MaxParticlesCount;
+        Renderer::SetStructuredBuffers(21u, DL_VERTEX_SHADER_BIT, { m_SBIncinerationParticles }, { incinerationParticlesBufferViewSpec });
+
+        BufferViewSpecification incinerationParticlesRangeBufferViewSpec{};
+        incinerationParticlesRangeBufferViewSpec.FirstElementIndex = 0u;
+        incinerationParticlesRangeBufferViewSpec.ElementCount = 16u;
+        Renderer::SetPrimitiveBuffers(22u, DL_VERTEX_SHADER_BIT, { m_PBIncinerationParticleRangeBuffer }, { incinerationParticlesRangeBufferViewSpec });
+
+        m_HDR_ResolvePBR_StaticFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteViewSpecification);
+        Renderer::SetPipeline(m_IncinerationParticlesInfluencePipeline, DL_CLEAR_NONE);
+        Renderer::SetTexture2Ds(BP_TEX_GBUFFER_ALBEDO, DL_PIXEL_SHADER_BIT,
+            {
+                m_GBufferAlbedo,
+                m_GBufferMetalnessRoughness,
+                m_GBufferGeometrySurfaceNormals,
+                m_GBufferEmission,
+                m_GBufferDepthStencilCopy
+            },
+            {
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                defaultTextureViewSpecification,
+                depthAttachmentReadViewSpecification
+            }
+        );
+        Renderer::SubmitParticleBillboardIndirect(m_PBIncinerationParticleRangeBuffer, 6u * sizeof(uint32_t));
 
         m_HDR_ResolveFramebuffer->SetDepthAttachmentViewSpecification(depthAttachmentWriteViewSpecification);
         Renderer::SetPipeline(m_IncinerationParticlesPipeline, DL_CLEAR_NONE);
@@ -1292,7 +1312,7 @@ namespace DLEngine
             {
                 defaultTextureViewSpecification,
             }
-            );
+        );
         Renderer::SubmitParticleBillboardIndirect(m_PBIncinerationParticleRangeBuffer, 6u * sizeof(uint32_t));
     }
 

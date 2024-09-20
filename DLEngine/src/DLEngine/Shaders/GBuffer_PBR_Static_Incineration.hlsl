@@ -23,9 +23,10 @@ struct InstanceInput
     float  a_MaxSphereRadius         : MAX_INCINERATION_SPHERE_RADIUS;
     float  a_IncinerationDuration    : INCINERATION_DURATION;
     float  a_ElapsedTime             : ELAPSED_TIME;
+    uint   a_ParicleDiscardDivisor   : PARTICLE_DISCARD_DIVISOR;
 };
 
-struct VertexOutput
+struct PixelInput
 {
     float4                 v_Position             : SV_POSITION;
     float3x3               v_TangentToWorld       : TANGENT_TO_WORLD;
@@ -37,8 +38,14 @@ struct VertexOutput
     nointerpolation uint2  v_InstanceUUID         : INSTANCE_UUID;
     nointerpolation float  v_IncinerationFactor   : INCINERATION_FACTOR;
     nointerpolation float  v_CurrentSphereRadius  : CURRENT_INCINERATION_SPHERE_RADIUS;
-    nointerpolation float  v_PreviousSphereRadius : PREVIOUS_INCINERATION_SPHERE_RADIUS;
     nointerpolation float  v_EpsilonSphereRadius  : EPSILON_INCINERATION_SPHERE_RADIUS;
+};
+
+struct VertexOutput
+{
+    PixelInput            v_PixelInput             : PIXEL_INPUT;
+    nointerpolation float v_PreviousSphereRadius   : PREVIOUS_INCINERATION_SPHERE_RADIUS;
+    nointerpolation uint  v_ParticleDiscardDivisor : PARTICLE_DISCARD_DIVISOR;
 };
 
 VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, InstanceInput instInput)
@@ -47,29 +54,30 @@ VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, Instance
 
     const float4 vertexPos = mul(float4(vsInput.a_Position, 1.0), transformInput.a_Transform);
 
-    vsOutput.v_WorldPos = vertexPos.xyz;
-    vsOutput.v_Position = mul(vertexPos, c_ViewProjection);
-
-    vsOutput.v_TexCoords = vsInput.a_TexCoords;
-    vsOutput.v_InstanceUUID = instInput.a_InstanceUUID;
+    vsOutput.v_PixelInput.v_WorldPos = vertexPos.xyz;
+    vsOutput.v_PixelInput.v_Position = mul(vertexPos, c_ViewProjection);
 
     const float3x3 normalMatrix = ConstructNormalMatrix(transformInput.a_Transform);
-    vsOutput.v_Normal = mul(vsInput.a_Normal, normalMatrix);
+    vsOutput.v_PixelInput.v_Normal = mul(vsInput.a_Normal, normalMatrix);
     
     const float3 T = mul(vsInput.a_Tangent, normalMatrix);
     const float3 B = mul(vsInput.a_Bitangent, normalMatrix);
-    vsOutput.v_TangentToWorld = float3x3(T, B, vsOutput.v_Normal);
+    vsOutput.v_PixelInput.v_TangentToWorld = float3x3(T, B, vsOutput.v_PixelInput.v_Normal);
 
-    vsOutput.v_SpherePosition = mul(float4(instInput.a_SpherePositionMeshSpace, 1.0), transformInput.a_Transform).xyz;
-    vsOutput.v_Emission = instInput.a_ParticleEmission;
-    vsOutput.v_IncinerationFactor = saturate(instInput.a_ElapsedTime / instInput.a_IncinerationDuration);
-    vsOutput.v_CurrentSphereRadius = instInput.a_MaxSphereRadius * vsOutput.v_IncinerationFactor;
+    vsOutput.v_PixelInput.v_SpherePosition = mul(float4(instInput.a_SpherePositionMeshSpace, 1.0), transformInput.a_Transform).xyz;
+    vsOutput.v_PixelInput.v_Emission = instInput.a_ParticleEmission;
+    vsOutput.v_PixelInput.v_IncinerationFactor = saturate(instInput.a_ElapsedTime / instInput.a_IncinerationDuration);
+    vsOutput.v_PixelInput.v_CurrentSphereRadius = instInput.a_MaxSphereRadius * vsOutput.v_PixelInput.v_IncinerationFactor;
     
     const float incinerationSphereRadiusEpsilon = 0.15;
-    vsOutput.v_EpsilonSphereRadius = vsOutput.v_CurrentSphereRadius * (1.0 - incinerationSphereRadiusEpsilon);
+    vsOutput.v_PixelInput.v_EpsilonSphereRadius = vsOutput.v_PixelInput.v_CurrentSphereRadius * (1.0 - incinerationSphereRadiusEpsilon);
     
     const float previousFrameIncinerationFactor = saturate((instInput.a_ElapsedTime - c_DeltaTimeMS) / instInput.a_IncinerationDuration);
     vsOutput.v_PreviousSphereRadius = instInput.a_MaxSphereRadius * previousFrameIncinerationFactor;
+    
+    vsOutput.v_PixelInput.v_TexCoords = vsInput.a_TexCoords;
+    vsOutput.v_PixelInput.v_InstanceUUID = instInput.a_InstanceUUID;
+    vsOutput.v_ParticleDiscardDivisor = instInput.a_ParicleDiscardDivisor;
     
     return vsOutput;
 }
@@ -81,22 +89,22 @@ struct HullPatchOutput
 };
 
 static const uint NUM_CONTROL_POINTS = 3;
-static const float MAX_TESS_FACTOR = 4.0;
-static const float MIN_TESS_FACTOR = 2.0;
+static const float MAX_TESS_FACTOR = 8.0;
+static const float MIN_TESS_FACTOR = 1.0;
 
 HullPatchOutput CalcHSPatchConstants(InputPatch<VertexOutput, NUM_CONTROL_POINTS> inputPatch)
 {
     HullPatchOutput patchOutput;
 
-    const float AB = length(inputPatch[1].v_WorldPos - inputPatch[0].v_WorldPos);
-    const float BC = length(inputPatch[2].v_WorldPos - inputPatch[1].v_WorldPos);
-    const float CA = length(inputPatch[0].v_WorldPos - inputPatch[2].v_WorldPos);
+    const float AB = length(inputPatch[1].v_PixelInput.v_WorldPos - inputPatch[0].v_PixelInput.v_WorldPos);
+    const float BC = length(inputPatch[2].v_PixelInput.v_WorldPos - inputPatch[1].v_PixelInput.v_WorldPos);
+    const float CA = length(inputPatch[0].v_PixelInput.v_WorldPos - inputPatch[2].v_PixelInput.v_WorldPos);
     const float maxEdgeLength = max(AB, max(BC, CA));
 
     patchOutput.v_EdgeTessFactor[0] = lerp(MIN_TESS_FACTOR, MAX_TESS_FACTOR, AB / maxEdgeLength);
     patchOutput.v_EdgeTessFactor[1] = lerp(MIN_TESS_FACTOR, MAX_TESS_FACTOR, BC / maxEdgeLength);
     patchOutput.v_EdgeTessFactor[2] = lerp(MIN_TESS_FACTOR, MAX_TESS_FACTOR, CA / maxEdgeLength);
-    patchOutput.v_InsideTessFactor = MAX_TESS_FACTOR / 2.0;
+    patchOutput.v_InsideTessFactor = MAX_TESS_FACTOR;
 
     return patchOutput;
 }
@@ -112,27 +120,62 @@ VertexOutput mainHS(InputPatch<VertexOutput, NUM_CONTROL_POINTS> inputPatch, uin
     return inputPatch[pointID];
 }
 
-[domain("tri")]
-VertexOutput mainDS(const OutputPatch<VertexOutput, NUM_CONTROL_POINTS> patch, HullPatchOutput patchConstantData, float3 bary : SV_DomainLocation)
+struct DomainOutput
 {
-    VertexOutput dsOutput;
+    VertexOutput         v_VertexOutput        : VERTEXT_OUTPUT;
+    nointerpolation uint v_TessellatedVertexID : TESSELLATED_VERTEX_ID;
+};
+
+float4 InterpolateBarycentric(float3 bary, float4 a, float4 b, float4 c)
+{
+    return a * bary.x + b * bary.y + c * bary.z;
+}
+
+float3 InterpolateBarycentric(float3 bary, float3 a, float3 b, float3 c)
+{
+    return a * bary.x + b * bary.y + c * bary.z;
+}
+
+float2 InterpolateBarycentric(float3 bary, float2 a, float2 b, float2 c)
+{
+    return a * bary.x + b * bary.y + c * bary.z;
+}
+
+[domain("tri")]
+DomainOutput mainDS(const OutputPatch<VertexOutput, NUM_CONTROL_POINTS> patch, HullPatchOutput patchConstantData, float3 bary : SV_DomainLocation, uint primitiveID : SV_PrimitiveID)
+{
+    DomainOutput dsOutput;
     
-    dsOutput.v_Position = patch[0].v_Position * bary.x + patch[1].v_Position * bary.y + patch[2].v_Position * bary.z;
-    dsOutput.v_WorldPos = patch[0].v_WorldPos * bary.x + patch[1].v_WorldPos * bary.y + patch[2].v_WorldPos * bary.z;
-    dsOutput.v_Normal = patch[0].v_Normal * bary.x + patch[1].v_Normal * bary.y + patch[2].v_Normal * bary.z;
-    dsOutput.v_Emission = patch[0].v_Emission * bary.x + patch[1].v_Emission * bary.y + patch[2].v_Emission * bary.z;
-    dsOutput.v_TexCoords = patch[0].v_TexCoords * bary.x + patch[1].v_TexCoords * bary.y + patch[2].v_TexCoords * bary.z;
+    dsOutput.v_VertexOutput.v_PixelInput.v_Position = InterpolateBarycentric(bary, patch[0].v_PixelInput.v_Position, patch[1].v_PixelInput.v_Position, patch[2].v_PixelInput.v_Position);
+    dsOutput.v_VertexOutput.v_PixelInput.v_WorldPos = InterpolateBarycentric(bary, patch[0].v_PixelInput.v_WorldPos, patch[1].v_PixelInput.v_WorldPos, patch[2].v_PixelInput.v_WorldPos);
+    dsOutput.v_VertexOutput.v_PixelInput.v_Normal = InterpolateBarycentric(bary, patch[0].v_PixelInput.v_Normal, patch[1].v_PixelInput.v_Normal, patch[2].v_PixelInput.v_Normal);
+    dsOutput.v_VertexOutput.v_PixelInput.v_TexCoords = InterpolateBarycentric(bary, patch[0].v_PixelInput.v_TexCoords, patch[1].v_PixelInput.v_TexCoords, patch[2].v_PixelInput.v_TexCoords);
     
     [unroll(3)]
     for (uint i = 0; i < 3; ++i)
-        dsOutput.v_TangentToWorld[i].xyz = patch[0].v_TangentToWorld[i].xyz * bary.x + patch[1].v_TangentToWorld[i].xyz * bary.y + patch[2].v_TangentToWorld[i].xyz * bary.z;
+    {
+        dsOutput.v_VertexOutput.v_PixelInput.v_TangentToWorld[i].xyz = InterpolateBarycentric(bary,
+            patch[0].v_PixelInput.v_TangentToWorld[i].xyz,
+            patch[1].v_PixelInput.v_TangentToWorld[i].xyz,
+            patch[2].v_PixelInput.v_TangentToWorld[i].xyz
+        );
+    }
     
-    dsOutput.v_SpherePosition = patch[0].v_SpherePosition;
-    dsOutput.v_InstanceUUID = patch[0].v_InstanceUUID;
-    dsOutput.v_IncinerationFactor = patch[0].v_IncinerationFactor;
-    dsOutput.v_CurrentSphereRadius = patch[0].v_CurrentSphereRadius;
-    dsOutput.v_PreviousSphereRadius = patch[0].v_PreviousSphereRadius;
-    dsOutput.v_EpsilonSphereRadius = patch[0].v_EpsilonSphereRadius;
+    dsOutput.v_VertexOutput.v_PixelInput.v_Emission = patch[0].v_PixelInput.v_Emission;
+    dsOutput.v_VertexOutput.v_PixelInput.v_SpherePosition = patch[0].v_PixelInput.v_SpherePosition;
+    dsOutput.v_VertexOutput.v_PixelInput.v_InstanceUUID = patch[0].v_PixelInput.v_InstanceUUID;
+    dsOutput.v_VertexOutput.v_PixelInput.v_IncinerationFactor = patch[0].v_PixelInput.v_IncinerationFactor;
+    dsOutput.v_VertexOutput.v_PixelInput.v_CurrentSphereRadius = patch[0].v_PixelInput.v_CurrentSphereRadius;
+    dsOutput.v_VertexOutput.v_PixelInput.v_EpsilonSphereRadius = patch[0].v_PixelInput.v_EpsilonSphereRadius;
+    
+    dsOutput.v_VertexOutput.v_PreviousSphereRadius = patch[0].v_PreviousSphereRadius;
+    dsOutput.v_VertexOutput.v_ParticleDiscardDivisor = patch[0].v_ParticleDiscardDivisor;
+    
+    const uint n = uint(patchConstantData.v_InsideTessFactor);
+    const uint j = uint(bary.y * n + 0.5);
+    const uint k = uint(bary.z * n + 0.5);
+
+    dsOutput.v_TessellatedVertexID = primitiveID + (n - j) * (n - j + 1) / 2 + k;
 
     return dsOutput;
 }
@@ -167,27 +210,46 @@ void SpawnIncinerationPartilce(float3 worldPos, float3 velocity, float3 emission
     u_IncinerationParticles[particleIndex] = particle;
 }
 
-static const uint ParticlesDiscardPercentage = 128;
-
 [maxvertexcount(NUM_CONTROL_POINTS)]
-void mainGS(triangle VertexOutput input[3], inout TriangleStream<VertexOutput> output, uint primitiveID : SV_PrimitiveID)
+void mainGS(triangle DomainOutput input[3], inout TriangleStream<PixelInput> output)
 {
-    const float3 triangleCenter = (input[0].v_WorldPos + input[1].v_WorldPos + input[2].v_WorldPos) / 3.0;
+    const float3 A = input[0].v_VertexOutput.v_PixelInput.v_WorldPos;
+    const float3 B = input[1].v_VertexOutput.v_PixelInput.v_WorldPos;
+    const float3 C = input[2].v_VertexOutput.v_PixelInput.v_WorldPos;
+    const float3 triangleCenter = (A + B + C) / 3.0;
     
-    const float distanceToIncinerationSphere = distance(triangleCenter, input[0].v_SpherePosition);
-    if (distanceToIncinerationSphere > input[0].v_PreviousSphereRadius && distanceToIncinerationSphere < input[0].v_CurrentSphereRadius)
+    const float3 incinerationSpherePosition = input[0].v_VertexOutput.v_PixelInput.v_SpherePosition;
+    const float currentSphereRadius = input[0].v_VertexOutput.v_PixelInput.v_CurrentSphereRadius;
+    const float previousSphereRadius = input[0].v_VertexOutput.v_PreviousSphereRadius;
+    
+    const float distanceToIncinerationSphere = distance(triangleCenter, incinerationSpherePosition);
+    if (distanceToIncinerationSphere > previousSphereRadius && distanceToIncinerationSphere < currentSphereRadius)
     {
-        if (primitiveID % ParticlesDiscardPercentage == 0)
+        const uint particleDiscardDivisor = input[0].v_VertexOutput.v_ParticleDiscardDivisor;
+        
+        bool shouldSpawnParticle = input[0].v_TessellatedVertexID % particleDiscardDivisor == 0 &&
+            input[1].v_TessellatedVertexID % particleDiscardDivisor == 0 &&
+            input[2].v_TessellatedVertexID % particleDiscardDivisor == 0;
+        
+        if (shouldSpawnParticle)
         {
-            const float3 triangleNormal = normalize(input[0].v_Normal + input[1].v_Normal + input[2].v_Normal);
+            const float3 emission = input[0].v_VertexOutput.v_PixelInput.v_Emission;
+            const uint2 parentInstanceUUID = input[0].v_VertexOutput.v_PixelInput.v_InstanceUUID;
+            
+            const float3 normalA = input[0].v_VertexOutput.v_PixelInput.v_Normal;
+            const float3 normalB = input[1].v_VertexOutput.v_PixelInput.v_Normal;
+            const float3 normalC = input[2].v_VertexOutput.v_PixelInput.v_Normal;
+            
+            const float3 triangleNormal = normalize(normalA + normalB + normalC);
             const float3 velocity = triangleNormal * 2.0;
-            SpawnIncinerationPartilce(triangleCenter, velocity, input[0].v_Emission, input[0].v_InstanceUUID);
+            
+            SpawnIncinerationPartilce(triangleCenter, velocity, emission, parentInstanceUUID);
         }
     }
     
     [unroll(3)]
     for (uint i = 0; i < 3; ++i)
-        output.Append(input[i]);
+        output.Append(input[i].v_VertexOutput.v_PixelInput);
     
     output.RestartStrip();
 }
@@ -203,7 +265,7 @@ struct PixelOutput
 
 Texture2D<float> t_IncinerationNoiseMap : register(t20);
 
-PixelOutput mainPS(VertexOutput psInput)
+PixelOutput mainPS(PixelInput psInput)
 {
     const float distanceToIncinerationSphere = distance(psInput.v_WorldPos, psInput.v_SpherePosition);
     const Surface surface = CalculatePBR_Surface(psInput.v_TexCoords, psInput.v_Normal, psInput.v_TangentToWorld);

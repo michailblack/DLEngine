@@ -123,9 +123,9 @@ namespace DLEngine
 
         void ShadowPass();
         void GBufferPass();
-        void IncinerationParticlesComputePass();
         void FullscreenPass();
         void SkyboxPass();
+        void IncinerationParticlesPass();
         void SmokeParticlesPass();
         void PostProcessPass();
 

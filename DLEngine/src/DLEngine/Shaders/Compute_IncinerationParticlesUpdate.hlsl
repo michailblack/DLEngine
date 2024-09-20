@@ -56,9 +56,9 @@ void mainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         if (!all(instanceUUID == particle.ParentInstanceUUID))
         {
             const float3 surfaceNormal = unpackOctahedron(t_GBuffer_GeometrySurfaceNormals.SampleLevel(s_NearestClamp, uv, 0.0).ba);
-            const float3 reflectedVelocity = reflect(particle.Velocity, surfaceNormal);
-            const float particleImpulseMultiplier = lerp(0.1, 0.5, max(dot(normalize(reflectedVelocity), surfaceNormal), Epsilon));
-            particle.Velocity = reflectedVelocity * particleImpulseMultiplier;
+            const float3 reflectedVelocityDir = reflect(normalize(particle.Velocity), surfaceNormal);
+            const float particleImpulseMultiplier = lerp(0.1, 0.5, max(dot(reflectedVelocityDir, surfaceNormal), Epsilon));
+            particle.Velocity = reflectedVelocityDir * length(particle.Velocity) * particleImpulseMultiplier;
         }
     }
     else

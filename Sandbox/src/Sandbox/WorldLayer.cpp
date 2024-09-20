@@ -990,11 +990,18 @@ bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)
             const float incinerationDuration{ DLEngine::RandomGenerator::GenerateRandom(1000.0f, 5000.0f) };
             const float elapsedTime{ 0.0f };
 
+            constexpr float particleDiscardPercentage{ 0.001f };
+            uint32_t overallTrianglesCount{ 0 };
+            for (const auto& submesh : mesh->GetSubmeshes())
+                overallTrianglesCount += static_cast<uint32_t>(submesh.GetTriangles().size());
+            const uint32_t particleDiscardDivisor{ static_cast<uint32_t>(particleDiscardPercentage * overallTrianglesCount) + 1u };
+
             instance->Set("INCINERATION_PARTICLE_EMISSION", DLEngine::Buffer{ &emission, sizeof(DLEngine::Math::Vec3) });
             instance->Set("INCINERATION_SPHERE_POSITION_MESH_SPACE", DLEngine::Buffer{ &spherePositionMeshSpace, sizeof(DLEngine::Math::Vec3) });
             instance->Set("MAX_INCINERATION_SPHERE_RADIUS", DLEngine::Buffer{ &maxSphereRadius, sizeof(float) });
             instance->Set("INCINERATION_DURATION", DLEngine::Buffer{ &incinerationDuration, sizeof(float) });
             instance->Set("ELAPSED_TIME", DLEngine::Buffer{ &elapsedTime, sizeof(float) });
+            instance->Set("PARTICLE_DISCARD_DIVISOR", DLEngine::Buffer{ &particleDiscardDivisor, sizeof(uint32_t) });
 
             const DLEngine::Ref<DLEngine::Texture2D> incinerationNoise{
                 AsRef<DLEngine::Texture2D>(DLEngine::Renderer::GetTextureLibrary()->Get(DLEngine::Texture::GetTextureDirectoryPath() / "Noise_2.dds"))
