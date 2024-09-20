@@ -16,20 +16,20 @@ struct TransformInput
 
 struct InstanceInput
 {
+    uint2 a_InstanceUUID        : INSTANCE_UUID;
     float a_DissolutionDuration : DISSOLUTION_DURATION;
     float a_ElapsedTime         : ELAPSED_TIME;
-    uint2 a_InstanceUUID        : INSTANCE_UUID;
 };
 
 struct VertexOutput
 {
-    float4                v_Position       : SV_POSITION;
-    float3                v_WorldPos       : WORLD_POS;
-    float3                v_Normal         : NORMAL;
-    float3x3              v_TangentToWorld : TANGENT_TO_WORLD;
-    float2                v_TexCoords      : TEXCOORDS;
-    nointerpolation uint2 v_InstanceUUID   : INSTANCE_UUID;
-    nointerpolation float v_Dissolution    : DISSOLUTION_FACTOR;
+    float4                v_Position          : SV_POSITION;
+    float3                v_WorldPos          : WORLD_POS;
+    float3                v_Normal            : NORMAL;
+    float3x3              v_TangentToWorld    : TANGENT_TO_WORLD;
+    float2                v_TexCoords         : TEXCOORDS;
+    nointerpolation uint2 v_InstanceUUID      : INSTANCE_UUID;
+    nointerpolation float v_DissolutionFactor : DISSOLUTION_FACTOR;
 };
 
 VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, InstanceInput instInput)
@@ -50,7 +50,7 @@ VertexOutput mainVS(VertexInput vsInput, TransformInput transformInput, Instance
     const float3 B = mul(vsInput.a_Bitangent, normalMatrix);
     vsOutput.v_TangentToWorld = float3x3(T, B, vsOutput.v_Normal);
 
-    vsOutput.v_Dissolution = saturate(instInput.a_ElapsedTime / instInput.a_DissolutionDuration);
+    vsOutput.v_DissolutionFactor = saturate(instInput.a_ElapsedTime / instInput.a_DissolutionDuration);
     
     vsOutput.v_InstanceUUID = instInput.a_InstanceUUID;
     
@@ -73,7 +73,11 @@ Texture2D<float> t_DissolutionNoiseMap : register(t20);
 PixelOutput mainPS(VertexOutput psInput)
 {
     const float dissolutionNoise = t_DissolutionNoiseMap.Sample(s_NearestWrap, psInput.v_TexCoords).r;
-    clip(psInput.v_Dissolution - dissolutionNoise);
+    
+    const float dissolutionEpsilon = 0.15; // To prevent dissolution dash when dissolution noise is 1.0
+    const float fragmentDissolution = psInput.v_DissolutionFactor + dissolutionEpsilon;
+    
+    clip(fragmentDissolution - dissolutionNoise);
     
     const Surface surface = CalculatePBR_Surface(psInput.v_TexCoords, psInput.v_Normal, psInput.v_TangentToWorld);
     
@@ -82,8 +86,8 @@ PixelOutput mainPS(VertexOutput psInput)
     psOutput.o_MetalnessRoughness = float2(surface.Metalness, surface.Roughness);
     psOutput.o_GeometrySurfaceNormals = float4(packOctahedron(surface.GeometryNormal), packOctahedron(surface.SurfaceNormal));
     
-    const float falloff = 0.15 / Epsilon;
-    const float dissolutionAlpha = saturate((psInput.v_Dissolution - dissolutionNoise) / max(fwidth(psInput.v_Dissolution), Epsilon) / falloff);
+    const float falloff = dissolutionEpsilon / Epsilon;
+    const float dissolutionAlpha = saturate((fragmentDissolution - dissolutionNoise) / max(fwidth(fragmentDissolution), Epsilon) / falloff);
     psOutput.o_Emission = lerp(float4(EmissionColor, 1.0), float4(0.0, 0.0, 0.0, 1.0), dissolutionAlpha);
     
     psOutput.o_InstanceUUID = psInput.v_InstanceUUID;

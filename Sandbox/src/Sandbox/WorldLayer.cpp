@@ -3,6 +3,7 @@
 #include "DLEngine/Core/Application.h"
 #include "DLEngine/Core/Input.h"
 
+#include "DLEngine/Math/Intersections.h"
 #include "DLEngine/Math/Math.h"
 
 #include "DLEngine/Renderer/Renderer.h"
@@ -81,10 +82,12 @@ void WorldLayer::OnUpdate(DLEngine::DeltaTime dt)
             DLEngine::Math::Mat4x4::Translate(sceneCamera.GetUp() * -0.15f)
         };
         
-        m_Scene->GetMeshRegistry().GetInstance(m_FlashlightMeshUUID)->Set("TRANSFORM", DLEngine::Buffer{ &newFlashlightTransform, sizeof(DLEngine::Math::Mat4x4) });
+        DLEngine::Ref<DLEngine::Instance> flashlightInstance{ m_Scene->GetMeshRegistry().GetInstance(m_FlashlightMeshUUID) };
+        flashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &newFlashlightTransform, sizeof(DLEngine::Math::Mat4x4) });
     }
 
-    SwapDissolutionGroupInstances(scaledDeltaTime);
+    ProcessDissolutionGroupInstances(scaledDeltaTime);
+    ProcessIncinerationGroupInstances(scaledDeltaTime);
 
     m_SceneRenderer->RenderScene(m_Scene);
 }
@@ -430,7 +433,7 @@ void WorldLayer::LoadTextures()
     textureSpecification.DebugName = "Torso Roughness";
     textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "models\\samurai\\Torso_Roughness.dds");
 
-    textureSpecification.DebugName = "Dissolution Noise Map";
+    textureSpecification.DebugName = "Noise Map";
     textureLibrary->LoadTexture2D(textureSpecification, textureDirectoryPath / "Noise_2.dds");
 }
 
@@ -825,7 +828,8 @@ void WorldLayer::AddObjectsToScene()
         DLEngine::Ref<DLEngine::Instance> flashlightInstance{ DLEngine::Instance::Create(pbrStaticShader, "PBR_Static Flashlight Instance") };
         flashlightInstance->Set("TRANSFORM", DLEngine::Buffer{ &m_FlashlightBaseTransform, sizeof(DLEngine::Math::Mat4x4) });
 
-        m_FlashlightMeshUUID = sceneMeshRegistry.AddSubmesh(flashlight, 0u, flashlightMaterial, flashlightInstance);
+        sceneMeshRegistry.AddSubmesh(flashlight, 0u, flashlightMaterial, flashlightInstance);
+        m_FlashlightMeshUUID = sceneMeshRegistry.AddSubmesh(flashlight, 1u, flashlightMaterial, flashlightInstance);
 
         m_Scene->AddSpotLight(
             DLEngine::Math::Vec3{ 0.0f },
@@ -840,15 +844,15 @@ void WorldLayer::AddObjectsToScene()
     }
 }
 
-void WorldLayer::SwapDissolutionGroupInstances(DLEngine::DeltaTime dt)
+void WorldLayer::ProcessDissolutionGroupInstances(DLEngine::DeltaTime dt)
 {
     using namespace DLEngine;
 
     auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
 
-    std::erase_if(m_DissolutionGroupMeshes, [&](MeshRegistry::MeshUUID submeshUUID)
+    std::erase_if(m_DissolutionGroupMeshes, [&](MeshRegistry::MeshUUID meshUUID)
         {
-            Ref<Instance> instance{ sceneMeshRegistry.GetInstance(submeshUUID) };
+            Ref<Instance> instance{ sceneMeshRegistry.GetInstance(meshUUID) };
 
             const float dissolutionDuration{ instance->Get<float>("DISSOLUTION_DURATION") };
             const float elapsedTime{ instance->Get<float>("ELAPSED_TIME") };
@@ -859,18 +863,32 @@ void WorldLayer::SwapDissolutionGroupInstances(DLEngine::DeltaTime dt)
             if (elapsedTime < dissolutionDuration)
                 return false;
 
-            const Math::Mat4x4& transform{
-                DLEngine::Math::Mat4x4::Rotate(DLEngine::Math::ToRadians(90.0f), 0.0f, 0.0f) *
-                instance->Get<Math::Mat4x4>("TRANSFORM")
-            };
+            sceneMeshRegistry.SwapShadingGroup(meshUUID, Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static"));
+            return true;
+        }
+    );
+}
 
-            AddPBRSamuraiToScene("GBuffer_PBR_Static",
-                {
-                    { "TRANSFORM", DLEngine::Buffer{ &transform, sizeof(DLEngine::Math::Mat4x4) } },
-                });
+void WorldLayer::ProcessIncinerationGroupInstances(DLEngine::DeltaTime dt)
+{
+    using namespace DLEngine;
 
-            sceneMeshRegistry.RemoveSubmesh(submeshUUID);
+    auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
 
+    std::erase_if(m_IncinerationGroupMeshes, [&](MeshRegistry::MeshUUID meshUUID)
+        {
+            Ref<Instance> instance{ sceneMeshRegistry.GetInstance(meshUUID) };
+
+            const float incinerationDuration{ instance->Get<float>("INCINERATION_DURATION") };
+            const float elapsedTime{ instance->Get<float>("ELAPSED_TIME") };
+
+            const float updatedElapsedTime{ elapsedTime + dt };
+            instance->Set("ELAPSED_TIME", Buffer{ &updatedElapsedTime, sizeof(float) });
+
+            if (elapsedTime < incinerationDuration)
+                return false;
+
+            sceneMeshRegistry.RemoveMesh(meshUUID);
             return true;
         }
     );
@@ -926,6 +944,78 @@ bool WorldLayer::OnKeyPressedEvent(DLEngine::KeyPressedEvent& e)
         };
 
         m_Scene->SpawnDecal(ray, decalTintColor, decalRotation);
+    } break;
+    case VK_DELETE:
+    {
+        const auto& camera{ m_Scene->GetCamera() };
+        const auto& cursorPos{ DLEngine::Input::GetCursorPosition() };
+        DLEngine::Math::Vec3 cursorPosNDC{
+            cursorPos.x / static_cast<float>(m_Scene->GetViewportWidth()) * 2.0f - 1.0f,
+            (1.0f - cursorPos.y / static_cast<float>(m_Scene->GetViewportHeight())) * 2.0f - 1.0f,
+            1.0f
+        };
+
+        DLEngine::Math::Ray ray{};
+        ray.Origin = camera.ConstructFrustumPos(cursorPosNDC);
+        ray.Direction = DLEngine::Math::Normalize(camera.ConstructFrustumPosNoTranslation(cursorPosNDC));
+
+        auto& sceneMeshRegistry{ m_Scene->GetMeshRegistry() };
+        DLEngine::MeshRegistry::IntersectInfo intersectInfo{};
+        if (DLEngine::Math::Intersects(ray, sceneMeshRegistry, intersectInfo))
+        {
+            const DLEngine::Ref<DLEngine::Instance>& intersectedInstance{ sceneMeshRegistry.GetInstance(intersectInfo.UUID) };
+            if (intersectedInstance->GetShader()->GetName() != "GBuffer_PBR_Static" ||
+                intersectedInstance->GetName() == "PBR_Static Flashlight Instance")
+            {
+                return false;
+            }
+
+            m_IncinerationGroupMeshes.emplace(intersectInfo.UUID);
+            sceneMeshRegistry.SwapShadingGroup(intersectInfo.UUID, DLEngine::Renderer::GetShaderLibrary()->Get("GBuffer_PBR_Static_Incineration"));
+            
+            const DLEngine::Ref<DLEngine::Mesh>& mesh{ sceneMeshRegistry.GetMesh(intersectInfo.UUID) };
+            const DLEngine::Math::AABB& meshAABB{ mesh->GetBoundingBox() };
+            DLEngine::Ref<DLEngine::Instance> instance{ sceneMeshRegistry.GetInstance(intersectInfo.UUID) };
+            const DLEngine::Math::Mat4x4& worldToMesh{ DLEngine::Math::Mat4x4::Inverse(instance->Get<DLEngine::Math::Mat4x4>("TRANSFORM")) };
+
+            const DLEngine::Math::Vec3 emission{
+                DLEngine::RandomGenerator::GenerateRandom(0.0f, 1.0f),
+                DLEngine::RandomGenerator::GenerateRandom(0.0f, 1.0f),
+                DLEngine::RandomGenerator::GenerateRandom(0.0f, 1.0f)
+            };
+            const DLEngine::Math::Vec3 spherePositionMeshSpace{
+                DLEngine::Math::PointToSpace(intersectInfo.SubmeshIntersectInfo.TriangleIntersectInfo.IntersectionPoint, worldToMesh)
+            };
+            const float maxSphereRadius{ DLEngine::Math::Length(DLEngine::Math::Vec3{ meshAABB.Max - meshAABB.Min }) };
+            const float incinerationDuration{ DLEngine::RandomGenerator::GenerateRandom(1000.0f, 5000.0f) };
+            const float elapsedTime{ 0.0f };
+
+            constexpr float particleDiscardPercentage{ 0.001f };
+            uint32_t overallTrianglesCount{ 0 };
+            for (const auto& submesh : mesh->GetSubmeshes())
+                overallTrianglesCount += static_cast<uint32_t>(submesh.GetTriangles().size());
+            const uint32_t particleDiscardDivisor{ static_cast<uint32_t>(particleDiscardPercentage * overallTrianglesCount) + 1u };
+
+            instance->Set("INCINERATION_PARTICLE_EMISSION", DLEngine::Buffer{ &emission, sizeof(DLEngine::Math::Vec3) });
+            instance->Set("INCINERATION_SPHERE_POSITION_MESH_SPACE", DLEngine::Buffer{ &spherePositionMeshSpace, sizeof(DLEngine::Math::Vec3) });
+            instance->Set("MAX_INCINERATION_SPHERE_RADIUS", DLEngine::Buffer{ &maxSphereRadius, sizeof(float) });
+            instance->Set("INCINERATION_DURATION", DLEngine::Buffer{ &incinerationDuration, sizeof(float) });
+            instance->Set("ELAPSED_TIME", DLEngine::Buffer{ &elapsedTime, sizeof(float) });
+            instance->Set("PARTICLE_DISCARD_DIVISOR", DLEngine::Buffer{ &particleDiscardDivisor, sizeof(uint32_t) });
+
+            const DLEngine::Ref<DLEngine::Texture2D> incinerationNoise{
+                AsRef<DLEngine::Texture2D>(DLEngine::Renderer::GetTextureLibrary()->Get(DLEngine::Texture::GetTextureDirectoryPath() / "Noise_2.dds"))
+            };
+            for (uint32_t submeshIndex{ 0 }; submeshIndex < mesh->GetSubmeshes().size(); ++submeshIndex)
+            {
+                const DLEngine::Ref<DLEngine::Material>& material{ sceneMeshRegistry.GetMaterial(intersectInfo.UUID, submeshIndex) };
+
+                DLEngine::Ref<DLEngine::Material> newMaterial{ DLEngine::Material::Copy(material) };
+                newMaterial->Set("t_IncinerationNoiseMap", incinerationNoise);
+
+                sceneMeshRegistry.SwapMaterial(intersectInfo.UUID, submeshIndex, newMaterial);
+            }
+        }
     } break;
     default:
         break;

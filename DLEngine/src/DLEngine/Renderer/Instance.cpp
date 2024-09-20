@@ -15,4 +15,9 @@ namespace DLEngine
         return CreateRef<D3D11Instance>(instance, name);
     }
 
+    Ref<Instance> Instance::Copy(const Ref<Instance>& instance, const Ref<Shader>& differentShader, const std::string& name)
+    {
+        return CreateRef<D3D11Instance>(instance, differentShader, name);
+    }
+
 }

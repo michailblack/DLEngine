@@ -31,6 +31,7 @@ namespace DLEngine
         Microsoft::WRL::ComPtr<ID3D11HullShader> GetD3D11HullShader() const noexcept { return m_D3D11HullShader; }
         Microsoft::WRL::ComPtr<ID3D11DomainShader> GetD3D11DomainShader() const noexcept { return m_D3D11DomainShader; }
         Microsoft::WRL::ComPtr<ID3D11GeometryShader> GetD3D11GeometryShader() const noexcept { return m_D3D11GeometryShader; }
+        Microsoft::WRL::ComPtr<ID3D11ComputeShader> GetD3D11ComputeShader() const noexcept { return m_D3D11ComputeShader; }
 
     private:
         ShaderSpecification m_Specification;
@@ -43,6 +44,7 @@ namespace DLEngine
         Microsoft::WRL::ComPtr<ID3D11HullShader> m_D3D11HullShader;
         Microsoft::WRL::ComPtr<ID3D11DomainShader> m_D3D11DomainShader;
         Microsoft::WRL::ComPtr<ID3D11GeometryShader> m_D3D11GeometryShader;
+        Microsoft::WRL::ComPtr<ID3D11ComputeShader> m_D3D11ComputeShader;
 
     private:
         friend class D3D11ShaderCompiler;

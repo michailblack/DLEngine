@@ -16,6 +16,10 @@ namespace DLEngine
 
         virtual void SetTextureView(const std::string& name, const TextureViewSpecification& view) noexcept = 0;
 
+        virtual bool HasSetConstantBuffer(const std::string& name) const noexcept = 0;
+        virtual bool HasSetTexture2D(const std::string& name) const noexcept = 0;
+        virtual bool HasSetTextureCube(const std::string& name) const noexcept = 0;
+
         virtual Ref<ConstantBuffer> GetConstantBuffer(const std::string& name) const noexcept = 0;
         virtual Ref<Texture2D> GetTexture2D(const std::string& name) const noexcept = 0;
         virtual Ref<TextureCube> GetTextureCube(const std::string& name) const noexcept = 0;
@@ -38,6 +42,7 @@ namespace DLEngine
 
         static Ref<Material> Create(const Ref<Shader>& shader, const std::string& name = "");
         static Ref<Material> Copy(const Ref<Material>& material, const std::string& name = "");
+        static Ref<Material> Copy(const Ref<Material>& material, const Ref<Shader>& differentShader, const std::string& name = "");
     };
 
     struct MaterialHash { std::size_t operator()(const Ref<Material>& material) const noexcept { return material->GetHash(); }; };

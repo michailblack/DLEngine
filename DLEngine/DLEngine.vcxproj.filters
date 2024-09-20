@@ -228,6 +228,12 @@
     <ClInclude Include="src\DLEngine\Renderer\RendererEnums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\DLEngine\Renderer\PipelineCompute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DLEngine\DirectX\D3D11PipelineCompute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DLEngine\Core\Window.cpp">
@@ -377,6 +383,12 @@
     <ClCompile Include="src\DLEngine\DirectX\D3D11StructuredBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\DLEngine\Renderer\PipelineCompute.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DLEngine\DirectX\D3D11PipelineCompute.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\DLEngine\Shaders\Include\Buffers.hlsli" />
@@ -386,6 +398,7 @@
     <None Include="src\DLEngine\Shaders\Include\ShadowMapping.hlsli" />
     <None Include="src\DLEngine\Shaders\Include\Lighting.hlsli" />
     <None Include="src\DLEngine\Shaders\Include\GBufferResources.hlsli" />
+    <None Include="src\DLEngine\Shaders\Include\IncinerationParticle.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\DLEngine\Shaders\Include\Samplers.hlsli" />
@@ -406,5 +419,15 @@
     <FxCompile Include="src\DLEngine\Shaders\GBuffer_Decal.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\FXAA.hlsl" />
     <FxCompile Include="src\DLEngine\Shaders\Include\Fxaa3_11.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\GBuffer_PBR_Static_Incineration.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Compute_IncinerationParticlesUpdateIndirectArgs.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Compute_IncinerationParticlesUpdate.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\Compute_IncinerationParticlesAuxiliary.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\IncinerationParticlesInfluence.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\IncinerationParticles.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\ShadowMap_DIrectional_Dissolution.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\ShadowMap_Omnidirectional_Dissolution.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\ShadowMap_DIrectional_Incineration.hlsl" />
+    <FxCompile Include="src\DLEngine\Shaders\ShadowMap_Omnidirectional_Incineration.hlsl" />
   </ItemGroup>
 </Project>

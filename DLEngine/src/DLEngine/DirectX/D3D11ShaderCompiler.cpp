@@ -15,127 +15,9 @@ namespace DLEngine
 {
     namespace Utils
     {
-        ShaderDataType ShaderDataTypeFromD3D11TypeDesc(const D3D11_SHADER_TYPE_DESC& typeDesc)
-        {
-            switch (typeDesc.Type)
-            {
-            case D3D_SVT_FLOAT:
-            {
-                switch (typeDesc.Rows)
-                {
-                case 1:
-                    switch (typeDesc.Columns)
-                    {
-                    case 1: return ShaderDataType::Float;
-                    case 2: return ShaderDataType::Float2;
-                    case 3: return ShaderDataType::Float3;
-                    case 4: return ShaderDataType::Float4;
-                    }
-                case 3:
-                    switch (typeDesc.Columns)
-                    {
-                    case 3: return ShaderDataType::Mat3;
-                    }
-                case 4:
-                    switch (typeDesc.Columns)
-                    {
-                    case 4: return ShaderDataType::Mat4;
-                    }
-                }
-            }
-            case D3D_SVT_INT:
-            {
-                switch (typeDesc.Rows)
-                {
-                case 1:
-                    switch (typeDesc.Columns)
-                    {
-                    case 1: return ShaderDataType::Int;
-                    case 2: return ShaderDataType::Int2;
-                    case 3: return ShaderDataType::Int3;
-                    case 4: return ShaderDataType::Int4;
-                    }
-                }
-            }
-            case D3D_SVT_UINT:
-            {
-                switch (typeDesc.Rows)
-                {
-                case 1:
-                    switch (typeDesc.Columns)
-                    {
-                    case 1: return ShaderDataType::Uint;
-                    case 2: return ShaderDataType::Uint2;
-                    case 3: return ShaderDataType::Uint3;
-                    case 4: return ShaderDataType::Uint4;
-                    }
-                }
-            }
-            case D3D_SVT_BOOL:
-            {
-                switch (typeDesc.Rows)
-                {
-                case 1:
-                    switch (typeDesc.Columns)
-                    {
-                    case 1: return ShaderDataType::Bool;
-                    }
-                }
-            default:
-                DL_ASSERT(false);
-                return ShaderDataType::None;
-            }
-            }
-        }
-
-        ShaderTextureType ShaderTextureTypeFromD3D11Dimension(const D3D_SRV_DIMENSION& dimension)
-        {
-            switch (dimension)
-            {
-            case D3D_SRV_DIMENSION_TEXTURE2D:
-            case D3D_SRV_DIMENSION_TEXTURE2DMS:      return ShaderTextureType::Texture2D;
-            
-            case D3D_SRV_DIMENSION_TEXTURE2DARRAY:
-            case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: return ShaderTextureType::Texture2DArray;
-            
-            case D3D_SRV_DIMENSION_TEXTURECUBE:      return ShaderTextureType::TextureCube;
-            
-            case D3D_SRV_DIMENSION_TEXTURECUBEARRAY: return ShaderTextureType::TextureCubeArray;
-            default: DL_ASSERT(false); return ShaderTextureType::None;
-            }
-        }
-
-        DXGI_FORMAT DXGIFormatFromShaderDataType(ShaderDataType type)
-        {
-            switch (type)
-            {
-            case ShaderDataType::Float:  return DXGI_FORMAT_R32_FLOAT;
-            case ShaderDataType::Float2: return DXGI_FORMAT_R32G32_FLOAT;
-            
-            case ShaderDataType::Mat3:
-            case ShaderDataType::Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
-            
-            case ShaderDataType::Mat4:
-            case ShaderDataType::Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-            
-            case ShaderDataType::Int:    return DXGI_FORMAT_R32_SINT;
-            case ShaderDataType::Int2:   return DXGI_FORMAT_R32G32_SINT;
-            case ShaderDataType::Int3:   return DXGI_FORMAT_R32G32B32_SINT;
-            case ShaderDataType::Int4:   return DXGI_FORMAT_R32G32B32A32_SINT;
-            
-            case ShaderDataType::Bool:
-            case ShaderDataType::Uint:   return DXGI_FORMAT_R32_UINT;
-
-            case ShaderDataType::Uint2:  return DXGI_FORMAT_R32G32_UINT;
-            case ShaderDataType::Uint3:  return DXGI_FORMAT_R32G32B32_UINT;
-            case ShaderDataType::Uint4:  return DXGI_FORMAT_R32G32B32A32_UINT;
-
-            case ShaderDataType::None:
-            default:
-                DL_ASSERT(false);
-                return DXGI_FORMAT_UNKNOWN;
-            }
-        }
+        ShaderDataType ShaderDataTypeFromD3D11TypeDesc(const D3D11_SHADER_TYPE_DESC& typeDesc);
+        ShaderTextureType ShaderTextureTypeFromD3D11Dimension(const D3D_SRV_DIMENSION& dimension);
+        DXGI_FORMAT DXGIFormatFromShaderDataType(ShaderDataType type);
     }
 
     D3D11ShaderIncludeHandler::D3D11ShaderIncludeHandler(std::string baseDirectory)
@@ -186,10 +68,6 @@ namespace DLEngine
     {
         const auto& device{ D3D11Context::Get()->GetDevice5() };
 
-        DL_ASSERT(!m_D3D11Shader->m_Specification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT].empty(),
-            "Vertex shader entry point not specified"
-        );
-
         const auto& specification{ m_D3D11Shader->m_Specification };
 
         m_D3D11ShaderMacros.reserve(specification.Defines.size() + 1u);
@@ -205,7 +83,7 @@ namespace DLEngine
             D3DCOMPILE_ENABLE_STRICTNESS;
 
 #ifdef DL_DEBUG
-        compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+        compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION /*| D3DCOMPILE_WARNINGS_ARE_ERRORS*/;
 #else
         compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
@@ -267,6 +145,30 @@ namespace DLEngine
                 m_D3D11ShaderData[ShaderStage::DL_GEOMETRY_SHADER_BIT]->GetBufferSize(),
                 nullptr,
                 &m_D3D11Shader->m_D3D11GeometryShader
+            ));
+        }
+
+        if (specification.EntryPoints.contains(ShaderStage::DL_COMPUTE_SHADER_BIT))
+        {
+            bool hasRasterizerPipelineShader{ false };
+            hasRasterizerPipelineShader |= specification.EntryPoints.contains(ShaderStage::DL_VERTEX_SHADER_BIT);
+            hasRasterizerPipelineShader |= specification.EntryPoints.contains(ShaderStage::DL_PIXEL_SHADER_BIT);
+            hasRasterizerPipelineShader |= specification.EntryPoints.contains(ShaderStage::DL_HULL_SHADER_BIT);
+            hasRasterizerPipelineShader |= specification.EntryPoints.contains(ShaderStage::DL_DOMAIN_SHADER_BIT);
+            hasRasterizerPipelineShader |= specification.EntryPoints.contains(ShaderStage::DL_GEOMETRY_SHADER_BIT);
+
+            DL_ASSERT(!hasRasterizerPipelineShader,
+                "Compute shader does not belong to Rasetrizer Pipeline and must be compiled separately.\nFile: {0}",
+                m_D3D11Shader->m_Specification.Path.string()
+            );
+
+            const auto entryPoint{ specification.EntryPoints.at(ShaderStage::DL_COMPUTE_SHADER_BIT) };
+            CompilePreProcessedSource(ShaderStage::DL_COMPUTE_SHADER_BIT, entryPoint, compileFlags);
+            DL_THROW_IF_HR(device->CreateComputeShader(
+                m_D3D11ShaderData[ShaderStage::DL_COMPUTE_SHADER_BIT]->GetBufferPointer(),
+                m_D3D11ShaderData[ShaderStage::DL_COMPUTE_SHADER_BIT]->GetBufferSize(),
+                nullptr,
+                &m_D3D11Shader->m_D3D11ComputeShader
             ));
         }
 
@@ -436,6 +338,9 @@ namespace DLEngine
             } break;
             case D3D_SIT_TEXTURE:
             {
+                if (bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
+                    break;
+
                 auto& textures{ m_D3D11Shader->m_ReflectionData.Textures };
 
                 if (textures.contains(bindDesc.Name))
@@ -501,4 +406,128 @@ namespace DLEngine
         }
     }
 
+    namespace Utils
+    {
+        ShaderDataType ShaderDataTypeFromD3D11TypeDesc(const D3D11_SHADER_TYPE_DESC& typeDesc)
+        {
+            switch (typeDesc.Type)
+            {
+            case D3D_SVT_FLOAT:
+            {
+                switch (typeDesc.Rows)
+                {
+                case 1:
+                    switch (typeDesc.Columns)
+                    {
+                    case 1: return ShaderDataType::Float;
+                    case 2: return ShaderDataType::Float2;
+                    case 3: return ShaderDataType::Float3;
+                    case 4: return ShaderDataType::Float4;
+                    }
+                case 3:
+                    switch (typeDesc.Columns)
+                    {
+                    case 3: return ShaderDataType::Mat3;
+                    }
+                case 4:
+                    switch (typeDesc.Columns)
+                    {
+                    case 4: return ShaderDataType::Mat4;
+                    }
+                }
+            }
+            case D3D_SVT_INT:
+            {
+                switch (typeDesc.Rows)
+                {
+                case 1:
+                    switch (typeDesc.Columns)
+                    {
+                    case 1: return ShaderDataType::Int;
+                    case 2: return ShaderDataType::Int2;
+                    case 3: return ShaderDataType::Int3;
+                    case 4: return ShaderDataType::Int4;
+                    }
+                }
+            }
+            case D3D_SVT_UINT:
+            {
+                switch (typeDesc.Rows)
+                {
+                case 1:
+                    switch (typeDesc.Columns)
+                    {
+                    case 1: return ShaderDataType::Uint;
+                    case 2: return ShaderDataType::Uint2;
+                    case 3: return ShaderDataType::Uint3;
+                    case 4: return ShaderDataType::Uint4;
+                    }
+                }
+            }
+            case D3D_SVT_BOOL:
+            {
+                switch (typeDesc.Rows)
+                {
+                case 1:
+                    switch (typeDesc.Columns)
+                    {
+                    case 1: return ShaderDataType::Bool;
+                    }
+                }
+            default:
+                DL_ASSERT(false);
+                return ShaderDataType::None;
+            }
+            }
+        }
+
+        ShaderTextureType ShaderTextureTypeFromD3D11Dimension(const D3D_SRV_DIMENSION& dimension)
+        {
+            switch (dimension)
+            {
+            case D3D_SRV_DIMENSION_TEXTURE2D:
+            case D3D_SRV_DIMENSION_TEXTURE2DMS:      return ShaderTextureType::Texture2D;
+
+            case D3D_SRV_DIMENSION_TEXTURE2DARRAY:
+            case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: return ShaderTextureType::Texture2DArray;
+
+            case D3D_SRV_DIMENSION_TEXTURECUBE:      return ShaderTextureType::TextureCube;
+
+            case D3D_SRV_DIMENSION_TEXTURECUBEARRAY: return ShaderTextureType::TextureCubeArray;
+            default: DL_ASSERT(false); return ShaderTextureType::None;
+            }
+        }
+
+        DXGI_FORMAT DXGIFormatFromShaderDataType(ShaderDataType type)
+        {
+            switch (type)
+            {
+            case ShaderDataType::Float:  return DXGI_FORMAT_R32_FLOAT;
+            case ShaderDataType::Float2: return DXGI_FORMAT_R32G32_FLOAT;
+
+            case ShaderDataType::Mat3:
+            case ShaderDataType::Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
+
+            case ShaderDataType::Mat4:
+            case ShaderDataType::Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+            case ShaderDataType::Int:    return DXGI_FORMAT_R32_SINT;
+            case ShaderDataType::Int2:   return DXGI_FORMAT_R32G32_SINT;
+            case ShaderDataType::Int3:   return DXGI_FORMAT_R32G32B32_SINT;
+            case ShaderDataType::Int4:   return DXGI_FORMAT_R32G32B32A32_SINT;
+
+            case ShaderDataType::Bool:
+            case ShaderDataType::Uint:   return DXGI_FORMAT_R32_UINT;
+
+            case ShaderDataType::Uint2:  return DXGI_FORMAT_R32G32_UINT;
+            case ShaderDataType::Uint3:  return DXGI_FORMAT_R32G32B32_UINT;
+            case ShaderDataType::Uint4:  return DXGI_FORMAT_R32G32B32A32_UINT;
+
+            case ShaderDataType::None:
+            default:
+                DL_ASSERT(false);
+                return DXGI_FORMAT_UNKNOWN;
+            }
+        }
+    }
 }

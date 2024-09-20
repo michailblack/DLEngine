@@ -57,9 +57,9 @@ struct PixelOutput
 
 Texture2D<float4> t_DecalNormalAlpha               : register(t20);
 
-Texture2D<uint2>  t_GBuffer_InstanceUUID           : register(t21);
-Texture2D<float>  t_GBuffer_Depth                  : register(t22);
-Texture2D<float4> t_GBuffer_GeometrySurfaceNormals : register(t23);
+Texture2D<float4> t_GBuffer_GeometrySurfaceNormals : register(t21);
+Texture2D<uint2>  t_GBuffer_InstanceUUID           : register(t22);
+Texture2D<float>  t_GBuffer_Depth                  : register(t23);
 
 static const float NormalThresholdCos = cos(radians(150));
 static const float DecalRoughness     = 0.2;

@@ -149,6 +149,9 @@ namespace DLEngine
         uint32_t m_ViewportWidth;
         uint32_t m_ViewportHeight;
 
+        float m_CurrentTimeMS{ 0.0f };
+        DeltaTime m_CurrentDeltaTime;
+
     private:
         friend class SceneRenderer;
     };

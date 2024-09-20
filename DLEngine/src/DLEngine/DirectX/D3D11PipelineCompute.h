@@ -1,15 +1,12 @@
 #pragma once
-#include "DLEngine/Renderer/Pipeline.h"
-
-#include <d3d11_4.h>
-#include <wrl.h>
+#include "DLEngine/Renderer/PipelineCompute.h"
 
 namespace DLEngine
 {
-    class D3D11Pipeline : public Pipeline
+    class D3D11PipelineCompute : public PipelineCompute
     {
     public:
-        D3D11Pipeline(const PipelineSpecification& specificaton);
+        D3D11PipelineCompute(const PipelineComputeSpecification& specificaton);
 
         void SetRWStructuredBuffer(uint32_t bindPoint, const Ref<StructuredBuffer>& structuredBuffer) noexcept override;
         void SetRWStructuredBufferView(uint32_t bindPoint, const BufferViewSpecification& viewSpecification) noexcept override;
@@ -23,10 +20,10 @@ namespace DLEngine
         const std::map<uint32_t, Ref<PrimitiveBuffer>>& GetRWPrimitiveBuffers() const noexcept override { return m_RWPrimitiveBuffers; }
         const std::map<uint32_t, BufferViewSpecification>& GetRWPrimitiveBufferViews() const noexcept override { return m_RWPrimitiveBufferViews; }
 
-        const PipelineSpecification& GetSpecification() const noexcept override { return m_Specification; }
+        const PipelineComputeSpecification& GetSpecification() const noexcept override { return m_Specification; }
 
     private:
-        PipelineSpecification m_Specification;
+        PipelineComputeSpecification m_Specification;
 
         std::map<uint32_t, Ref<StructuredBuffer>> m_RWStructuredBuffers;
         std::map<uint32_t, BufferViewSpecification> m_RWStructuredBufferViews;

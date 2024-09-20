@@ -15,4 +15,9 @@ namespace DLEngine
         return CreateRef<D3D11Material>(material, name);
     }
 
+    Ref<Material> Material::Copy(const Ref<Material>& material, const Ref<Shader>& differentShader, const std::string& name)
+    {
+        return CreateRef<D3D11Material>(material, differentShader, name);
+    }
+
 }

@@ -28,7 +28,8 @@ private:
     void AddPBRSamuraiToScene(std::string_view shaderName, const std::initializer_list<std::pair<std::string, DLEngine::Buffer>>& instanceData);
     void AddObjectsToScene();
 
-    void SwapDissolutionGroupInstances(DLEngine::DeltaTime dt);
+    void ProcessDissolutionGroupInstances(DLEngine::DeltaTime dt);
+    void ProcessIncinerationGroupInstances(DLEngine::DeltaTime dt);
 
 private:
     bool OnKeyPressedEvent(DLEngine::KeyPressedEvent& e);
@@ -47,6 +48,8 @@ private:
 
     DissolutionGroupSpawnSettings m_DissolutionGroupSpawnSettings{};
     std::unordered_set<DLEngine::MeshRegistry::MeshUUID> m_DissolutionGroupMeshes{};
+
+    std::unordered_set<DLEngine::MeshRegistry::MeshUUID> m_IncinerationGroupMeshes{};
 
     DLEngine::SmokeEmitter m_SmokeEmitterToSpawn{};
     float m_SmokeEmitterSpawnDistanceToCamera{ 1.5f };

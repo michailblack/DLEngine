@@ -42,15 +42,67 @@ namespace DLEngine
         };
         gBufferPBR_Static_DissolutionSpecification.InputLayouts[2u] = {
             VertexBufferLayout{
+                { "INSTANCE_UUID"       , ShaderDataType::Uint2 },
                 { "DISSOLUTION_DURATION", ShaderDataType::Float },
-                { "ELAPSED_TIME"        , ShaderDataType::Float },
-                { "INSTANCE_UUID"       , ShaderDataType::Uint2 }
+                { "ELAPSED_TIME"        , ShaderDataType::Float }
             },
             InputLayoutType::PerInstance, 1u
         };
         gBufferPBR_Static_DissolutionSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
         gBufferPBR_Static_DissolutionSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
         Load(gBufferPBR_Static_DissolutionSpecification);
+
+        ShaderSpecification gBufferPBR_Static_IncinerationSpecification{};
+        gBufferPBR_Static_IncinerationSpecification.Path = Shader::GetShaderDirectoryPath() / "GBuffer_PBR_Static_Incineration.hlsl";
+        gBufferPBR_Static_IncinerationSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        gBufferPBR_Static_IncinerationSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
+        };
+        gBufferPBR_Static_IncinerationSpecification.InputLayouts[2u] = {
+            VertexBufferLayout{
+                { "INCINERATION_PARTICLE_EMISSION"          , ShaderDataType::Float3 },
+                { "INCINERATION_SPHERE_POSITION_MESH_SPACE" , ShaderDataType::Float3 },
+                { "INSTANCE_UUID"                           , ShaderDataType::Uint2  },
+                { "MAX_INCINERATION_SPHERE_RADIUS"          , ShaderDataType::Float  },
+                { "INCINERATION_DURATION"                   , ShaderDataType::Float  },
+                { "ELAPSED_TIME"                            , ShaderDataType::Float  },
+                { "PARTICLE_DISCARD_DIVISOR"                , ShaderDataType::Uint   }
+            },
+            InputLayoutType::PerInstance, 1u
+        };
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_HULL_SHADER_BIT] = "mainHS";
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_DOMAIN_SHADER_BIT] = "mainDS";
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
+        gBufferPBR_Static_IncinerationSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(gBufferPBR_Static_IncinerationSpecification);
+
+        ShaderSpecification compute_IncinerationParticlesUpdateIndirectArgsSpecification{};
+        compute_IncinerationParticlesUpdateIndirectArgsSpecification.Path = Shader::GetShaderDirectoryPath() / "Compute_IncinerationParticlesUpdateIndirectArgs.hlsl";
+        compute_IncinerationParticlesUpdateIndirectArgsSpecification.EntryPoints[ShaderStage::DL_COMPUTE_SHADER_BIT] = "mainCS";
+        Load(compute_IncinerationParticlesUpdateIndirectArgsSpecification);
+
+        ShaderSpecification compute_IncinerationParticlesUpdateSpecification{};
+        compute_IncinerationParticlesUpdateSpecification.Path = Shader::GetShaderDirectoryPath() / "Compute_IncinerationParticlesUpdate.hlsl";
+        compute_IncinerationParticlesUpdateSpecification.EntryPoints[ShaderStage::DL_COMPUTE_SHADER_BIT] = "mainCS";
+        Load(compute_IncinerationParticlesUpdateSpecification);
+
+        ShaderSpecification compute_IncinerationParticlesAuxiliarySpecification{};
+        compute_IncinerationParticlesAuxiliarySpecification.Path = Shader::GetShaderDirectoryPath() / "Compute_IncinerationParticlesAuxiliary.hlsl";
+        compute_IncinerationParticlesAuxiliarySpecification.EntryPoints[ShaderStage::DL_COMPUTE_SHADER_BIT] = "mainCS";
+        Load(compute_IncinerationParticlesAuxiliarySpecification);
+
+        ShaderSpecification incinerationParticlesInfluenceSpecification{};
+        incinerationParticlesInfluenceSpecification.Path = Shader::GetShaderDirectoryPath() / "IncinerationParticlesInfluence.hlsl";
+        incinerationParticlesInfluenceSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        incinerationParticlesInfluenceSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(incinerationParticlesInfluenceSpecification);
+
+        ShaderSpecification incinerationParticlesSpecification{};
+        incinerationParticlesSpecification.Path = Shader::GetShaderDirectoryPath() / "IncinerationParticles.hlsl";
+        incinerationParticlesSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        incinerationParticlesSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(incinerationParticlesSpecification);
 
         ShaderSpecification gBufferEmissionSpecification{};
         gBufferEmissionSpecification.Path = Shader::GetShaderDirectoryPath() / "GBuffer_Emission.hlsl";
@@ -116,6 +168,45 @@ namespace DLEngine
         shadowMapDirectionalSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
         Load(shadowMapDirectionalSpecification);
 
+        ShaderSpecification shadowMapDirectionalDissolutionSpecification{};
+        shadowMapDirectionalDissolutionSpecification.Path = Shader::GetShaderDirectoryPath() / "ShadowMap_Directional_Dissolution.hlsl";
+        shadowMapDirectionalDissolutionSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        shadowMapDirectionalDissolutionSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
+        };
+        shadowMapDirectionalDissolutionSpecification.InputLayouts[2u] = {
+            VertexBufferLayout{
+                { "INSTANCE_UUID"       , ShaderDataType::Uint2 },
+                { "DISSOLUTION_DURATION", ShaderDataType::Float },
+                { "ELAPSED_TIME"        , ShaderDataType::Float }
+            },
+            InputLayoutType::PerInstance, 1u
+        };
+        shadowMapDirectionalDissolutionSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        shadowMapDirectionalDissolutionSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(shadowMapDirectionalDissolutionSpecification);
+
+        ShaderSpecification shadowMapDirectionalIncinerationSpecification{};
+        shadowMapDirectionalIncinerationSpecification.Path = Shader::GetShaderDirectoryPath() / "ShadowMap_Directional_Incineration.hlsl";
+        shadowMapDirectionalIncinerationSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        shadowMapDirectionalIncinerationSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
+        };
+        shadowMapDirectionalIncinerationSpecification.InputLayouts[2u] = {
+            VertexBufferLayout{
+                { "INCINERATION_PARTICLE_EMISSION"          , ShaderDataType::Float3 },
+                { "INCINERATION_SPHERE_POSITION_MESH_SPACE" , ShaderDataType::Float3 },
+                { "INSTANCE_UUID"                           , ShaderDataType::Uint2  },
+                { "MAX_INCINERATION_SPHERE_RADIUS"          , ShaderDataType::Float  },
+                { "INCINERATION_DURATION"                   , ShaderDataType::Float  },
+                { "ELAPSED_TIME"                            , ShaderDataType::Float  },
+            },
+            InputLayoutType::PerInstance, 1u
+        };
+        shadowMapDirectionalIncinerationSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        shadowMapDirectionalIncinerationSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(shadowMapDirectionalIncinerationSpecification);
+
         ShaderSpecification shadowMapOmnidirectionalSpecification{};
         shadowMapOmnidirectionalSpecification.Path = Shader::GetShaderDirectoryPath() / "ShadowMap_Omnidirectional.hlsl";
         shadowMapOmnidirectionalSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
@@ -125,6 +216,47 @@ namespace DLEngine
         shadowMapOmnidirectionalSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
         shadowMapOmnidirectionalSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
         Load(shadowMapOmnidirectionalSpecification);
+
+        ShaderSpecification shadowMapOmnidirectionalDissolutionSpecification{};
+        shadowMapOmnidirectionalDissolutionSpecification.Path = Shader::GetShaderDirectoryPath() / "ShadowMap_Omnidirectional_Dissolution.hlsl";
+        shadowMapOmnidirectionalDissolutionSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        shadowMapOmnidirectionalDissolutionSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
+        };
+        shadowMapOmnidirectionalDissolutionSpecification.InputLayouts[2u] = {
+            VertexBufferLayout{
+                { "INSTANCE_UUID"       , ShaderDataType::Uint2 },
+                { "DISSOLUTION_DURATION", ShaderDataType::Float },
+                { "ELAPSED_TIME"        , ShaderDataType::Float }
+            },
+            InputLayoutType::PerInstance, 1u
+        };
+        shadowMapOmnidirectionalDissolutionSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        shadowMapOmnidirectionalDissolutionSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
+        shadowMapOmnidirectionalDissolutionSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(shadowMapOmnidirectionalDissolutionSpecification);
+
+        ShaderSpecification shadowMapOmnidirectionalIncinerationSpecification{};
+        shadowMapOmnidirectionalIncinerationSpecification.Path = Shader::GetShaderDirectoryPath() / "ShadowMap_Omnidirectional_Incineration.hlsl";
+        shadowMapOmnidirectionalIncinerationSpecification.InputLayouts[0u] = { Mesh::GetCommonVertexBufferLayout(), InputLayoutType::PerVertex, 0u };
+        shadowMapOmnidirectionalIncinerationSpecification.InputLayouts[1u] = {
+            VertexBufferLayout{ { "TRANSFORM", ShaderDataType::Mat4 } }, InputLayoutType::PerInstance, 1u
+        };
+        shadowMapOmnidirectionalIncinerationSpecification.InputLayouts[2u] = {
+            VertexBufferLayout{
+                { "INCINERATION_PARTICLE_EMISSION"          , ShaderDataType::Float3 },
+                { "INCINERATION_SPHERE_POSITION_MESH_SPACE" , ShaderDataType::Float3 },
+                { "INSTANCE_UUID"                           , ShaderDataType::Uint2  },
+                { "MAX_INCINERATION_SPHERE_RADIUS"          , ShaderDataType::Float  },
+                { "INCINERATION_DURATION"                   , ShaderDataType::Float  },
+                { "ELAPSED_TIME"                            , ShaderDataType::Float  },
+            },
+            InputLayoutType::PerInstance, 1u
+        };
+        shadowMapOmnidirectionalIncinerationSpecification.EntryPoints[ShaderStage::DL_VERTEX_SHADER_BIT] = "mainVS";
+        shadowMapOmnidirectionalIncinerationSpecification.EntryPoints[ShaderStage::DL_GEOMETRY_SHADER_BIT] = "mainGS";
+        shadowMapOmnidirectionalIncinerationSpecification.EntryPoints[ShaderStage::DL_PIXEL_SHADER_BIT] = "mainPS";
+        Load(shadowMapOmnidirectionalIncinerationSpecification);
 
         ShaderSpecification smokeParticleSpecification{};
         smokeParticleSpecification.Path = Shader::GetShaderDirectoryPath() / "SmokeParticle.hlsl";

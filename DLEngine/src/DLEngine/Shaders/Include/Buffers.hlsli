@@ -7,6 +7,10 @@ cbuffer SceneData : register(b0)
     float c_ViewportHeight;
     float c_InvViewportWidth;
     float c_InvViewportHeight;
+    float c_TimeS;
+    float c_TimeMS;
+    float c_DeltaTimeS;
+    float c_DeltaTimeMS;
 }
 
 cbuffer Camera : register(b1)

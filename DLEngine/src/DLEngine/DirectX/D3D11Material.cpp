@@ -26,6 +26,33 @@ namespace DLEngine
         m_TextureShaderStages = d3d11Material->m_TextureShaderStages;
     }
 
+    D3D11Material::D3D11Material(const Ref<Material>& material, const Ref<Shader>& differentShader, const std::string& name) noexcept
+        : D3D11Material(differentShader, name)
+    {
+        const auto& d3d11Material{ AsRef<D3D11Material>(material) };
+        const auto& shaderReflectionData{ AsRef<D3D11Shader>(differentShader)->GetReflectionData() };
+
+        for (const auto& [cbName, buffer] : shaderReflectionData.ConstantBuffers)
+        {
+            if (d3d11Material->HasSetConstantBuffer(cbName))
+                Set(cbName, d3d11Material->GetConstantBuffer(cbName));
+        }
+
+        for (const auto& [texName, texture] : shaderReflectionData.Textures)
+        {
+            if (d3d11Material->HasSetTexture2D(texName))
+                Set(texName, d3d11Material->GetTexture2D(texName));
+            else if (d3d11Material->HasSetTextureCube(texName))
+                Set(texName, d3d11Material->GetTextureCube(texName));
+        }
+
+        for (const auto& [bindPoint, textureView] : d3d11Material->m_TextureViews)
+        {
+            if (m_Texture2Ds.contains(bindPoint) || m_TextureCubes.contains(bindPoint))
+                m_TextureViews[bindPoint] = textureView;
+        }
+    }
+
     void D3D11Material::Set(const std::string& name, const Ref<ConstantBuffer>& buffer) noexcept
     {
         DL_ASSERT(buffer, "Trying to set an empty constant buffer in the material [{0}] for [{1}]", m_Name, name);
@@ -68,6 +95,36 @@ namespace DLEngine
         const auto shaderTexture{ FindTexture(name) };
 
         m_TextureViews[shaderTexture.BindPoint] = view;
+    }
+
+    bool D3D11Material::HasSetConstantBuffer(const std::string& name) const noexcept
+    {
+        const auto& shaderReflectionData{ AsRef<D3D11Shader>(m_Shader)->GetReflectionData() };
+        if (!shaderReflectionData.ConstantBuffers.contains(name))
+            return false;
+
+        const auto shaderConstantBuffer{ FindConstantBuffer(name) };
+        return m_ConstantBuffers.contains(shaderConstantBuffer.BindPoint);
+    }
+
+    bool D3D11Material::HasSetTexture2D(const std::string& name) const noexcept
+    {
+        const auto& shaderReflectionData{ AsRef<D3D11Shader>(m_Shader)->GetReflectionData() };
+        if (!shaderReflectionData.Textures.contains(name))
+            return false;
+
+        const auto shaderTexture{ FindTexture(name) };
+        return m_Texture2Ds.contains(shaderTexture.BindPoint);
+    }
+
+    bool D3D11Material::HasSetTextureCube(const std::string& name) const noexcept
+    {
+        const auto& shaderReflectionData{ AsRef<D3D11Shader>(m_Shader)->GetReflectionData() };
+        if (!shaderReflectionData.Textures.contains(name))
+            return false;
+
+        const auto shaderTexture{ FindTexture(name) };
+        return m_TextureCubes.contains(shaderTexture.BindPoint);
     }
 
     Ref<ConstantBuffer> D3D11Material::GetConstantBuffer(const std::string& name) const noexcept
