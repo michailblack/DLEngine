@@ -48,7 +48,10 @@ void mainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float4 fragmentWorldPos = mul(float4(particleNDCPos.xy, sceneDepth, 1.0), c_InvViewProjection);
     fragmentWorldPos /= fragmentWorldPos.w;
     
-    if (distance(nextParticleWorldPos, fragmentWorldPos.xyz) < 2.0 * ParticlePointLightWorldRadius)
+    const float3 fragmentToParticle = nextParticleWorldPos - fragmentWorldPos.xyz;
+    const float3 cameraForward = normalize(c_View[2].xyz);
+    
+    if (length(fragmentToParticle) < 2.0 * ParticlePointLightWorldRadius && dot(normalize(fragmentToParticle), cameraForward) > 0.0)
     {
         const uint2 pixelCoords = uint2(uv * float2(c_ViewportWidth, c_ViewportHeight));
         const uint2 instanceUUID = t_GBuffer_InstanceUUID.Load(int3(pixelCoords, 0)).rg;
